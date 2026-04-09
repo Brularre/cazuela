@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
+from app.db.users import get_or_create_user
 
 app = FastAPI(title="Cazuela")
 
@@ -12,10 +13,11 @@ def health():
 @app.post("/webhook")
 async def webhook(request: Request):
     form = await request.form()
-    body = form.get("Body", "")
+    body = form.get("Body", "").strip()
     sender = form.get("From", "")
 
-    print(f"Mensaje de {sender}: {body}")
+    user = get_or_create_user(sender)
+    print(f"Mensaje de {user['phone']}: {body}")
 
     reply = MessagingResponse()
     reply.message("Hola! Soy Cazuela. Todavía estoy en construcción 🍲")
