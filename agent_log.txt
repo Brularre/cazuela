@@ -226,6 +226,21 @@ rather than reconstructed retroactively.
 
 ---
 
+## 2026-04-09 — Phase 0 complete: end-to-end WhatsApp loop working
+
+**Suggested:**
+Deploy to Railway as the public webhook URL instead of using ngrok.
+
+**Decision:** Accepted
+
+**Rationale:**
+Work machine security software blocks all tunneling processes.
+Railway gives a permanent public HTTPS URL that Twilio can reach,
+and auto-deploys on every push to main.
+Verified end-to-end: WhatsApp message → Twilio → Railway webhook → reply received.
+
+---
+
 ## 2026-04-09 — Local tunnel replacement: Railway early deployment
 
 **Suggested:**
