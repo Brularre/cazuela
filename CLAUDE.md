@@ -121,8 +121,12 @@ The agent must distinguish between:
 ### DINERO (Money)
 - Expense tracking → amount, category (fixed list, AI-mapped), note, date
 - Receipt scanning → send photo → Claude vision extracts expense automatically
+- Voice notes → send audio → Whisper transcribes → processed like text
+  (OpenAI Whisper API, ~$0.006/min, handles Spanish well)
 - Budget → spending limits per category, alerts when approaching
 - Savings goals → "quiero ahorrar X para Y en Z fecha" → tracks progress passively
+- Email notifications → weekly summary, budget alerts, savings progress
+  (via Resend API, free tier covers personal use)
 
 **Expense categories (fixed):**
 comida, transporte, salud, hogar, entretenimiento, ropa, tecnología, educación, viajes, otros
@@ -161,9 +165,9 @@ comida, transporte, salud, hogar, entretenimiento, ropa, tecnología, educación
 | Phase | What | Notes |
 |-------|------|-------|
 | **0** | Infrastructure | Twilio webhook, user registration, Supabase setup, ngrok |
-| **1** | Core agent + Expenses | Claude integration, intent parsing, expense tracking, receipt scanning, quick notes |
+| **1** | Core agent + Expenses | Claude integration, intent parsing, expense tracking, receipt scanning, voice notes, quick notes |
 | **2** | Todos + Reminders + Google Calendar | Background scheduler for proactive messages |
-| **3** | Budget + Savings goals | Money module complete |
+| **3** | Budget + Savings goals + Email notifications | Money module complete |
 | **4** | Shopping list + Wishlist | Simple lists |
 | **5** | Despensa + Google Sheets + Meal planning | Food module, full integration |
 | **6** | Dashboard (Next.js) | Visual layer on working data |
