@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Linting...",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; echo \"$f\" | grep -q '\\.py$' && /Users/blarr/Code/cazuela/backend/.venv/bin/ruff check \"$f\"; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
