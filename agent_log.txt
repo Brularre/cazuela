@@ -1,0 +1,246 @@
+# Cazuela — Agent Log
+# Documents AI suggestions made during development: what was proposed, what was decided, and why.
+# Format: one entry per decision. Use /agent-log-entry to add new entries.
+
+---
+
+## 2026-04-08 — WhatsApp provider selection
+
+**Suggested:**
+Use Twilio over Meta's direct WhatsApp Business API
+or unofficial libraries (WhatsApp Web.js).
+
+**Decision:** Accepted
+
+**Rationale:**
+Twilio sandbox eliminates Meta business verification wait (days to weeks).
+Cost is negligible for personal use (~$0.005/msg).
+Unofficial libraries risk account bans — not acceptable for a project meant to be shared.
+
+---
+
+## 2026-04-08 — Database selection
+
+**Suggested:**
+Supabase (managed Postgres) over SQLite, MongoDB Atlas, or Railway Postgres.
+
+**Decision:** Accepted
+
+**Rationale:**
+Supabase's UI for browsing data is a significant quality-of-life advantage during development.
+SQLite is ruled out because it doesn't survive deploys on ephemeral filesystems.
+MongoDB's document model adds unnecessary complexity for relational data like expenses and users.
+
+---
+
+## 2026-04-08 — Monorepo vs separate repositories
+
+**Suggested:**
+Single monorepo for backend (Python/FastAPI) and frontend (Next.js).
+
+**Decision:** Accepted
+
+**Rationale:**
+One developer, one product — separate repos add overhead with no benefit at this scale.
+Shared types between backend and frontend are easier to manage.
+Splitting later is straightforward; merging is not.
+
+---
+
+## 2026-04-08 — Deployment model (shared instance vs self-hosted)
+
+**Suggested:**
+Hybrid — single hosted instance where users are identified by WhatsApp number,
+with users optionally bringing their own Anthropic API key.
+Self-hosting documented for technical users.
+
+**Decision:** Accepted
+
+**Rationale:**
+Non-technical friends can use a shared instance with zero setup (just save a contact).
+Technical users can self-host for full data control.
+Broader reach than pure self-hosted model without the complexity of managing per-user infrastructure.
+
+---
+
+## 2026-04-08 — AI mode vs manual mode
+
+**Suggested:**
+Manual mode (regex/keyword parsing) as default.
+AI mode (Claude Haiku) unlocked when user provides their own Anthropic API key.
+
+**Decision:** Accepted
+
+**Rationale:**
+Keeps the app free to run for users who don't want to pay for AI.
+Manual mode also works as a fallback and is faster for structured inputs.
+The cost split is fair — users who want AI pay for their own usage.
+
+---
+
+## 2026-04-08 — Stateful conversation memory
+
+**Suggested:**
+Store last ~10 messages per user in DB and pass as context to Claude on each call.
+Store long-term preferences in user profile.
+
+**Decision:** Accepted
+
+**Rationale:**
+Gives the personal assistant feel at minimal cost (~$0.001 extra per call with Haiku).
+The stateless alternative forces every message to be fully self-contained,
+which breaks natural conversation flow.
+
+---
+
+## 2026-04-08 — Google Calendar integration for reminders
+
+**Suggested by user, feasibility confirmed:**
+Use Google Calendar API (OAuth2 per user) for reading and writing events.
+Background scheduler checks for upcoming events and sends proactive WhatsApp reminders.
+
+**Decision:** Accepted
+
+**Rationale:**
+Leverages an existing system the user already uses.
+OAuth2 is the main complexity — deferred to Phase 2.
+Proactive messaging requires a background scheduler, planned as separate infrastructure from the start.
+
+---
+
+## 2026-04-08 — Fixed expense categories with AI mapping
+
+**Suggested:**
+Define a fixed category list
+(comida, transporte, salud, hogar, entretenimiento, ropa, tecnología, educación, viajes, otros).
+Claude maps free-text descriptions to this list.
+
+**Decision:** Accepted over free-form categories
+
+**Rationale:**
+Fixed categories make dashboard charts and budget limits consistent and queryable.
+Free-form categories make aggregation unreliable.
+AI mapping gives the flexibility of natural language while keeping data structured.
+
+---
+
+## 2026-04-08 — Savings goals module
+
+**Suggested:**
+Add savings goals ("quiero ahorrar X para Y en Z fecha")
+that track progress passively against logged expenses.
+
+**Decision:** Accepted — added to Phase 3
+
+**Rationale:**
+Natural complement to expense tracking.
+Turns the money module from passive bookkeeping into an active motivator.
+Data model is simple (target, current, deadline).
+
+---
+
+## 2026-04-08 — Quick capture / notes module
+
+**Suggested:**
+Add a free-form notes module (brain dump) for things that don't fit other categories.
+
+**Decision:** Accepted
+
+**Rationale:**
+Without a catch-all, users stop using the tool when they have something to say that doesn't fit a box.
+Notes are the escape hatch that keeps the interface feeling open-ended.
+
+---
+
+## 2026-04-08 — Receipt photo scanning
+
+**Suggested:**
+WhatsApp image messages trigger Claude vision to extract expense data automatically.
+
+**Decision:** Accepted — included in Phase 1
+
+**Rationale:**
+Snapping a receipt is faster than typing.
+Significant UX improvement with minimal extra code (same API call, different input type).
+Makes expense logging feel effortless.
+
+---
+
+## 2026-04-08 — Despensa via Google Sheets
+
+**Suggested by user, architecture shaped collaboratively:**
+Home supplies (food pantry, cleaning products) tracked in a user-controlled Google Sheet
+with item/quantity/threshold columns.
+Cazuela reads and updates the sheet.
+When quantity falls below threshold, item is auto-suggested to the shopping list.
+
+**Decision:** Accepted — Phase 5
+
+**Rationale:**
+Google Sheets gives a familiar interface for setup and manual editing
+without building a separate inventory UI.
+Auto-suggesting items to the shopping list makes the despensa connection seamless.
+
+---
+
+## 2026-04-08 — Frontend styling: no Tailwind
+
+**Suggested (implicitly, as common default):**
+Tailwind CSS for frontend styling.
+
+**Decision:** Rejected — plain CSS classes preferred (CSS modules or global stylesheets)
+
+**Rationale:**
+Bruno's preference.
+He's comfortable with CSS and doesn't want utility-class frameworks
+adding a layer of abstraction he doesn't need.
+
+---
+
+## 2026-04-08 — Subagents with git worktrees by default
+
+**Suggested by user, workflow designed collaboratively:**
+Subagents implement features in isolated git worktrees.
+Main thread reviews, explains, and decides before merging.
+
+**Decision:** Accepted
+
+**Rationale:**
+Worktrees keep subagent changes isolated until reviewed — no risk of partial work landing on main.
+Separation of implementation (subagent) and review (main thread)
+mirrors a real engineering workflow and is better for learning.
+
+---
+
+## 2026-04-08 — Skill priority order
+
+**Suggested:**
+Build `agent-log-entry` skill first, before any feature code.
+
+**Decision:** Accepted
+
+**Rationale:**
+The log needs to exist before decisions are made, not after.
+Starting with the logging infrastructure ensures every decision from day one is captured
+rather than reconstructed retroactively.
+
+---
+
+## 2026-04-09 — Local tunnel replacement: Railway early deployment
+
+**Suggested:**
+Replace ngrok/localtunnel with Railway deployment for Twilio webhook testing.
+Bruno is on a work machine with endpoint security software
+that kills all tunneling processes (SSH, git-remote-https, localtunnel).
+
+**Decision:** Accepted
+
+**Rationale:**
+No tunneling tool can be installed or run on the machine.
+Railway deployment (triggered by git push) takes ~30 seconds
+and provides a real HTTPS URL for Twilio.
+All logic testing (unit + integration) remains fully local.
+Only Twilio webhook testing requires a push — a minor tradeoff
+that results in a more realistic dev workflow anyway.
+
+---
