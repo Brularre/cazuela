@@ -67,7 +67,5 @@ def save_expense(amount: float, description: str, user: dict) -> str:
         "note": description,
     }).execute()
 
-    return (
-        f"✓ Gasto guardado\n"
-        f"${amount:,.0f} · {category} · {description}"
-    )
+    formatted = "$" + f"{amount:,.0f}".replace(",", ".")
+    return f"✓ Gasto guardado\n{formatted} · {category} · {description}"

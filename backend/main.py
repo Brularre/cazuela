@@ -1,5 +1,10 @@
+import csv
+import io
+import json
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import StreamingResponse
 from twilio.twiml.messaging_response import MessagingResponse
+from app.db import client
 from app.db.users import get_or_create_user
 from app.router import route
 
@@ -24,3 +29,34 @@ async def webhook(request: Request):
     reply.message(text)
 
     return Response(content=str(reply), media_type="application/xml")
+
+
+@app.get("/export")
+def export(phone: str, format: str = "json"):
+    user = get_or_create_user(phone)
+
+    result = (
+        client.table("expenses")
+        .select("amount, category, note, date")
+        .eq("user_id", user["id"])
+        .order("date", desc=True)
+        .execute()
+    )
+
+    expenses = result.data or []
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output, fieldnames=["date", "amount", "category", "note"]
+        )
+        writer.writeheader()
+        writer.writerows(expenses)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=gastos.csv"},
+        )
+
+    return expenses

@@ -259,3 +259,20 @@ Only Twilio webhook testing requires a push — a minor tradeoff
 that results in a more realistic dev workflow anyway.
 
 ---
+
+## 2026-04-10 — Google Sheets export deferred to Phase 5
+
+**Suggested:**
+Add Google Sheets export for expenses alongside the CSV/JSON endpoint.
+
+**Decision:** Deferred to Phase 5
+
+**Rationale:**
+Google Sheets requires OAuth2, which is a meaningful setup effort.
+Phase 5 already plans Google Sheets integration for the despensa feature —
+building the OAuth flow once and reusing it for both export and despensa
+is cleaner than implementing it twice.
+CSV export covers the immediate need;
+Sheets can be imported from CSV manually in the meantime.
+
+---
