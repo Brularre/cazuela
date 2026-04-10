@@ -1,4 +1,5 @@
 import re
+from app.handlers.expenses import save_expense
 
 EXPENSE_PATTERN = re.compile(
     r'^gast[eé]?\s+([\d.,]+)\s+(?:en\s+)?(.+)$',
@@ -18,7 +19,7 @@ def route(message: str, user: dict) -> str:
     if match:
         raw_amount, description = match.group(1), match.group(2).strip()
         amount = float(raw_amount.replace(".", "").replace(",", "."))
-        return f"Gasto recibido: ${amount:,.0f} — {description} (guardando...)"
+        return save_expense(amount, description, user)
 
     if SUMMARY_PATTERN.match(message):
         return "Resumen próximamente 📊"
