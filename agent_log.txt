@@ -276,3 +276,37 @@ CSV export covers the immediate need;
 Sheets can be imported from CSV manually in the meantime.
 
 ---
+
+## 2026-04-10 — Skill file format: .claude/commands/ vs .claude/skills/
+
+**Suggested:**
+Place skills as plain markdown files in `.claude/commands/`.
+
+**Decision:** Modified — migrated to `.claude/skills/<name>/SKILL.md`
+with YAML frontmatter
+
+**Rationale:**
+The proper skill format supports frontmatter fields (argument hints,
+subagent context, allowed tools, model overrides) that the simpler
+commands format does not.
+Migrating early avoids rework when those features are needed.
+CLAUDE.md updated to document the distinction.
+
+---
+
+## 2026-04-10 — expense-aggregator-gen skill and aggregation refactor
+
+**Suggested:**
+Extract aggregation logic from `get_week_summary` into a pure
+`aggregate_by_category` function, tested with a shared fixture file.
+
+**Decision:** Accepted
+
+**Rationale:**
+The original function mixed DB querying with aggregation logic,
+making the aggregation untestable without mocking Supabase.
+Extracting it as a pure function lets tests pass in plain lists of dicts
+— no mocks, no DB, just logic. The fixture file (`tests/fixtures/expenses.py`)
+centralizes sample data so it can be reused across future test files.
+
+---

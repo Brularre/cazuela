@@ -52,18 +52,24 @@ Bruno is a junior developer using this project as a learning opportunity. He wan
 - Use **Plan** subagent before starting any non-trivial implementation
 
 ### Skills (slash commands)
-Skills encode "how we do things in Cazuela" — invoke them instead of repeating instructions.
+Skills encode "how we do things in Cazuela" — invoke them instead of
+repeating instructions.
+
+Skills live in `.claude/skills/<name>/SKILL.md` with YAML frontmatter.
+The older `.claude/commands/` format also works for simple commands
+but lacks frontmatter features (argument hints, subagent context, etc.).
 
 | Priority | Skill | What it does |
 |----------|-------|-------------|
-| 1 | `agent-log-entry` | Reads git diff + context, appends a formatted entry to `agent_log.txt` (what was suggested, accepted/rejected, why) |
+| 1 | `agent-log-entry` | Reads git diff + context, appends a formatted entry to `agent_log.txt` |
 | 2 | `handler-scaffold` | Given a feature name, generates model + DB queries + route + WhatsApp regex + tests |
-| 3 | `expense-aggregator-gen` | Given schema + time boundary, generates aggregation function + edge-case tests + fixture |
+| 3 | `expense-aggregator-gen` | Given time boundary, generates aggregation function + edge-case tests + fixture |
 | 4 | `intent-pattern-gen` | Given a feature + Spanish example messages, generates manual mode regex + AI mode prompt fragment |
 | 5 | `db-migration-gen` | Given table + columns, generates SQL migration + Pydantic model + query stubs |
 
 - Use the **`/claude-api` skill** when touching the Anthropic SDK / agent code
-- Use the **`/simplify` skill** after implementing a feature to check for unnecessary complexity
+- Use the **`/simplify` skill** after implementing a feature to check
+  for unnecessary complexity
 - Keep tasks granular — mark them done as you go so Bruno can follow along
 
 ## Development Principles

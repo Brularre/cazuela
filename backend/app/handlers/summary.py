@@ -7,6 +7,13 @@ def format_amount(amount: float) -> str:
     return "$" + f"{amount:,.0f}".replace(",", ".")
 
 
+def aggregate_by_category(expenses: list) -> dict:
+    totals = defaultdict(float)
+    for expense in expenses:
+        totals[expense["category"]] += float(expense["amount"])
+    return dict(sorted(totals.items(), key=lambda x: -x[1]))
+
+
 def get_week_summary(user: dict) -> str:
     today = date.today()
     monday = today - timedelta(days=today.weekday())
@@ -22,12 +29,10 @@ def get_week_summary(user: dict) -> str:
     if not result.data:
         return "No hay gastos registrados esta semana."
 
-    totals: dict[str, float] = defaultdict(float)
-    for expense in result.data:
-        totals[expense["category"]] += float(expense["amount"])
+    totals = aggregate_by_category(result.data)
 
     lines = [f"*Resumen semana del {monday.strftime('%d/%m')}*\n"]
-    for category, total in sorted(totals.items(), key=lambda x: -x[1]):
+    for category, total in totals.items():
         lines.append(f"• {category}: {format_amount(total)}")
 
     grand_total = sum(totals.values())
