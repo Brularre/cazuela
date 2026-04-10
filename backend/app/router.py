@@ -1,5 +1,6 @@
 import re
 from app.handlers.expenses import save_expense
+from app.handlers.summary import get_week_summary
 
 EXPENSE_PATTERN = re.compile(
     r'^gast[eé]?\s+([\d.,]+)\s+(?:en\s+)?(.+)$',
@@ -22,7 +23,7 @@ def route(message: str, user: dict) -> str:
         return save_expense(amount, description, user)
 
     if SUMMARY_PATTERN.match(message):
-        return "Resumen próximamente 📊"
+        return get_week_summary(user)
 
     return (
         "No entendí ese mensaje.\n\n"
