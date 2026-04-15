@@ -310,3 +310,76 @@ Extracting it as a pure function lets tests pass in plain lists of dicts
 centralizes sample data so it can be reused across future test files.
 
 ---
+
+## 2026-04-15 — MCP as course assignment integration
+
+**Suggested (by Bruno, architecture shaped collaboratively):**
+Integrate MCP (Model Context Protocol) as a multi-step
+agent flow for ambiguous expenses, satisfying a course assignment
+requirement alongside the Week 2 feature additions.
+
+**Decision:** Accepted — implemented with a deterministic stub agent
+
+**Rationale:**
+Using a real Claude API call for the MCP agent would cost money
+and add API key complexity for every user.
+A deterministic stub (picks highest-frequency category
+from user history) satisfies the assignment's reproducibility
+requirement and is easier to test. The stub can be swapped for
+a real model call later with no interface changes.
+
+---
+
+## 2026-04-15 — MCP confirm/cancel flow: prefix lookup
+
+**Suggested:**
+Show the user the first 8 characters of the context UUID
+as a short code to confirm or cancel an ambiguous expense.
+
+**Decision:** Accepted — with a prefix scan added to the context store
+
+**Rationale:**
+Typing a full UUID in WhatsApp is impractical.
+An 8-character hex prefix is short enough to type while still being
+unique in practice (collision probability negligible for a personal
+assistant with low concurrency).
+A `find_by_prefix()` function was added to `context.py`
+to support the lookup.
+
+---
+
+## 2026-04-15 — Second code review pass: mandatory before merge
+
+**Suggested:**
+Run a full review subagent before merging the Week 2 branch.
+
+**Decision:** Accepted — applied all findings before pushing
+
+**Rationale:**
+The review caught two production-breaking bugs:
+`save_expense()` was missing the `date` field
+(weekly summary always returned empty),
+and the confirm/cancel flow had no router handlers
+(users were told to reply "confirmar X" but the reply was
+never processed). Both would have been invisible in tests
+but broken in production.
+
+---
+
+## 2026-04-15 — Twilio signature validation: optional by env var
+
+**Suggested:**
+Validate the `X-Twilio-Signature` header on the `/webhook` endpoint
+to prevent spoofed requests.
+
+**Decision:** Accepted — validation skipped when `TWILIO_AUTH_TOKEN` is unset
+
+**Rationale:**
+Hard-requiring the token would break local tests and dev deploys
+where the token isn't configured.
+Making it conditional on the env var being set means production
+is secure (token is set in Railway) while the dev workflow is unchanged.
+The alternative — always validate — would require mocking
+Twilio's RequestValidator in every test that hits the webhook.
+
+---
