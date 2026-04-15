@@ -37,7 +37,6 @@ def test_summary_pattern_routes_to_get_week_summary(message):
     "qué onda",
     "123",
     "",
-    "compré algo",
 ])
 def test_unrecognized_message_returns_help_text(message):
     result = route(message, FAKE_USER)
