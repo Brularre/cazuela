@@ -7,13 +7,17 @@ def add_to_shopping(item: str, user: dict, quantity: int = None, unit: str = Non
         "shopping_list", user["id"],
         {"item": item, "quantity": quantity, "unit": unit}
     )
-    mcp.confirm(context_id)
-    client.table("shopping_list").insert({
-        "user_id": user["id"],
-        "item": item,
-        "quantity": quantity,
-        "unit": unit,
-    }).execute()
+    try:
+        client.table("shopping_list").insert({
+            "user_id": user["id"],
+            "item": item,
+            "quantity": quantity,
+            "unit": unit,
+        }).execute()
+        mcp.confirm(context_id)
+    except Exception:
+        mcp.rollback(context_id)
+        raise
     qty_str = (f" x{quantity} {unit or ''}").strip() if quantity else ""
     return f"✓ Agregado a la lista: {item}{qty_str}"
 

@@ -102,3 +102,10 @@ def _redact_dict(d: dict) -> dict:
 def redact(context: dict) -> dict:
     deep = copy.deepcopy(context)
     return _redact_dict(deep)
+
+
+def find_by_prefix(prefix: str) -> str | None:
+    for cid in list(_store.keys()):
+        if cid.startswith(prefix):
+            return cid
+    return None

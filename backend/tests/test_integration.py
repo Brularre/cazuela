@@ -18,7 +18,7 @@ def make_mock_client(rows=None):
 @patch("app.db.users.client")
 @patch("app.handlers.expenses.client")
 def test_expense_saved_and_confirmed(mock_expense_client, mock_users_client):
-    mock_users_client.table.return_value.upsert.return_value.execute.return_value.data = [FAKE_USER]
+    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_expense_client.table.return_value.insert.return_value.execute.return_value = None
 
     response = client.post(
@@ -34,7 +34,7 @@ def test_expense_saved_and_confirmed(mock_expense_client, mock_users_client):
 @patch("app.db.users.client")
 @patch("app.handlers.summary.client")
 def test_summary_returns_weekly_totals(mock_summary_client, mock_users_client):
-    mock_users_client.table.return_value.upsert.return_value.execute.return_value.data = [FAKE_USER]
+    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_summary_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
         {"amount": "5000", "category": "comida"},
         {"amount": "3000", "category": "transporte"},
@@ -54,7 +54,7 @@ def test_summary_returns_weekly_totals(mock_summary_client, mock_users_client):
 
 @patch("app.db.users.client")
 def test_unrecognized_message_returns_help(mock_users_client):
-    mock_users_client.table.return_value.upsert.return_value.execute.return_value.data = [FAKE_USER]
+    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
 
     response = client.post(
         "/webhook",

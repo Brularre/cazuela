@@ -31,6 +31,41 @@ SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORE
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 SHOPPING_CHECK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
+CONFIRM_PATTERN = re.compile(r'^confirmar\s+([a-f0-9]{8})', re.IGNORECASE)
+CANCEL_PATTERN = re.compile(r'^cancelar\s+([a-f0-9]{8})', re.IGNORECASE)
+
+
+def _handle_confirm(prefix: str, user: dict) -> str:
+    context_id = mcp.find_by_prefix(prefix)
+    if not context_id:
+        return f"No encontré un contexto con código '{prefix}'."
+    ctx = mcp.receive_result(context_id)
+    if ctx.get("status") != "staged":
+        return "Ese contexto ya fue procesado."
+    payload = ctx.get("payload", {})
+    proposed = ctx.get("proposed", {})
+    amount = payload.get("amount", 0)
+    category = proposed.get("category", "otros")
+    note = payload.get("raw_message", "")
+    mcp.confirm(context_id)
+    db.table("expenses").insert({
+        "user_id": user["id"],
+        "amount": amount,
+        "category": category,
+        "note": note,
+        "date": str(date.today()),
+    }).execute()
+    formatted = "$" + f"{amount:,.0f}".replace(",", ".")
+    return f"✓ Gasto guardado\n{formatted} · {category}"
+
+
+def _handle_cancel(prefix: str) -> str:
+    context_id = mcp.find_by_prefix(prefix)
+    if not context_id:
+        return f"No encontré un contexto con código '{prefix}'."
+    mcp.rollback(context_id)
+    return "Gasto cancelado."
+
 
 def _build_user_history(user_id: str) -> dict:
     since = str(date.today() - timedelta(days=30))
@@ -111,6 +146,14 @@ def route(message: str, user: dict) -> str:
     match = SHOPPING_CHECK_PATTERN.match(message)
     if match:
         return check_item(match.group(1).strip(), user)
+
+    match = CONFIRM_PATTERN.match(message)
+    if match:
+        return _handle_confirm(match.group(1).lower(), user)
+
+    match = CANCEL_PATTERN.match(message)
+    if match:
+        return _handle_cancel(match.group(1).lower())
 
     return (
         "No entendí ese mensaje.\n\n"

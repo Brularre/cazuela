@@ -1,3 +1,4 @@
+from datetime import date
 import unicodedata
 from app.db import client
 
@@ -65,6 +66,7 @@ def save_expense(amount: float, description: str, user: dict) -> str:
         "amount": amount,
         "category": category,
         "note": description,
+        "date": str(date.today()),
     }).execute()
 
     formatted = "$" + f"{amount:,.0f}".replace(",", ".")

@@ -1,9 +1,11 @@
 import csv
 import io
 import json
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import StreamingResponse
+from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
+from app.config import settings
 from app.db import client
 from app.db.users import get_or_create_user
 from app.router import route
@@ -19,6 +21,13 @@ def health():
 @app.post("/webhook")
 async def webhook(request: Request):
     form = await request.form()
+
+    if settings.twilio_auth_token:
+        validator = RequestValidator(settings.twilio_auth_token)
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not validator.validate(str(request.url), dict(form), signature):
+            return Response(content="Forbidden", status_code=403)
+
     body = form.get("Body", "").strip()
     sender = form.get("From", "")
 
@@ -32,7 +41,10 @@ async def webhook(request: Request):
 
 
 @app.get("/export")
-def export(phone: str, format: str = "json"):
+def export(phone: str, format: str = "json", token: str = ""):
+    if not settings.export_token or token != settings.export_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     user = get_or_create_user(phone)
 
     result = (

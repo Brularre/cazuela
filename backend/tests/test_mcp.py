@@ -134,3 +134,10 @@ def test_no_sensitive_keys_in_serialized_context():
 
     found = all_keys(redacted) & ctx.SENSITIVE_KEYS
     assert found == set(), f"Sensitive keys leaked into context: {found}"
+
+
+def test_stub_non_expense_domain_returns_confirmed():
+    from app.mcp.agent import propose
+    result = propose({"domain": "todo", "payload": {}})
+    assert result == {"confirmed": True}
+    assert "category" not in result

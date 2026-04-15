@@ -4,8 +4,12 @@ from app.mcp import client as mcp
 
 def add_todo(task: str, user: dict) -> str:
     context_id = mcp.send_context("todo", user["id"], {"task": task, "due_date": None})
-    mcp.confirm(context_id)
-    client.table("todos").insert({"user_id": user["id"], "task": task}).execute()
+    try:
+        client.table("todos").insert({"user_id": user["id"], "task": task}).execute()
+        mcp.confirm(context_id)
+    except Exception:
+        mcp.rollback(context_id)
+        raise
     return f"✓ Pendiente guardado: {task}"
 
 
