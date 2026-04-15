@@ -136,6 +136,18 @@ def test_no_sensitive_keys_in_serialized_context():
     assert found == set(), f"Sensitive keys leaked into context: {found}"
 
 
+def test_confirm_pending_context_raises():
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    with pytest.raises(ValueError, match="Cannot confirm"):
+        confirm(context_id)
+
+
+def test_rollback_pending_context_raises():
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    with pytest.raises(ValueError, match="Cannot rollback"):
+        rollback(context_id)
+
+
 def test_stub_non_expense_domain_returns_confirmed():
     from app.mcp.agent import propose
     result = propose({"domain": "todo", "payload": {}})
