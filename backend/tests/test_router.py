@@ -140,3 +140,12 @@ def test_cancel_pattern_routes_to_handle_cancel():
         route("cancelar abcd1234", FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == "abcd1234"
+
+
+@pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])
+def test_help_returns_command_reference(message):
+    result = route(message, FAKE_USER)
+    assert "Comandos disponibles" in result
+    assert "gasté" in result
+    assert "pendiente" in result
+    assert "comprar" in result

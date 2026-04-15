@@ -33,6 +33,27 @@ SHOPPING_CHECK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
 CONFIRM_PATTERN = re.compile(r'^confirmar\s+([a-f0-9]{8})', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar\s+([a-f0-9]{8})', re.IGNORECASE)
+HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
+
+HELP_TEXT = (
+    "*Comandos disponibles:*\n\n"
+    "*Gastos*\n"
+    "• _gasté 5000 en almuerzo_\n"
+    "• _pagué 3000_ (sin categoría, te pregunto)\n"
+    "• _resumen_ — resumen semanal\n\n"
+    "*Pendientes*\n"
+    "• _pendiente: llamar al banco_\n"
+    "• _mis pendientes_\n"
+    "• _listo: llamar al banco_\n\n"
+    "*Compras*\n"
+    "• _comprar: leche_\n"
+    "• _compras_ — ver lista\n"
+    "• _compré leche_ — marcar como comprado\n\n"
+    "*Deseos*\n"
+    "• _quiero: zapatillas_\n"
+    "• _mis deseos_\n\n"
+    "Escribe *ayuda* en cualquier momento para ver esto."
+)
 
 
 def _handle_confirm(prefix: str, user: dict) -> str:
@@ -146,6 +167,9 @@ def route(message: str, user: dict) -> str:
     match = SHOPPING_CHECK_PATTERN.match(message)
     if match:
         return check_item(match.group(1).strip(), user)
+
+    if HELP_PATTERN.match(message):
+        return HELP_TEXT
 
     match = CONFIRM_PATTERN.match(message)
     if match:
