@@ -1,6 +1,7 @@
 # MCP Integration: Design Comparison Report
 
 **Project:** Cazuela — WhatsApp personal assistant
+**Author:** Bruno Larraín
 **Date:** 2026-04-15
 
 ---
