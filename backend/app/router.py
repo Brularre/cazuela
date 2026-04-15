@@ -40,6 +40,7 @@ HELP_TEXT = (
     "*Gastos*\n"
     "• _gasté 5000 en almuerzo_\n"
     "• _pagué 3000_ (sin categoría, te pregunto)\n"
+    "• _confirmar_ / _cancelar_ — responde cuando te pregunte\n"
     "• _resumen_ — resumen semanal\n\n"
     "*Pendientes*\n"
     "• _pendiente: llamar al banco_\n"

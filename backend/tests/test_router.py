@@ -140,6 +140,18 @@ def test_cancel_pattern_routes_to_handle_cancel():
         mock.assert_called_once_with(FAKE_USER)
 
 
+def test_confirm_with_no_pending_returns_message():
+    with patch("app.router.mcp.find_pending_for_user", return_value=None):
+        result = route("confirmar", FAKE_USER)
+    assert "pendiente" in result
+
+
+def test_cancel_with_no_pending_returns_message():
+    with patch("app.router.mcp.find_pending_for_user", return_value=None):
+        result = route("cancelar", FAKE_USER)
+    assert "pendiente" in result
+
+
 @pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])
 def test_help_returns_command_reference(message):
     result = route(message, FAKE_USER)
@@ -147,3 +159,4 @@ def test_help_returns_command_reference(message):
     assert "gasté" in result
     assert "pendiente" in result
     assert "comprar" in result
+    assert "confirmar" in result
