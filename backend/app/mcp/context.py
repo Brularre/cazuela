@@ -110,8 +110,11 @@ def redact(context: dict) -> dict:
     return _redact_dict(deep)
 
 
-def find_by_prefix(prefix: str) -> str | None:
-    for cid in list(_store.keys()):
-        if cid.startswith(prefix):
-            return cid
-    return None
+def find_pending_for_user(user_id: str) -> str | None:
+    staged = [
+        c for c in _store.values()
+        if c["user_id"] == user_id and c["status"] == "staged"
+    ]
+    if not staged:
+        return None
+    return max(staged, key=lambda c: c["created_at"])["context_id"]

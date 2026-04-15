@@ -31,8 +31,8 @@ SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORE
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 SHOPPING_CHECK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
-CONFIRM_PATTERN = re.compile(r'^confirmar\s+([a-f0-9]{8})', re.IGNORECASE)
-CANCEL_PATTERN = re.compile(r'^cancelar\s+([a-f0-9]{8})', re.IGNORECASE)
+CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
+CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
 
 HELP_TEXT = (
@@ -56,13 +56,11 @@ HELP_TEXT = (
 )
 
 
-def _handle_confirm(prefix: str, user: dict) -> str:
-    context_id = mcp.find_by_prefix(prefix)
+def _handle_confirm(user: dict) -> str:
+    context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
-        return f"No encontré un contexto con código '{prefix}'."
+        return "No tengo ningún gasto pendiente de confirmar."
     ctx = mcp.receive_result(context_id)
-    if ctx.get("status") != "staged":
-        return "Ese contexto ya fue procesado."
     payload = ctx.get("payload", {})
     proposed = ctx.get("proposed", {})
     amount = payload.get("amount", 0)
@@ -80,10 +78,10 @@ def _handle_confirm(prefix: str, user: dict) -> str:
     return f"✓ Gasto guardado\n{formatted} · {category}"
 
 
-def _handle_cancel(prefix: str) -> str:
-    context_id = mcp.find_by_prefix(prefix)
+def _handle_cancel(user: dict) -> str:
+    context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
-        return f"No encontré un contexto con código '{prefix}'."
+        return "No tengo ningún gasto pendiente de cancelar."
     mcp.rollback(context_id)
     return "Gasto cancelado."
 
@@ -113,8 +111,7 @@ def _handle_ambiguous_expense(amount: float, user: dict) -> str:
     return (
         f"¿Es un gasto de *{category}*?\n"
         f"_{reasoning}_\n\n"
-        f"Contexto guardado: `{context_id[:8]}`\n"
-        f"Responde 'confirmar {context_id[:8]}' o 'cancelar {context_id[:8]}'"
+        f"Responde *confirmar* o *cancelar*."
     )
 
 
@@ -171,13 +168,11 @@ def route(message: str, user: dict) -> str:
     if HELP_PATTERN.match(message):
         return HELP_TEXT
 
-    match = CONFIRM_PATTERN.match(message)
-    if match:
-        return _handle_confirm(match.group(1).lower(), user)
+    if CONFIRM_PATTERN.match(message):
+        return _handle_confirm(user)
 
-    match = CANCEL_PATTERN.match(message)
-    if match:
-        return _handle_cancel(match.group(1).lower())
+    if CANCEL_PATTERN.match(message):
+        return _handle_cancel(user)
 
     return (
         "No entendí ese mensaje.\n\n"

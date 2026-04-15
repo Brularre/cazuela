@@ -115,6 +115,20 @@ def test_context_id_returned_as_string():
     assert isinstance(context_id, str)
 
 
+def test_find_pending_for_user_returns_staged_context():
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    request_action(context_id)
+    from app.mcp.client import find_pending_for_user
+    found = find_pending_for_user(FAKE_USER_ID)
+    assert found == context_id
+
+
+def test_find_pending_for_user_returns_none_when_no_staged():
+    send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    from app.mcp.client import find_pending_for_user
+    assert find_pending_for_user(FAKE_USER_ID) is None
+
+
 def test_no_sensitive_keys_in_serialized_context():
     payload_with_pii = {
         **EXPENSE_PAYLOAD,

@@ -130,16 +130,14 @@ def test_ambiguous_expense_routes_to_handle_ambiguous():
 
 def test_confirm_pattern_routes_to_handle_confirm():
     with patch("app.router._handle_confirm", return_value="ok") as mock:
-        route("confirmar abcd1234", FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == "abcd1234"
+        route("confirmar", FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
 
 
 def test_cancel_pattern_routes_to_handle_cancel():
     with patch("app.router._handle_cancel", return_value="ok") as mock:
-        route("cancelar abcd1234", FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == "abcd1234"
+        route("cancelar", FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
 
 
 @pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])

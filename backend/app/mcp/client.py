@@ -31,6 +31,6 @@ def rollback(context_id: str) -> dict:
     return ctx.rollback(context_id)
 
 
-def find_by_prefix(prefix: str) -> str | None:
+def find_pending_for_user(user_id: str) -> str | None:
     from app.mcp import context as ctx
-    return ctx.find_by_prefix(prefix)
+    return ctx.find_pending_for_user(user_id)
