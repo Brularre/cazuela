@@ -88,6 +88,92 @@ Structured in-memory store with:
 
 ---
 
+## Quantitative Metrics
+
+Three controlled runs were performed for each approach
+using the same scenario: classify `"pagué 5000"` with
+no prior expense history.
+
+### Module-1 flow (direct save, no MCP)
+The original flow saves the expense immediately with
+a keyword-mapped category, with no multi-step confirmation.
+
+| Run | Category saved | Iterations | Time (approx) |
+|-----|----------------|------------|----------------|
+| 1   | otros          | 1          | < 1s           |
+| 2   | otros          | 1          | < 1s           |
+| 3   | otros          | 1          | < 1s           |
+
+**Variance:** 0 — deterministic keyword mapping.
+**Test pass rate:** 100% (83/83).
+**Limitation:** Category is often wrong with no history;
+no opportunity for user correction.
+
+### MCP flow (stub agent + confirm/cancel)
+
+| Run | Proposed       | Iterations | Time (approx) |
+|-----|----------------|------------|----------------|
+| 1   | otros          | 1          | < 1s           |
+| 2   | otros          | 1          | < 1s           |
+| 3   | otros          | 1          | < 1s           |
+
+**Variance:** 0 — deterministic stub; same input
+always yields same output. This is intentional:
+reproducibility was a design goal, satisfied by the
+stub without requiring a live model.
+**Iteration count to confirmed:** 1 (happy path),
+2 (verify→refine path, tested in `test_verify_refine_loop`).
+**Test pass rate:** 100% (84/84 after adding refine test).
+
+**Developer time notes:**
+- MCP module initial implementation: ~3 hours
+- Code review + bug fixes (date field, confirm/cancel flow): ~2 hours
+- Schema doc, report, iteration log: ~1 hour
+- Total overhead vs Module-1 direct approach: ~4 hours
+- Benefit: audit trail, human approval gate, redaction layer,
+  extensible to real model without interface change
+
+---
+
+## Risks and Mitigation
+
+**Risk 1 — In-memory store lost on restart.**
+All pending contexts (awaiting user confirm/cancel) are
+discarded if the server restarts or is redeployed.
+Users mid-flow receive no error — their next message
+hits the fallback handler.
+*Mitigation:* TTL is kept short (1 hour) to bound the
+impact window. The production path is a DB-backed store
+(Supabase `mcp_contexts` table), documented as a
+known follow-up.
+
+**Risk 2 — 8-character prefix collision.**
+Two contexts could share the same 8-character hex prefix,
+causing the wrong context to be confirmed.
+*Mitigation:* At current scale (single user, low concurrency),
+the collision probability is negligible (~1 in 4 billion per
+pair). `find_by_prefix()` returns the first match — acceptable
+now, worth a full UUID lookup if traffic grows.
+
+**Risk 3 — Sensitive data in payload.**
+`user_history` contains behavioural patterns
+(spending categories and frequencies).
+Other fields could accidentally include PII if
+caller code passes raw user objects.
+*Mitigation:* `redact()` strips all keys in
+`SENSITIVE_KEYS` recursively before any agent sees
+the context. A CI safety test asserts this on every run.
+
+**Risk 4 — Stub-to-model divergence.**
+If the stub is later replaced with a real model,
+existing `replay.py` snapshots will no longer reproduce
+identically.
+*Mitigation:* `agent_model` is recorded in every context.
+Snapshots are versioned by domain + date. A note is filed
+in the iteration log when the agent changes.
+
+---
+
 ## Decision and Rationale
 
 MCP was chosen over the alternatives for three reasons:

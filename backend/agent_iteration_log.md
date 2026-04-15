@@ -46,3 +46,42 @@ tests, and replay script.
 
 **Reason:** Implementation matches spec; no modifications to existing
 handler or test files; all 12 MCP tests pass
+
+---
+
+## 2026-04-15 — Verify→refine loop test
+
+**Prompt (structured schema):**
+1. *Task:* Add a verify→refine loop test to `test_mcp.py`
+   that simulates a failing first proposal and a passing
+   second proposal after context refinement.
+2. *Context:* `app/mcp/context.py` schema v1.0;
+   stub agent in `app/mcp/agent.py` picks
+   `max(user_history, key=count)`.
+3. *Acceptance criteria:* Test asserts first proposal
+   is "otros" (skewed history), rollback is called,
+   second proposal with dominant "comida" history
+   is "comida", context ends in "confirmed" status.
+4. *Output format:* Single test function appended
+   to `tests/test_mcp.py`; no other files modified.
+
+**Input context snapshot:** See
+`fixtures/mcp_snapshots/expense_comida.json`
+(adapted: first run uses `{"otros": 5, "comida": 1}`,
+second uses `{"comida": 8, "otros": 2}`).
+
+**Model:** claude-sonnet-4-6
+
+**Agent output:** `test_verify_refine_loop` added to
+`tests/test_mcp.py`. Two contexts created: id1 (rolled
+back after "otros" proposal), id2 (confirmed after
+"comida" proposal). Iteration count on id2: 1.
+
+**Diff summary:**
+- `tests/test_mcp.py`: +25 lines (`test_verify_refine_loop`)
+
+**Decision:** Accepted
+
+**Reason:** Test cleanly demonstrates the two-step flow
+with explicit status assertions at each stage.
+No existing tests modified.

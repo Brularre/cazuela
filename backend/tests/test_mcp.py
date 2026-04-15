@@ -141,3 +141,28 @@ def test_stub_non_expense_domain_returns_confirmed():
     result = propose({"domain": "todo", "payload": {}})
     assert result == {"confirmed": True}
     assert "category" not in result
+
+
+def test_verify_refine_loop():
+    # Round 1: history skewed toward "otros" → agent proposes "otros"
+    payload_v1 = {
+        **EXPENSE_PAYLOAD,
+        "user_history": {"otros": 5, "comida": 1},
+    }
+    id1 = send_context("expense", FAKE_USER_ID, payload_v1)
+    result1 = request_action(id1)
+    assert result1["proposed"]["category"] == "otros"
+
+    # Verification fails: expected "comida", got "otros"
+    # Rollback and refine the context with corrected history
+    rollback(id1)
+    assert ctx._store[id1]["status"] == "rolled_back"
+
+    # Round 2: refined payload with comida dominant → agent proposes "comida"
+    payload_v2 = {**payload_v1, "user_history": {"comida": 8, "otros": 2}}
+    id2 = send_context("expense", FAKE_USER_ID, payload_v2)
+    result2 = request_action(id2)
+    assert result2["proposed"]["category"] == "comida"
+
+    confirm(id2)
+    assert ctx._store[id2]["status"] == "confirmed"
