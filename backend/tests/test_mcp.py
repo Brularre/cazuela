@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timezone, timedelta
+from unittest.mock import MagicMock
 from app.mcp import context as ctx
 from app.mcp.client import send_context, request_action, receive_result, confirm, rollback
 from app.mcp.agent import propose
@@ -16,15 +17,89 @@ EXPENSE_PAYLOAD = {
 
 
 @pytest.fixture(autouse=True)
-def clear_store():
-    ctx._store.clear()
-    yield
-    ctx._store.clear()
+def db_store(monkeypatch):
+    store = {}
+
+    class FakeExecute:
+        def __init__(self, data):
+            self.data = data
+
+    class FakeQuery:
+        def __init__(self, store_ref, table):
+            self._store = store_ref
+            self._table = table
+            self._eq_filters = {}
+            self._lt_filter = None
+            self._pending_insert = None
+            self._pending_update = None
+            self._do_delete = False
+
+        def select(self, *args):
+            return self
+
+        def insert(self, data):
+            self._pending_insert = data
+            return self
+
+        def update(self, data):
+            self._pending_update = data
+            return self
+
+        def delete(self):
+            self._do_delete = True
+            return self
+
+        def eq(self, field, value):
+            self._eq_filters[field] = value
+            return self
+
+        def lt(self, field, value):
+            self._lt_filter = (field, value)
+            return self
+
+        def execute(self):
+            if self._pending_insert is not None:
+                self._store[self._pending_insert["context_id"]] = dict(self._pending_insert)
+                return FakeExecute([self._store[self._pending_insert["context_id"]]])
+
+            if self._pending_update is not None:
+                results = []
+                for row in self._store.values():
+                    if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                        row.update(self._pending_update)
+                        results.append(dict(row))
+                return FakeExecute(results)
+
+            if self._do_delete:
+                to_del = []
+                for cid, row in self._store.items():
+                    if self._lt_filter:
+                        field, val = self._lt_filter
+                        if row.get(field, "") < val:
+                            to_del.append(cid)
+                deleted = [self._store.pop(cid) for cid in to_del]
+                return FakeExecute(deleted)
+
+            results = [
+                dict(row) for row in self._store.values()
+                if all(row.get(k) == v for k, v in self._eq_filters.items())
+            ]
+            return FakeExecute(results)
+
+    class FakeClient:
+        def __init__(self, store_ref):
+            self._store = store_ref
+
+        def table(self, name):
+            return FakeQuery(self._store, name)
+
+    monkeypatch.setattr("app.mcp.context.client", FakeClient(store))
+    return store
 
 
 def test_round_trip_status_transitions():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
-    assert ctx._store[context_id]["status"] == "pending"
+    assert ctx.get_context(context_id)["status"] == "pending"
 
     result = request_action(context_id)
     assert result["status"] == "staged"
@@ -78,7 +153,7 @@ def test_stub_empty_history_returns_otros():
 def test_ttl_expiry():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
     past = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
-    ctx._store[context_id]["expires_at"] = past
+    ctx.update_context(context_id, expires_at=past)
     with pytest.raises(ValueError, match="expired"):
         ctx.get_context(context_id)
 
@@ -87,11 +162,12 @@ def test_prune_expired():
     id1 = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
     id2 = send_context("todo", FAKE_USER_ID, {"task": "llamar banco", "due_date": None})
     past = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
-    ctx._store[id1]["expires_at"] = past
+    ctx.update_context(id1, expires_at=past)
     removed = ctx.prune_expired()
     assert removed == 1
-    assert id1 not in ctx._store
-    assert id2 in ctx._store
+    with pytest.raises((ValueError, KeyError)):
+        ctx.get_context(id1)
+    assert ctx.get_context(id2) is not None
 
 
 def test_history_pruned_to_max():
@@ -100,14 +176,14 @@ def test_history_pruned_to_max():
         **EXPENSE_PAYLOAD,
         "user_history": big_history,
     })
-    stored = ctx._store[context_id]["payload"]["user_history"]
+    stored = ctx.get_context(context_id)["payload"]["user_history"]
     assert len(stored) <= ctx.MAX_HISTORY_ENTRIES
 
 
 def test_iteration_count_increments():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
     request_action(context_id)
-    assert ctx._store[context_id]["iteration_count"] == 1
+    assert ctx.get_context(context_id)["iteration_count"] == 1
 
 
 def test_context_id_returned_as_string():
@@ -136,7 +212,7 @@ def test_no_sensitive_keys_in_serialized_context():
         "anthropic_key": "sk-ant-xxx",
     }
     context_id = send_context("expense", FAKE_USER_ID, payload_with_pii)
-    raw = ctx._store[context_id]
+    raw = ctx.get_context(context_id)
     redacted = ctx.redact(raw)
 
     def all_keys(d):
@@ -170,7 +246,6 @@ def test_stub_non_expense_domain_returns_confirmed():
 
 
 def test_verify_refine_loop():
-    # Round 1: history skewed toward "otros" → agent proposes "otros"
     payload_v1 = {
         **EXPENSE_PAYLOAD,
         "user_history": {"otros": 5, "comida": 1},
@@ -179,16 +254,13 @@ def test_verify_refine_loop():
     result1 = request_action(id1)
     assert result1["proposed"]["category"] == "otros"
 
-    # Verification fails: expected "comida", got "otros"
-    # Rollback and refine the context with corrected history
     rollback(id1)
-    assert ctx._store[id1]["status"] == "rolled_back"
+    assert ctx.get_context(id1)["status"] == "rolled_back"
 
-    # Round 2: refined payload with comida dominant → agent proposes "comida"
     payload_v2 = {**payload_v1, "user_history": {"comida": 8, "otros": 2}}
     id2 = send_context("expense", FAKE_USER_ID, payload_v2)
     result2 = request_action(id2)
     assert result2["proposed"]["category"] == "comida"
 
     confirm(id2)
-    assert ctx._store[id2]["status"] == "confirmed"
+    assert ctx.get_context(id2)["status"] == "confirmed"

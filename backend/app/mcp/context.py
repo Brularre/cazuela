@@ -2,13 +2,12 @@ import copy
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import TypedDict
+from app.db import client
 
 TTL_SECONDS = 3600
 MAX_HISTORY_ENTRIES = 10
 
 SENSITIVE_KEYS = {"phone", "anthropic_key", "supabase_key", "google_tokens", "password"}
-
-_store: dict[str, dict] = {}
 
 
 class MCPContext(TypedDict):
@@ -35,7 +34,7 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
             top = sorted(history.items(), key=lambda x: x[1], reverse=True)
             payload = {**payload, "user_history": dict(top[:MAX_HISTORY_ENTRIES])}
 
-    context = {
+    row = {
         "context_id": str(uuid.uuid4()),
         "version": "1.0",
         "domain": domain,
@@ -48,14 +47,15 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
         "agent_model": "stub-v1",
         "iteration_count": 0,
     }
-    _store[context["context_id"]] = context
-    return context
+    result = client.table("mcp_contexts").insert(row).execute()
+    return result.data[0]
 
 
 def get_context(context_id: str) -> dict:
-    if context_id not in _store:
+    result = client.table("mcp_contexts").select("*").eq("context_id", context_id).execute()
+    if not result.data:
         raise KeyError(f"Context not found: {context_id}")
-    context = _store[context_id]
+    context = result.data[0]
     expires_at = datetime.fromisoformat(context["expires_at"])
     if datetime.now(timezone.utc) > expires_at:
         raise ValueError("Context expired")
@@ -63,9 +63,11 @@ def get_context(context_id: str) -> dict:
 
 
 def update_context(context_id: str, **kwargs) -> dict:
-    context = get_context(context_id)
-    context.update(kwargs)
-    return context
+    get_context(context_id)
+    result = client.table("mcp_contexts").update(kwargs).eq("context_id", context_id).execute()
+    if not result.data:
+        raise KeyError(f"Context not found: {context_id}")
+    return result.data[0]
 
 
 def confirm(context_id: str) -> dict:
@@ -83,14 +85,9 @@ def rollback(context_id: str) -> dict:
 
 
 def prune_expired() -> int:
-    now = datetime.now(timezone.utc)
-    expired = [
-        cid for cid, c in _store.items()
-        if datetime.fromisoformat(c["expires_at"]) < now
-    ]
-    for cid in expired:
-        del _store[cid]
-    return len(expired)
+    now = datetime.now(timezone.utc).isoformat()
+    result = client.table("mcp_contexts").delete().lt("expires_at", now).execute()
+    return len(result.data)
 
 
 def _redact_dict(d: dict) -> dict:
@@ -111,10 +108,14 @@ def redact(context: dict) -> dict:
 
 
 def find_pending_for_user(user_id: str) -> str | None:
-    staged = [
-        c for c in _store.values()
-        if c["user_id"] == user_id and c["status"] == "staged"
-    ]
+    result = (
+        client.table("mcp_contexts")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("status", "staged")
+        .execute()
+    )
+    staged = result.data
     if not staged:
         return None
-    return max(staged, key=lambda c: c["created_at"])["context_id"]
+    return max(staged, key=lambda c: datetime.fromisoformat(c["created_at"]))["context_id"]
