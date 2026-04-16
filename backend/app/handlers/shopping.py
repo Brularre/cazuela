@@ -1,23 +1,13 @@
 from app.db import client
-from app.mcp import client as mcp
 
 
 def add_to_shopping(item: str, user: dict, quantity: int = None, unit: str = None) -> str:
-    context_id = mcp.send_context(
-        "shopping_list", user["id"],
-        {"item": item, "quantity": quantity, "unit": unit}
-    )
-    try:
-        client.table("shopping_list").insert({
-            "user_id": user["id"],
-            "item": item,
-            "quantity": quantity,
-            "unit": unit,
-        }).execute()
-        mcp.confirm(context_id)
-    except Exception:
-        mcp.rollback(context_id)
-        raise
+    client.table("shopping_list").insert({
+        "user_id": user["id"],
+        "item": item,
+        "quantity": quantity,
+        "unit": unit,
+    }).execute()
     qty_str = (f" x{quantity} {unit or ''}").strip() if quantity else ""
     return f"✓ Agregado a la lista: {item}{qty_str}"
 

@@ -44,9 +44,10 @@ Generate exactly these four outputs:
 ### Output 1: `backend/app/handlers/<feature>.py`
 
 Follow the todos.py pattern exactly:
-- Import `client` from `app.db` and `mcp` from `app.mcp`
+- Import only `client` from `app.db` — do NOT import mcp
 - One function per operation (add, list, and any domain-specific action)
-- Each write operation wraps DB insert in try/except with mcp.rollback on failure
+- Write operations call the DB insert directly — no try/except,
+  no mcp wrapping (MCP is only for ambiguous flows like expense confirm)
 - Return strings in Spanish with WhatsApp formatting
   (*bold*, _italic_, • bullet points)
 - Empty list responses say "No tienes X." or similar

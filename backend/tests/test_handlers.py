@@ -12,8 +12,7 @@ def make_shopping_rows(*items):
 
 
 @patch("app.handlers.todos.client")
-@patch("app.handlers.todos.mcp")
-def test_complete_todo_exact_match(mock_mcp, mock_client):
+def test_complete_todo_exact_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_todo_rows("llamar al banco")
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.todos import complete_todo
@@ -23,8 +22,7 @@ def test_complete_todo_exact_match(mock_mcp, mock_client):
 
 
 @patch("app.handlers.todos.client")
-@patch("app.handlers.todos.mcp")
-def test_complete_todo_partial_match(mock_mcp, mock_client):
+def test_complete_todo_partial_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_todo_rows("llamar al banco", "pagar el gas")
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.todos import complete_todo
@@ -33,8 +31,7 @@ def test_complete_todo_partial_match(mock_mcp, mock_client):
 
 
 @patch("app.handlers.todos.client")
-@patch("app.handlers.todos.mcp")
-def test_complete_todo_no_match(mock_mcp, mock_client):
+def test_complete_todo_no_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_todo_rows("llamar al banco")
     from app.handlers.todos import complete_todo
     result = complete_todo("dentista", FAKE_USER)
@@ -42,8 +39,7 @@ def test_complete_todo_no_match(mock_mcp, mock_client):
 
 
 @patch("app.handlers.shopping.client")
-@patch("app.handlers.shopping.mcp")
-def test_check_item_partial_match(mock_mcp, mock_client):
+def test_check_item_partial_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_shopping_rows("leche entera", "pan integral")
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.shopping import check_item
@@ -52,8 +48,7 @@ def test_check_item_partial_match(mock_mcp, mock_client):
 
 
 @patch("app.handlers.shopping.client")
-@patch("app.handlers.shopping.mcp")
-def test_check_item_no_match(mock_mcp, mock_client):
+def test_check_item_no_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_shopping_rows("leche")
     from app.handlers.shopping import check_item
     result = check_item("mantequilla", FAKE_USER)
@@ -65,9 +60,7 @@ def make_notes_rows(*contents):
 
 
 @patch("app.handlers.notes.client")
-@patch("app.handlers.notes.mcp")
-def test_add_note(mock_mcp, mock_client):
-    mock_mcp.send_context.return_value = "ctx-1"
+def test_add_note(mock_client):
     mock_client.table.return_value.insert.return_value.execute.return_value = None
     from app.handlers.notes import add_note
     result = add_note("compré flores hoy", FAKE_USER)
@@ -76,8 +69,7 @@ def test_add_note(mock_mcp, mock_client):
 
 
 @patch("app.handlers.notes.client")
-@patch("app.handlers.notes.mcp")
-def test_list_notes_empty(mock_mcp, mock_client):
+def test_list_notes_empty(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
     from app.handlers.notes import list_notes
     result = list_notes(FAKE_USER)
@@ -85,8 +77,7 @@ def test_list_notes_empty(mock_mcp, mock_client):
 
 
 @patch("app.handlers.notes.client")
-@patch("app.handlers.notes.mcp")
-def test_list_notes_with_items(mock_mcp, mock_client):
+def test_list_notes_with_items(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = make_notes_rows("compré flores", "llamé al médico")
     from app.handlers.notes import list_notes
     result = list_notes(FAKE_USER)
@@ -94,8 +85,7 @@ def test_list_notes_with_items(mock_mcp, mock_client):
 
 
 @patch("app.handlers.notes.client")
-@patch("app.handlers.notes.mcp")
-def test_search_notes_found(mock_mcp, mock_client):
+def test_search_notes_found(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = make_notes_rows("compré flores hoy", "llamé al médico")
     from app.handlers.notes import search_notes
     result = search_notes("flores", FAKE_USER)
@@ -103,8 +93,7 @@ def test_search_notes_found(mock_mcp, mock_client):
 
 
 @patch("app.handlers.notes.client")
-@patch("app.handlers.notes.mcp")
-def test_search_notes_not_found(mock_mcp, mock_client):
+def test_search_notes_not_found(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
     from app.handlers.notes import search_notes
     result = search_notes("dentista", FAKE_USER)

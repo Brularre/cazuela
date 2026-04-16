@@ -1,22 +1,12 @@
 from app.db import client
-from app.mcp import client as mcp
 
 
 def add_to_wishlist(item: str, user: dict, price_estimate: float = None) -> str:
-    context_id = mcp.send_context(
-        "wishlist", user["id"],
-        {"item": item, "price_estimate": price_estimate, "url": None}
-    )
-    try:
-        client.table("wishlist").insert({
-            "user_id": user["id"],
-            "item": item,
-            "price_estimate": price_estimate,
-        }).execute()
-        mcp.confirm(context_id)
-    except Exception:
-        mcp.rollback(context_id)
-        raise
+    client.table("wishlist").insert({
+        "user_id": user["id"],
+        "item": item,
+        "price_estimate": price_estimate,
+    }).execute()
     price_str = (" (~$" + f"{price_estimate:,.0f}".replace(",", ".") + ")") if price_estimate else ""
     return f"✓ Agregado a tu lista de deseos: {item}{price_str}"
 

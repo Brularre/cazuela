@@ -1,15 +1,8 @@
 from app.db import client
-from app.mcp import client as mcp
 
 
 def add_note(content: str, user: dict) -> str:
-    context_id = mcp.send_context("note", user["id"], {"content": content})
-    try:
-        client.table("notes").insert({"user_id": user["id"], "content": content}).execute()
-        mcp.confirm(context_id)
-    except Exception:
-        mcp.rollback(context_id)
-        raise
+    client.table("notes").insert({"user_id": user["id"], "content": content}).execute()
     return f"✓ Nota guardada: {content}"
 
 
