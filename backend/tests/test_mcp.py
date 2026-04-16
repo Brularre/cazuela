@@ -226,14 +226,16 @@ def test_no_sensitive_keys_in_serialized_context():
     assert found == set(), f"Sensitive keys leaked into context: {found}"
 
 
-def test_confirm_pending_context_raises():
+def test_confirm_already_confirmed_raises():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    confirm(context_id)
     with pytest.raises(ValueError, match="Cannot confirm"):
         confirm(context_id)
 
 
-def test_rollback_pending_context_raises():
+def test_rollback_already_rolled_back_raises():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    rollback(context_id)
     with pytest.raises(ValueError, match="Cannot rollback"):
         rollback(context_id)
 

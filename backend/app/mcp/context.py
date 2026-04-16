@@ -72,14 +72,14 @@ def update_context(context_id: str, **kwargs) -> dict:
 
 def confirm(context_id: str) -> dict:
     context = get_context(context_id)
-    if context["status"] != "staged":
+    if context["status"] in ("confirmed", "rolled_back"):
         raise ValueError(f"Cannot confirm context in status '{context['status']}'")
     return update_context(context_id, status="confirmed")
 
 
 def rollback(context_id: str) -> dict:
     context = get_context(context_id)
-    if context["status"] != "staged":
+    if context["status"] in ("confirmed", "rolled_back"):
         raise ValueError(f"Cannot rollback context in status '{context['status']}'")
     return update_context(context_id, status="rolled_back")
 
