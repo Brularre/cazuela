@@ -5,12 +5,14 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import StreamingResponse
 from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.config import settings
 from app.db import client
 from app.db.users import get_or_create_user
 from app.router import route
 
 app = FastAPI(title="Cazuela")
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 
 @app.get("/health")
