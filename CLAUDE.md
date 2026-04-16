@@ -45,17 +45,22 @@ and sample data fixture.
 
 ## Skills
 
-| Priority | Skill | What it does |
-|----------|-------|-------------|
-| 1 | `agent-log-entry` | Reads git diff + context, appends a formatted entry to `agent_log.txt` |
-| 2 | `handler-scaffold` | Given a feature name, generates model + DB queries + route + WhatsApp regex + tests |
-| 3 | `expense-aggregator-gen` | Given time boundary, generates aggregation function + edge-case tests + fixture |
-| 4 | `intent-pattern-gen` | Given a feature + Spanish example messages, generates manual mode regex + AI mode prompt fragment |
-| 5 | `db-migration-gen` | Given table + columns, generates SQL migration + Pydantic model + query stubs |
+| Skill | What it does |
+|-------|-------------|
+| `handler-scaffold` | Given a feature name, generates handler + router patterns + tests |
+| `integration-test-gen` | Given a handler name, generates end-to-end integration tests |
+| `db-migration-gen` | Given table + columns, generates SQL migration + Pydantic model + query stubs |
+| `intent-pattern-gen` | Given a feature + Spanish example messages, generates regex + AI prompt fragment |
+| `expense-aggregator-gen` | Given time boundary, generates aggregation function + tests + fixture |
+| `test-coverage-check` | Scans a module and lists untested paths — read only |
+| `review-feature` | Full code review before merging |
+| `agent-log-entry` | Appends an architectural decision entry to `agent_log.txt` |
 
-- Use `/claude-api` when touching the Anthropic SDK or agent code
+- All skills are output-only (code blocks for review) except
+  `agent-log-entry` which writes directly to `agent_log.txt`
 - Use `/simplify` after implementing a feature to check for
   unnecessary complexity
+- Run `/review-feature` before every push
 
 ## Development Principles
 
@@ -126,7 +131,10 @@ tecnología, educación, viajes, otros
 - Wishlist → items with optional price estimate and URL
 
 ### NOTAS (Quick Capture)
-- Free-form notes, searchable from dashboard
+- Free-form notes — save (`nota:`), list (`mis notas`),
+  search by keyword (`buscar nota:`)
+- Server-side keyword search via Supabase `ilike`
+- Searchable from dashboard (planned)
 
 ### PERFIL (Profile & Settings)
 - Name, currency, Anthropic API key (encrypted), AI mode toggle,

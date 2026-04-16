@@ -9,9 +9,14 @@ No app to install. Just save the number and start messaging.
 
 ## Features (current)
 
-- Log expenses: `gasté 5000 en almuerzo`
-- Automatic category detection from description
-- Weekly summary: `resumen`
+- **Expenses:** `gasté 5000 en almuerzo` — logs with auto-detected category
+- **Ambiguous expenses:** `pagué 3000` — AI proposes category, you confirm
+- **Weekly summary:** `resumen`
+- **Todos:** `pendiente: llamar al banco` / `mis pendientes` / `listo: banco`
+- **Shopping list:** `comprar: leche` / `compras` / `compré leche`
+- **Wishlist:** `quiero: zapatillas` / `mis deseos`
+- **Notes:** `nota: flores en el jardín` / `mis notas` / `buscar nota: flores`
+- **Help:** `ayuda` — shows all available commands
 - CSV / JSON export via REST API
 - Swagger UI at `/docs`
 
@@ -53,29 +58,74 @@ SUPABASE_KEY=your-service-role-key
 ### 3. Set up Supabase
 
 Create the following tables in your Supabase project
-(SQL editor → New query):
+(SQL editor → New query). Run each block separately:
 
 ```sql
+-- Users
 create table users (
   id uuid primary key default gen_random_uuid(),
   phone text unique not null,
   created_at timestamptz default now()
 );
 
+-- Expenses
 create table expenses (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id),
+  user_id uuid references users(id) on delete cascade,
   amount numeric not null,
   category text not null,
   note text,
   date date default current_date,
   created_at timestamptz default now()
 );
+
+-- Todos
+create table todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  task text not null,
+  done boolean default false,
+  due_date date,
+  created_at timestamptz default now()
+);
+
+-- Shopping list
+create table shopping_list (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  item text not null,
+  quantity integer,
+  unit text,
+  checked boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Wishlist
+create table wishlist (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  item text not null,
+  price_estimate numeric,
+  url text,
+  created_at timestamptz default now()
+);
+
+-- Notes
+create table notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
 ```
+
+Also run `backend/mcp_contexts_migration.sql` for the
+ambiguous expense confirmation flow.
 
 ### 4. Run the server
 
 ```bash
+cd backend
 uvicorn main:app --reload
 ```
 
@@ -101,12 +151,12 @@ Cazuela uses Twilio's WhatsApp sandbox for development.
 
 ```bash
 cd backend
-source .venv/bin/activate
-pytest
+.venv/bin/pytest
 ```
 
 Tests do not require a live Supabase connection —
 DB calls are mocked in unit and integration tests.
+`pytest.ini` sets `pythonpath = .` so no extra env setup is needed.
 
 ---
 
@@ -120,22 +170,40 @@ web: uvicorn main:app --host 0.0.0.0 --port $PORT
 
 1. Create a new project on [railway.app](https://railway.app)
 2. Connect your GitHub repository
-3. Add `SUPABASE_URL` and `SUPABASE_KEY` as environment variables
+3. Add environment variables:
+   - `SUPABASE_URL` and `SUPABASE_KEY`
+   - `TWILIO_AUTH_TOKEN` — live auth token from Twilio console
+   - `EXPORT_TOKEN` — any secret string to protect the export endpoint
 4. Railway auto-deploys on every push to `main`
 
 ---
 
 ## WhatsApp Commands
 
+Send `ayuda` at any time to see the full command reference.
+
 | Message | Action |
 |---------|--------|
-| `gasté [amount] en [description]` | Log an expense |
-| `gaste [amount] [description]` | Log an expense (no accent) |
+| `gasté 5000 en almuerzo` | Log an expense with category |
+| `pagué 3000` | Log expense, bot proposes category |
+| `confirmar` / `cancelar` | Confirm or cancel a pending expense |
 | `resumen` | Weekly summary by category |
+| `pendiente: llamar al banco` | Add a todo |
+| `mis pendientes` | List open todos |
+| `listo: llamar al banco` | Mark todo as done |
+| `comprar: leche` | Add item to shopping list |
+| `compras` | View shopping list |
+| `compré leche` | Mark item as bought |
+| `quiero: zapatillas` | Add to wishlist |
+| `mis deseos` | View wishlist |
+| `nota: texto libre` | Save a note |
+| `mis notas` | List notes |
+| `buscar nota: palabra` | Search notes by keyword |
+| `ayuda` | Show all commands |
 
 **Expense categories (auto-detected):**
 comida, transporte, salud, hogar, entretenimiento,
-ropa, tecnologia, educacion, viajes, otros
+ropa, tecnología, educación, viajes, otros
 
 ---
 
@@ -154,19 +222,30 @@ GET /export?phone=+56912345678&format=csv
 cazuela/
 ├── backend/
 │   ├── app/
-│   │   ├── handlers/       # Business logic (expenses, summary)
+│   │   ├── handlers/       # One module per feature
+│   │   │   ├── expenses.py
+│   │   │   ├── summary.py
+│   │   │   ├── todos.py
+│   │   │   ├── shopping.py
+│   │   │   ├── wishlist.py
+│   │   │   └── notes.py
+│   │   ├── mcp/            # Context store for confirm/cancel flow
+│   │   │   ├── context.py  # Supabase-backed context state machine
+│   │   │   ├── client.py   # Public API for handlers
+│   │   │   └── agent.py    # Stub agent (category proposal)
 │   │   ├── db/             # Supabase client + user queries
 │   │   └── router.py       # Message routing (regex patterns)
 │   ├── tests/
 │   │   ├── fixtures/       # Shared test data
-│   │   ├── test_aggregation.py
-│   │   ├── test_expenses.py
+│   │   ├── test_handlers.py
 │   │   ├── test_integration.py
 │   │   ├── test_main.py
+│   │   ├── test_mcp.py
 │   │   └── test_router.py
+│   ├── mcp_contexts_migration.sql
 │   ├── main.py
-│   ├── requirements.txt
-│   └── requirements-dev.txt
+│   ├── pytest.ini
+│   └── requirements.txt
 └── README.md
 ```
 
@@ -174,13 +253,13 @@ cazuela/
 
 ## Roadmap
 
-| Phase | What |
-|-------|------|
-| 0 | Infrastructure — done |
-| 1 | Core agent + Expenses — done |
-| 2 | Todos + Reminders + Google Calendar |
-| 3 | Budget + Savings goals + Email |
-| 4 | Shopping list + Wishlist |
-| 5 | Despensa + Google Sheets + Meal planning |
-| 6 | Dashboard (Next.js) |
-| 7 | Onboarding + multi-user polish |
+| Phase | What | Status |
+|-------|------|--------|
+| 0 | Infrastructure | ✓ done |
+| 1 | Core agent + Expenses | ✓ done |
+| 2 | Todos + Reminders + Google Calendar | todos done; reminders + calendar pending |
+| 3 | Budget + Savings goals + Email | pending |
+| 4 | Shopping list + Wishlist + Notes | ✓ done |
+| 5 | Despensa + Google Sheets + Meal planning | pending |
+| 6 | Dashboard (Next.js) | pending |
+| 7 | Onboarding + multi-user polish | pending |

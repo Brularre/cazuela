@@ -383,3 +383,44 @@ The alternative — always validate — would require mocking
 Twilio's RequestValidator in every test that hits the webhook.
 
 ---
+
+## 2026-04-16 — MCP removed from direct-write handlers
+
+**Suggested:**
+Wrap all handler DB inserts in MCP context tracking
+(send_context / confirm / rollback) for rollback support.
+
+**Decision:** Rejected for direct-write handlers;
+retained only for the ambiguous expense flow
+
+**Rationale:**
+For simple inserts (todos, notes, shopping, wishlist)
+the rollback is cosmetic — the DB was never written to
+on failure, so there is nothing to undo.
+Worse, MCP added two extra DB round-trips per write
+and introduced a production bug when status enforcement
+(`confirm` required "staged") broke handlers that never
+called `request_action`.
+MCP earns its keep only where there is a genuine two-message
+interaction: propose → user confirms/cancels.
+
+---
+
+## 2026-04-16 — MCP context store: in-memory to Supabase
+
+**Suggested:**
+Replace the module-level `_store` dict in `context.py`
+with Supabase table operations.
+
+**Decision:** Accepted
+
+**Rationale:**
+Railway restarts the container on every deploy,
+wiping in-memory state. A user who said "pagué 3000"
+and then deployed (or had a server restart) before
+replying "confirmar" would silently lose the staged expense.
+The Supabase-backed store survives deploys.
+Tests were rewritten to use a stateful `FakeClient` fixture
+instead of accessing `_store` directly.
+
+---
