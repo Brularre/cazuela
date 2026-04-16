@@ -7,6 +7,9 @@ description: >
 argument-hint: "[daily|weekly|monthly] [category filter — optional]"
 ---
 
+DO NOT write any files. Output the code as markdown code blocks
+for the developer to review before applying.
+
 Given a time boundary and optional category filter, generate:
 1. An aggregation function in `backend/app/handlers/`
 2. Edge-case unit tests in `backend/tests/`

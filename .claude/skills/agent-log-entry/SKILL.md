@@ -40,6 +40,7 @@ and the decision made about it.
 - Only log decisions with actual rationale — skip trivial formatting
   or typo fixes
 - Date format: YYYY-MM-DD
+- Only write to `agent_log.txt` in the project root — no other files
 - Append at the **bottom** of the file, after the last `---`
 - **Line length:** break long lines at natural clause or sentence
   boundaries. Prefer multiple short lines over one long line.
