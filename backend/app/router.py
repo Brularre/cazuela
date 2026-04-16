@@ -6,6 +6,7 @@ from app.handlers.summary import get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.wishlist import add_to_wishlist, list_wishlist
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
+from app.handlers.notes import add_note, list_notes, search_notes
 from app.mcp import client as mcp
 
 EXPENSE_PATTERN = re.compile(
@@ -31,6 +32,10 @@ SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORE
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 SHOPPING_CHECK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
+NOTES_ADD_PATTERN = re.compile(r'^nota[:\s]+(.+)$', re.IGNORECASE)
+NOTES_LIST_PATTERN = re.compile(r'^mis?\s+notas?$', re.IGNORECASE)
+NOTES_SEARCH_PATTERN = re.compile(r'^buscar\s+notas?[:\s]+(.+)$', re.IGNORECASE)
+
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
@@ -53,6 +58,10 @@ HELP_TEXT = (
     "*Deseos*\n"
     "• _quiero: zapatillas_\n"
     "• _mis deseos_\n\n"
+    "*Notas*\n"
+    "• _nota: compré flores hoy_\n"
+    "• _mis notas_\n"
+    "• _buscar nota: flores_\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto."
 )
 
@@ -165,6 +174,17 @@ def route(message: str, user: dict) -> str:
     match = SHOPPING_CHECK_PATTERN.match(message)
     if match:
         return check_item(match.group(1).strip(), user)
+
+    match = NOTES_ADD_PATTERN.match(message)
+    if match:
+        return add_note(match.group(1).strip(), user)
+
+    if NOTES_LIST_PATTERN.match(message):
+        return list_notes(user)
+
+    match = NOTES_SEARCH_PATTERN.match(message)
+    if match:
+        return search_notes(match.group(1).strip(), user)
 
     if HELP_PATTERN.match(message):
         return HELP_TEXT

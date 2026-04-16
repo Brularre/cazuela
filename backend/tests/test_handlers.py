@@ -58,3 +58,54 @@ def test_check_item_no_match(mock_mcp, mock_client):
     from app.handlers.shopping import check_item
     result = check_item("mantequilla", FAKE_USER)
     assert "No encontré" in result
+
+
+def make_notes_rows(*contents):
+    return [{"id": str(i), "content": c} for i, c in enumerate(contents)]
+
+
+@patch("app.handlers.notes.client")
+@patch("app.handlers.notes.mcp")
+def test_add_note(mock_mcp, mock_client):
+    mock_mcp.send_context.return_value = "ctx-1"
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.notes import add_note
+    result = add_note("compré flores hoy", FAKE_USER)
+    assert "guardada" in result
+    assert "compré flores hoy" in result
+
+
+@patch("app.handlers.notes.client")
+@patch("app.handlers.notes.mcp")
+def test_list_notes_empty(mock_mcp, mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    from app.handlers.notes import list_notes
+    result = list_notes(FAKE_USER)
+    assert "No tienes notas" in result
+
+
+@patch("app.handlers.notes.client")
+@patch("app.handlers.notes.mcp")
+def test_list_notes_with_items(mock_mcp, mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = make_notes_rows("compré flores", "llamé al médico")
+    from app.handlers.notes import list_notes
+    result = list_notes(FAKE_USER)
+    assert "compré flores" in result
+
+
+@patch("app.handlers.notes.client")
+@patch("app.handlers.notes.mcp")
+def test_search_notes_found(mock_mcp, mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = make_notes_rows("compré flores hoy", "llamé al médico")
+    from app.handlers.notes import search_notes
+    result = search_notes("flores", FAKE_USER)
+    assert "compré flores" in result
+
+
+@patch("app.handlers.notes.client")
+@patch("app.handlers.notes.mcp")
+def test_search_notes_not_found(mock_mcp, mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
+    from app.handlers.notes import search_notes
+    result = search_notes("dentista", FAKE_USER)
+    assert "No encontré" in result

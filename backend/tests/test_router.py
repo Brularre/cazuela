@@ -152,6 +152,36 @@ def test_cancel_with_no_pending_returns_message():
     assert "pendiente" in result
 
 
+@pytest.mark.parametrize("message,expected_content", [
+    ("nota: compré flores hoy", "compré flores hoy"),
+    ("nota llamar al médico mañana", "llamar al médico mañana"),
+])
+def test_notes_add_routes_to_add_note(message, expected_content):
+    with patch("app.router.add_note", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_content
+
+
+@pytest.mark.parametrize("message", ["mis notas", "mi nota", "Mis Notas"])
+def test_notes_list_routes_to_list_notes(message):
+    with patch("app.router.list_notes", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
+
+
+@pytest.mark.parametrize("message,expected_keyword", [
+    ("buscar nota: flores", "flores"),
+    ("buscar notas reunión", "reunión"),
+    ("buscar nota médico", "médico"),
+])
+def test_notes_search_routes_to_search_notes(message, expected_keyword):
+    with patch("app.router.search_notes", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_keyword
+
+
 @pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])
 def test_help_returns_command_reference(message):
     result = route(message, FAKE_USER)
