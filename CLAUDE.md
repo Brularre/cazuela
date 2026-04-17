@@ -55,9 +55,11 @@ and sample data fixture.
 | `test-coverage-check` | Scans a module and lists untested paths — read only |
 | `review-feature` | Full code review before merging |
 | `agent-log-entry` | Appends an architectural decision entry to `agent_log.txt` |
+| `schema-sync` | Updates `backend/SCHEMA.md` after a migration is run |
 
 - All skills are output-only (code blocks for review) except
-  `agent-log-entry` which writes directly to `agent_log.txt`
+  `agent-log-entry` (writes `agent_log.txt`) and
+  `schema-sync` (writes `backend/SCHEMA.md`)
 - Use `/simplify` after implementing a feature to check for
   unnecessary complexity
 - Run `/review-feature` before every push
