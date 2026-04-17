@@ -101,8 +101,8 @@ def test_todos_list_empty(mock_handler_client, mock_users_client):
 def test_todos_list_with_items(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_handler_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
-        {"task": "llamar al banco"},
-        {"task": "pagar arriendo"},
+        {"task": "llamar al banco", "priority": "hoy"},
+        {"task": "pagar arriendo", "priority": "semana"},
     ]
 
     response = client.post(
@@ -111,7 +111,6 @@ def test_todos_list_with_items(mock_handler_client, mock_users_client):
     )
 
     assert response.status_code == 200
-    assert "Tus pendientes:" in response.text
     assert "llamar al banco" in response.text
     assert "pagar arriendo" in response.text
 

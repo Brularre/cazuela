@@ -55,6 +55,20 @@ def test_todo_add_routes_to_add_todo(message, expected_task):
         assert mock.call_args[0][0] == expected_task
 
 
+@pytest.mark.parametrize("message,expected_task,expected_priority", [
+    ("pendiente: hoy: llamar al banco", "llamar al banco", "hoy"),
+    ("pendiente: hoy llamar al banco", "llamar al banco", "hoy"),
+    ("pendiente: mes: pagar impuesto", "pagar impuesto", "mes"),
+    ("pendiente: renovar seguro", "renovar seguro", "semana"),
+])
+def test_todo_add_extracts_priority(message, expected_task, expected_priority):
+    with patch("app.router.add_todo", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_task
+        assert mock.call_args[0][2] == expected_priority
+
+
 @pytest.mark.parametrize("message", ["mis pendientes", "mi pendiente", "Mis Pendientes"])
 def test_todo_list_routes_to_list_todos(message):
     with patch("app.router.list_todos", return_value="ok") as mock:

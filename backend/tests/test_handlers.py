@@ -7,6 +7,43 @@ def make_todo_rows(*tasks):
     return [{"id": str(i), "task": t} for i, t in enumerate(tasks)]
 
 
+def make_todo_priority_rows(*pairs):
+    return [{"id": str(i), "task": t, "priority": p} for i, (t, p) in enumerate(pairs)]
+
+
+@patch("app.handlers.todos.client")
+def test_add_todo_default_priority(mock_client):
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.todos import add_todo
+    result = add_todo("llamar al banco", FAKE_USER)
+    assert "llamar al banco" in result
+    inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["priority"] == "semana"
+
+
+@patch("app.handlers.todos.client")
+def test_add_todo_explicit_priority(mock_client):
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.todos import add_todo
+    result = add_todo("llamar al banco", FAKE_USER, priority="hoy")
+    assert "llamar al banco" in result
+    inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["priority"] == "hoy"
+
+
+@patch("app.handlers.todos.client")
+def test_list_todos_grouped_by_priority(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_todo_priority_rows(
+        ("llamar al banco", "hoy"),
+        ("renovar seguro", "semana"),
+    )
+    from app.handlers.todos import list_todos
+    result = list_todos(FAKE_USER)
+    assert "Hoy" in result
+    assert "Esta semana" in result
+    assert result.index("llamar al banco") < result.index("renovar seguro")
+
+
 def make_shopping_rows(*items):
     return [{"id": str(i), "item": it} for i, it in enumerate(items)]
 

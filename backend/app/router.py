@@ -154,7 +154,15 @@ def route(message: str, user: dict) -> str:
 
     match = TODO_ADD_PATTERN.match(message)
     if match:
-        return add_todo(match.group(1).strip(), user)
+        task_raw = match.group(1).strip()
+        priority = "semana"
+        if re.match(r'^hoy[:\s]+', task_raw, re.IGNORECASE):
+            task_raw = re.sub(r'^hoy[:\s]+', '', task_raw, flags=re.IGNORECASE).strip()
+            priority = "hoy"
+        elif re.match(r'^mes[:\s]+', task_raw, re.IGNORECASE):
+            task_raw = re.sub(r'^mes[:\s]+', '', task_raw, flags=re.IGNORECASE).strip()
+            priority = "mes"
+        return add_todo(task_raw, user, priority)
 
     if TODO_LIST_PATTERN.match(message):
         return list_todos(user)
