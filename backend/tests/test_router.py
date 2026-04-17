@@ -128,8 +128,8 @@ def test_shopping_list_routes_to_list_shopping(message):
     ("compré leche", "leche"),
     ("compre el pan", "el pan"),
 ])
-def test_shopping_check_routes_to_check_item(message, expected_item):
-    with patch("app.router.check_item", return_value="ok") as mock:
+def test_shopping_check_routes_to_restock_pantry_item(message, expected_item):
+    with patch("app.router.restock_pantry_item", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item
@@ -232,6 +232,57 @@ def test_waiting_list_routes_to_list_waiting(message):
 ])
 def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
     with patch("app.router.resolve_waiting", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_fragment
+
+
+@pytest.mark.parametrize("message,expected_item,expected_qty", [
+    ("despensa: jabón 2", "jabón", 2),
+    ("despensa jabón de manos 3", "jabón de manos", 3),
+    ("despensa: detergente líquido 1", "detergente líquido", 1),
+])
+def test_pantry_add_routes_to_add_pantry_item(message, expected_item, expected_qty):
+    with patch("app.router.add_pantry_item", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_item
+        assert mock.call_args[0][1] == expected_qty
+
+
+@pytest.mark.parametrize("message", ["mi despensa", "Mi Despensa"])
+def test_pantry_list_routes_to_list_pantry(message):
+    with patch("app.router.list_pantry", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
+
+
+@pytest.mark.parametrize("message,expected_fragment", [
+    ("usé: jabón", "jabón"),
+    ("use el detergente", "el detergente"),
+    ("usé shampoo", "shampoo"),
+])
+def test_pantry_consume_routes_to_consume_pantry_item(message, expected_fragment):
+    with patch("app.router.consume_pantry_item", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_fragment
+
+
+@pytest.mark.parametrize("message", ["compré todo", "compre todo", "Compré Todo"])
+def test_pantry_restock_all_routes_to_restock_all_pantry(message):
+    with patch("app.router.restock_all_pantry", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
+
+
+@pytest.mark.parametrize("message,expected_fragment", [
+    ("compré: jabón", "jabón"),
+    ("compre el detergente", "el detergente"),
+    ("compré shampoo", "shampoo"),
+])
+def test_pantry_restock_routes_to_restock_pantry_item(message, expected_fragment):
+    with patch("app.router.restock_pantry_item", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_fragment

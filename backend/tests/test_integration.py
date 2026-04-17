@@ -267,11 +267,11 @@ def test_shopping_list_with_items(mock_handler_client, mock_users_client):
 
 
 @patch("app.db.users.client")
-@patch("app.handlers.shopping.client")
+@patch("app.handlers.pantry.client")
 def test_shopping_check_item(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
-    mock_handler_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "s-1", "item": "leche"},
+    mock_handler_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "p-1", "item": "leche", "desired_quantity": 2},
     ]
     mock_handler_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
 
@@ -281,7 +281,8 @@ def test_shopping_check_item(mock_handler_client, mock_users_client):
     )
 
     assert response.status_code == 200
-    assert "✓ Marcado: leche" in response.text
+    assert "Repuesto" in response.text
+    assert "leche" in response.text
 
 
 @patch("app.db.users.client")
