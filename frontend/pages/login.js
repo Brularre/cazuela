@@ -14,16 +14,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/request-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
-    });
-    setLoading(false);
-    if (res.ok) {
-      setStep(2);
-    } else {
-      setError("Error al enviar el código. Intenta nuevamente.");
+    try {
+      const res = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      if (res.ok) {
+        setStep(2);
+      } else {
+        setError("Error al enviar el código. Intenta nuevamente.");
+      }
+    } catch {
+      setError("Error de conexión. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -31,16 +36,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code }),
-    });
-    setLoading(false);
-    if (res.ok) {
-      router.push("/");
-    } else {
-      setError("Código incorrecto o expirado.");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, code }),
+      });
+      if (res.ok) {
+        router.push("/");
+      } else {
+        setError("Código incorrecto o expirado.");
+      }
+    } catch {
+      setError("Error de conexión. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
     }
   }
 
