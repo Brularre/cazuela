@@ -7,6 +7,7 @@ from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.wishlist import add_to_wishlist, list_wishlist
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.notes import add_note, list_notes, search_notes
+from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.mcp import client as mcp
 
 EXPENSE_PATTERN = re.compile(
@@ -36,6 +37,10 @@ NOTES_ADD_PATTERN = re.compile(r'^nota[:\s]+(.+)$', re.IGNORECASE)
 NOTES_LIST_PATTERN = re.compile(r'^mis?\s+notas?$', re.IGNORECASE)
 NOTES_SEARCH_PATTERN = re.compile(r'^buscar\s+notas?[:\s]+(.+)$', re.IGNORECASE)
 
+WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
+WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
+WAITING_RESOLVE_PATTERN = re.compile(r'^lleg[oó][:\s]+(.+)$', re.IGNORECASE)
+
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
@@ -62,6 +67,10 @@ HELP_TEXT = (
     "• _nota: compré flores hoy_\n"
     "• _mis notas_\n"
     "• _buscar nota: flores_\n\n"
+    "*Esperando*\n"
+    "• _esperando: respuesta del seguro_\n"
+    "• _mis esperas_\n"
+    "• _llegó: seguro_ — marcar como resuelto\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto."
 )
 
@@ -185,6 +194,17 @@ def route(message: str, user: dict) -> str:
     match = NOTES_SEARCH_PATTERN.match(message)
     if match:
         return search_notes(match.group(1).strip(), user)
+
+    match = WAITING_ADD_PATTERN.match(message)
+    if match:
+        return add_waiting(match.group(1).strip(), user)
+
+    if WAITING_LIST_PATTERN.match(message):
+        return list_waiting(user)
+
+    match = WAITING_RESOLVE_PATTERN.match(message)
+    if match:
+        return resolve_waiting(match.group(1).strip(), user)
 
     if HELP_PATTERN.match(message):
         return HELP_TEXT

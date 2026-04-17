@@ -190,3 +190,34 @@ def test_help_returns_command_reference(message):
     assert "pendiente" in result
     assert "comprar" in result
     assert "confirmar" in result
+
+
+@pytest.mark.parametrize("message,expected_desc", [
+    ("esperando: respuesta del seguro", "respuesta del seguro"),
+    ("esperando respuesta del banco", "respuesta del banco"),
+    ("esperando: la llamada del médico", "la llamada del médico"),
+])
+def test_waiting_add_routes_to_add_waiting(message, expected_desc):
+    with patch("app.router.add_waiting", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_desc
+
+
+@pytest.mark.parametrize("message", ["mis esperas", "mi espera", "Mis Esperas"])
+def test_waiting_list_routes_to_list_waiting(message):
+    with patch("app.router.list_waiting", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once_with(FAKE_USER)
+
+
+@pytest.mark.parametrize("message,expected_fragment", [
+    ("llegó: seguro", "seguro"),
+    ("llego el banco", "el banco"),
+    ("llegó la respuesta", "la respuesta"),
+])
+def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
+    with patch("app.router.resolve_waiting", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_fragment

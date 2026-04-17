@@ -98,3 +98,55 @@ def test_search_notes_not_found(mock_client):
     from app.handlers.notes import search_notes
     result = search_notes("dentista", FAKE_USER)
     assert "No encontré" in result
+
+
+def make_waiting_rows(*descriptions):
+    return [{"id": str(i), "description": d} for i, d in enumerate(descriptions)]
+
+
+@patch("app.handlers.waiting_on.client")
+def test_add_waiting(mock_client):
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.waiting_on import add_waiting
+    result = add_waiting("respuesta del seguro", FAKE_USER)
+    assert "Guardado" in result
+    assert "respuesta del seguro" in result
+
+
+@patch("app.handlers.waiting_on.client")
+def test_list_waiting_empty(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    from app.handlers.waiting_on import list_waiting
+    result = list_waiting(FAKE_USER)
+    assert "No tienes nada esperando" in result
+
+
+@patch("app.handlers.waiting_on.client")
+def test_list_waiting_with_items(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data = make_waiting_rows(
+        "respuesta del seguro", "llamada del banco"
+    )
+    from app.handlers.waiting_on import list_waiting
+    result = list_waiting(FAKE_USER)
+    assert "respuesta del seguro" in result
+
+
+@patch("app.handlers.waiting_on.client")
+def test_resolve_waiting_partial_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_waiting_rows(
+        "respuesta del seguro", "llamada del banco"
+    )
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.waiting_on import resolve_waiting
+    result = resolve_waiting("seguro", FAKE_USER)
+    assert "respuesta del seguro" in result
+
+
+@patch("app.handlers.waiting_on.client")
+def test_resolve_waiting_no_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_waiting_rows(
+        "respuesta del seguro"
+    )
+    from app.handlers.waiting_on import resolve_waiting
+    result = resolve_waiting("dentista", FAKE_USER)
+    assert "No encontré" in result
