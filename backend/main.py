@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import warnings
 from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import StreamingResponse
 from twilio.request_validator import RequestValidator
@@ -10,9 +11,16 @@ from app.config import settings
 from app.db import client
 from app.db.users import get_or_create_user
 from app.router import route
+from app.routes.auth import router as auth_router
+from app.routes.dashboard import router as dashboard_router
 
 app = FastAPI(title="Cazuela")
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+if not settings.session_secret:
+    warnings.warn("SESSION_SECRET is not set — dashboard auth will return 401 for all requests")
+app.include_router(auth_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/health")
