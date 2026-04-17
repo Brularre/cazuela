@@ -8,6 +8,10 @@ from app.handlers.wishlist import add_to_wishlist, list_wishlist
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.notes import add_note, list_notes, search_notes
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
+from app.handlers.pantry import (
+    add_pantry_item, list_pantry,
+    consume_pantry_item, restock_pantry_item, restock_all_pantry,
+)
 from app.mcp import client as mcp
 
 EXPENSE_PATTERN = re.compile(
@@ -31,7 +35,7 @@ WISHLIST_LIST_PATTERN = re.compile(r'^mis?\s+deseos?$', re.IGNORECASE)
 
 SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORECASE)
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
-SHOPPING_CHECK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
+PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
 NOTES_ADD_PATTERN = re.compile(r'^nota[:\s]+(.+)$', re.IGNORECASE)
 NOTES_LIST_PATTERN = re.compile(r'^mis?\s+notas?$', re.IGNORECASE)
@@ -40,6 +44,13 @@ NOTES_SEARCH_PATTERN = re.compile(r'^buscar\s+notas?[:\s]+(.+)$', re.IGNORECASE)
 WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
 WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
 WAITING_RESOLVE_PATTERN = re.compile(r'^lleg[oó][:\s]+(.+)$', re.IGNORECASE)
+
+PANTRY_ADD_PATTERN = re.compile(
+    r'^despensa[:\s]+(.+?)\s+(\d+)$', re.IGNORECASE
+)
+PANTRY_LIST_PATTERN = re.compile(r'^mi\s+despensa$', re.IGNORECASE)
+PANTRY_CONSUME_PATTERN = re.compile(r'^us[eé][:\s]+(.+)$', re.IGNORECASE)
+PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
@@ -71,6 +82,12 @@ HELP_TEXT = (
     "• _esperando: respuesta del seguro_\n"
     "• _mis esperas_\n"
     "• _llegó: seguro_ — marcar como resuelto\n\n"
+    "*Despensa*\n"
+    "• _despensa: jabón 2_ — agregar con cantidad deseada\n"
+    "• _mi despensa_ — ver stock\n"
+    "• _usé: jabón_ — consumir uno\n"
+    "• _compré: jabón_ — reponer uno\n"
+    "• _compré todo_ — reponer todo lo que falta\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto."
 )
 
@@ -188,9 +205,25 @@ def route(message: str, user: dict) -> str:
     if SHOPPING_LIST_PATTERN.match(message):
         return list_shopping(user)
 
-    match = SHOPPING_CHECK_PATTERN.match(message)
+    match = PANTRY_ADD_PATTERN.match(message)
     if match:
-        return check_item(match.group(1).strip(), user)
+        item = match.group(1).strip()
+        qty = int(match.group(2))
+        return add_pantry_item(item, qty, user)
+
+    if PANTRY_LIST_PATTERN.match(message):
+        return list_pantry(user)
+
+    match = PANTRY_CONSUME_PATTERN.match(message)
+    if match:
+        return consume_pantry_item(match.group(1).strip(), user)
+
+    if PANTRY_RESTOCK_ALL_PATTERN.match(message):
+        return restock_all_pantry(user)
+
+    match = PANTRY_RESTOCK_PATTERN.match(message)
+    if match:
+        return restock_pantry_item(match.group(1).strip(), user)
 
     match = NOTES_ADD_PATTERN.match(message)
     if match:

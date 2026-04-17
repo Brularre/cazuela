@@ -187,3 +187,142 @@ def test_resolve_waiting_no_match(mock_client):
     from app.handlers.waiting_on import resolve_waiting
     result = resolve_waiting("dentista", FAKE_USER)
     assert "No encontré" in result
+
+
+def make_pantry_rows(*triples):
+    return [
+        {"id": str(i), "item": item, "current_quantity": cur, "desired_quantity": des}
+        for i, (item, cur, des) in enumerate(triples)
+    ]
+
+
+@patch("app.handlers.pantry.client")
+def test_add_pantry_item_new(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.pantry import add_pantry_item
+    result = add_pantry_item("jabón", 3, FAKE_USER)
+    assert "Agregado" in result
+    assert "jabón" in result
+    inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["desired_quantity"] == 3
+    assert inserted["current_quantity"] == 3
+
+
+@patch("app.handlers.pantry.client")
+def test_add_pantry_item_existing_updates_desired(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [{"id": "x"}]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import add_pantry_item
+    result = add_pantry_item("jabón", 5, FAKE_USER)
+    assert "actualizada" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_list_pantry_empty(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    from app.handlers.pantry import list_pantry
+    result = list_pantry(FAKE_USER)
+    assert "vacía" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_list_pantry_marks_low_stock(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
+        {"item": "jabón", "current_quantity": 1, "desired_quantity": 3},
+        {"item": "papel", "current_quantity": 2, "desired_quantity": 2},
+    ]
+    from app.handlers.pantry import list_pantry
+    result = list_pantry(FAKE_USER)
+    assert "jabón" in result
+    assert "reponer" in result
+    assert "papel" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_consume_pantry_item_partial_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón de manos", "current_quantity": 2}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import consume_pantry_item
+    result = consume_pantry_item("jabón", FAKE_USER)
+    assert "jabón de manos" in result
+    assert "quedan 1" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_consume_pantry_item_hits_zero(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "current_quantity": 1}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import consume_pantry_item
+    result = consume_pantry_item("jabón", FAKE_USER)
+    assert "sin stock" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_consume_pantry_item_no_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "current_quantity": 2}
+    ]
+    from app.handlers.pantry import consume_pantry_item
+    result = consume_pantry_item("detergente", FAKE_USER)
+    assert "No encontré" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_pantry_item(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "desired_quantity": 3}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import restock_pantry_item
+    result = restock_pantry_item("jabón", FAKE_USER)
+    assert "Repuesto" in result
+    assert "jabón" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_pantry_item_no_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "desired_quantity": 3}
+    ]
+    from app.handlers.pantry import restock_pantry_item
+    result = restock_pantry_item("detergente", FAKE_USER)
+    assert "No encontré" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_all_pantry_some_low(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "current_quantity": 0, "desired_quantity": 2},
+        {"id": "2", "item": "papel", "current_quantity": 3, "desired_quantity": 3},
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import restock_all_pantry
+    result = restock_all_pantry(FAKE_USER)
+    assert "1 ítem repuesto" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_all_pantry_plural(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "current_quantity": 0, "desired_quantity": 2},
+        {"id": "2", "item": "papel", "current_quantity": 1, "desired_quantity": 3},
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import restock_all_pantry
+    result = restock_all_pantry(FAKE_USER)
+    assert "2 ítems repuestos" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_all_pantry_already_stocked(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "current_quantity": 2, "desired_quantity": 2},
+    ]
+    from app.handlers.pantry import restock_all_pantry
+    result = restock_all_pantry(FAKE_USER)
+    assert "al día" in result
