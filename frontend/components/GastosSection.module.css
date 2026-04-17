@@ -1,0 +1,38 @@
+.total {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--cazuela-text-primary);
+  margin-bottom: 1rem;
+}
+
+.chartWrapper {
+  margin-bottom: 1.25rem;
+}
+
+.categories {
+  list-style: none;
+  border-top: 1px solid var(--cazuela-border);
+  padding-top: 0.75rem;
+}
+
+.categoryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.375rem 0;
+  font-size: 0.875rem;
+}
+
+.categoryName {
+  color: var(--cazuela-text-muted);
+  text-transform: capitalize;
+}
+
+.categoryAmount {
+  color: var(--cazuela-text-primary);
+  font-weight: 600;
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--cazuela-text-muted);
+}

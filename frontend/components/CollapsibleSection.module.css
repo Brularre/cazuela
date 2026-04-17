@@ -1,0 +1,31 @@
+.section {
+  background: var(--cazuela-card);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chevron {
+  font-size: 0.7rem;
+  color: var(--cazuela-text-muted);
+}
+
+.body {
+  padding: 0 1.25rem 1.25rem;
+}

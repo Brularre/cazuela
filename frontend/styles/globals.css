@@ -1,0 +1,33 @@
+:root {
+  --cazuela-bg: #1A1210;
+  --cazuela-card: #2A2018;
+  --cazuela-accent: #C0392B;
+  --cazuela-text-primary: #F5EFE6;
+  --cazuela-text-muted: #8A7A6A;
+  --cazuela-border: #3A2C20;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--cazuela-bg);
+  color: var(--cazuela-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

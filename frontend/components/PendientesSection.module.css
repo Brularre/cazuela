@@ -1,0 +1,59 @@
+.bucket {
+  margin-bottom: 1rem;
+}
+
+.bucketLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cazuela-accent);
+  margin-bottom: 0.5rem;
+}
+
+.list {
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--cazuela-border);
+  gap: 0.75rem;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.task {
+  font-size: 0.9rem;
+  color: var(--cazuela-text-primary);
+  flex: 1;
+}
+
+.complete {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cazuela-text-muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.complete:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--cazuela-text-muted);
+}

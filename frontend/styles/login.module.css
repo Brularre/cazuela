@@ -1,0 +1,86 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.card {
+  background: var(--cazuela-card);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.logo {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--cazuela-text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--cazuela-text-muted);
+  margin-bottom: 1rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--cazuela-bg);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 8px;
+  color: var(--cazuela-text-primary);
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.input::placeholder {
+  color: var(--cazuela-text-muted);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--cazuela-accent);
+}
+
+.button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--cazuela-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.button:disabled {
+  opacity: 0.6;
+}
+
+.back {
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: var(--cazuela-text-muted);
+  border: none;
+  font-size: 0.875rem;
+}
+
+.error {
+  color: var(--cazuela-accent);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
