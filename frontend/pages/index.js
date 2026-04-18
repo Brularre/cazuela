@@ -22,8 +22,8 @@ export default function Dashboard({ data }) {
       <main className={styles.main}>
         <GastosSection gastos={data.gastos} />
         <PendientesSection pendientes={data.pendientes} />
-        <EsperandoSection esperando={data.esperando} />
         <ShoppingSection compras={data.compras} />
+        <EsperandoSection esperando={data.esperando} />
         <DespeSection despensa={data.despensa} />
         <PlaceholderSection
           title="Calendario"

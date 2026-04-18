@@ -101,8 +101,11 @@
   border-bottom: 1px solid var(--cazuela-border);
   color: var(--cazuela-text-primary);
   font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1.4;
   padding: 0.2rem 0;
   outline: none;
+  resize: none;
 }
 
 .addInput::placeholder {

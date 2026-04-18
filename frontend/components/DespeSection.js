@@ -4,7 +4,7 @@ import styles from "../styles/DespeSection.module.css";
 
 const TABS = ["cocina", "baño", "otros"];
 const TAB_LABELS = { cocina: "Cocina", baño: "Baño", otros: "Otros" };
-const PLACEHOLDERS = {
+const DESCRIPTIONS = {
   cocina: "Proteínas, vegetales, frutas, lácteos…",
   baño: "Medicamentos, cosméticos, desodorantes…",
   otros: "Comida de mascota, pilas, velas…",
@@ -129,12 +129,13 @@ export default function DespeSection({ despensa: initial }) {
           ))}
           <tr className={styles.addRow}>
             <td>
-              <input
+              <textarea
                 className={styles.addInput}
-                placeholder={PLACEHOLDERS[activeTab]}
+                placeholder={DESCRIPTIONS[activeTab]}
                 value={newItem.item}
+                rows={2}
                 onChange={e => setNewItem(p => ({ ...p, item: e.target.value }))}
-                onKeyDown={e => e.key === "Enter" && handleAdd(e)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAdd(e); } }}
               />
             </td>
             <td className={styles.qty}>—</td>
