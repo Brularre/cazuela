@@ -89,24 +89,6 @@ def test_todo_done_routes_to_complete_todo(message, expected_fragment):
 
 
 @pytest.mark.parametrize("message,expected_item", [
-    ("quiero: zapatillas", "zapatillas"),
-    ("deseo un libro", "un libro"),
-])
-def test_wishlist_add_routes_to_add_to_wishlist(message, expected_item):
-    with patch("app.router.add_to_wishlist", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_item
-
-
-@pytest.mark.parametrize("message", ["mis deseos", "mi deseo"])
-def test_wishlist_list_routes_to_list_wishlist(message):
-    with patch("app.router.list_wishlist", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_item", [
     ("comprar: leche", "leche"),
     ("necesito pan", "pan"),
 ])
@@ -164,36 +146,6 @@ def test_cancel_with_no_pending_returns_message():
     with patch("app.router.mcp.find_pending_for_user", return_value=None):
         result = route("cancelar", FAKE_USER)
     assert "pendiente" in result
-
-
-@pytest.mark.parametrize("message,expected_content", [
-    ("nota: compré flores hoy", "compré flores hoy"),
-    ("nota llamar al médico mañana", "llamar al médico mañana"),
-])
-def test_notes_add_routes_to_add_note(message, expected_content):
-    with patch("app.router.add_note", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_content
-
-
-@pytest.mark.parametrize("message", ["mis notas", "mi nota", "Mis Notas"])
-def test_notes_list_routes_to_list_notes(message):
-    with patch("app.router.list_notes", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_keyword", [
-    ("buscar nota: flores", "flores"),
-    ("buscar notas reunión", "reunión"),
-    ("buscar nota médico", "médico"),
-])
-def test_notes_search_routes_to_search_notes(message, expected_keyword):
-    with patch("app.router.search_notes", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_keyword
 
 
 @pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])

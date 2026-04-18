@@ -57,8 +57,6 @@ if not items:
 | waiting_on.py | Esperando | waiting_on | live |
 | pantry.py | Despensa | pantry | live |
 | shopping.py | Compras | shopping_list | handler only* |
-| notes.py | Notas | notes | handler only* |
-| wishlist.py | Deseos | wishlist | handler only* |
 
 *Handler exists and table is live in Supabase, but router
 patterns and tests are incomplete — not production-ready.

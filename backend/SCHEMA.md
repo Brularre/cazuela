@@ -88,29 +88,15 @@ once the despensa feature is built.
 
 ---
 
-## notes ✓
+## notes — deprecated
 
-RLS enabled.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | gen_random_uuid() |
-| user_id | uuid FK → users(id) | nullable |
-| content | text | |
-| created_at | timestamptz | default now() |
+Feature removed. Table still exists in Supabase but is unused.
 
 ---
 
-## wishlist ✓
+## wishlist — deprecated
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | gen_random_uuid() |
-| user_id | uuid FK → users(id) | nullable |
-| item | text | |
-| price_estimate | numeric | nullable |
-| url | text | nullable |
-| created_at | timestamptz | default now() |
+Feature removed. Table still exists in Supabase but is unused.
 
 ---
 

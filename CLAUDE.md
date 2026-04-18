@@ -45,9 +45,9 @@ manually applied. Run `/review-feature` before every push.
 | 0 | Infrastructure | done |
 | 1 | Expenses + WhatsApp parsing | done |
 | 2 | Todos + waiting_on | done |
-| 3 | Budget + savings + email | planned |
-| 4 | Shopping list + wishlist | handler only |
-| 5 | Despensa + Google Sheets + meal planning | despensa live |
+| 3 | Weekly budget (set via WhatsApp, shown in dashboard) | planned |
+| 4 | Shopping list | handler only |
+| 5 | Despensa + meal planning + Google Sheets | despensa live |
 | 6 | Dashboard (Next.js) | in progress |
 | 7 | Onboarding + multi-user polish | planned |
 
@@ -61,10 +61,6 @@ entretenimiento, ropa, tecnología, educación, viajes, otros
 
 **COMIDA** — despensa/pantry (live); shopping list (handler only);
 meal planning + Google Sheets integration (planned, Phase 5)
-
-**DESEOS** — wishlist (handler only)
-
-**NOTAS** — notes: save, list, keyword search (handler only)
 
 **DASHBOARD** — expenses, todos, shopping list, waiting_on,
 pantry management; auth via WhatsApp OTP + session cookie

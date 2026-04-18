@@ -4,9 +4,7 @@ from app.db import client as db
 from app.handlers.expenses import save_expense
 from app.handlers.summary import get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
-from app.handlers.wishlist import add_to_wishlist, list_wishlist
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
-from app.handlers.notes import add_note, list_notes, search_notes
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.handlers.pantry import (
     add_pantry_item, list_pantry,
@@ -28,18 +26,9 @@ TODO_ADD_PATTERN = re.compile(r'^(?:pendiente|tarea)[:\s]+(.+)$', re.IGNORECASE)
 TODO_LIST_PATTERN = re.compile(r'^mis?\s+pendientes?$', re.IGNORECASE)
 TODO_DONE_PATTERN = re.compile(r'^(?:listo|hice|complet[eé])[:\s]+(.+)$', re.IGNORECASE)
 
-WISHLIST_ADD_PATTERN = re.compile(
-    r'^(?:quiero|deseo)[:\s]+(.+?)(?:\s+\$?([\d.,]+))?$', re.IGNORECASE
-)
-WISHLIST_LIST_PATTERN = re.compile(r'^mis?\s+deseos?$', re.IGNORECASE)
-
 SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORECASE)
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
-
-NOTES_ADD_PATTERN = re.compile(r'^nota[:\s]+(.+)$', re.IGNORECASE)
-NOTES_LIST_PATTERN = re.compile(r'^mis?\s+notas?$', re.IGNORECASE)
-NOTES_SEARCH_PATTERN = re.compile(r'^buscar\s+notas?[:\s]+(.+)$', re.IGNORECASE)
 
 WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
 WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
@@ -72,13 +61,6 @@ HELP_TEXT = (
     "• _comprar: leche_\n"
     "• _compras_ — ver lista\n"
     "• _compré leche_ — marcar como comprado\n\n"
-    "*Deseos*\n"
-    "• _quiero: zapatillas_\n"
-    "• _mis deseos_\n\n"
-    "*Notas*\n"
-    "• _nota: compré flores hoy_\n"
-    "• _mis notas_\n"
-    "• _buscar nota: flores_\n\n"
     "*Esperando*\n"
     "• _esperando: respuesta del seguro_\n"
     "• _mis esperas_\n"
@@ -190,16 +172,6 @@ def route(message: str, user: dict) -> str:
     if match:
         return complete_todo(match.group(1).strip(), user)
 
-    match = WISHLIST_ADD_PATTERN.match(message)
-    if match:
-        item = match.group(1).strip()
-        price_str = match.group(2)
-        price = float(price_str.replace(".", "").replace(",", ".")) if price_str else None
-        return add_to_wishlist(item, user, price)
-
-    if WISHLIST_LIST_PATTERN.match(message):
-        return list_wishlist(user)
-
     match = SHOPPING_ADD_PATTERN.match(message)
     if match:
         return add_to_shopping(match.group(1).strip(), user)
@@ -228,17 +200,6 @@ def route(message: str, user: dict) -> str:
     if match:
         return restock_pantry_item(match.group(1).strip(), user)
 
-    match = NOTES_ADD_PATTERN.match(message)
-    if match:
-        return add_note(match.group(1).strip(), user)
-
-    if NOTES_LIST_PATTERN.match(message):
-        return list_notes(user)
-
-    match = NOTES_SEARCH_PATTERN.match(message)
-    if match:
-        return search_notes(match.group(1).strip(), user)
-
     match = WAITING_ADD_PATTERN.match(message)
     if match:
         return add_waiting(match.group(1).strip(), user)
@@ -265,7 +226,6 @@ def route(message: str, user: dict) -> str:
         "• _gasté 5000 en almuerzo_\n"
         "• _pagué 3000_ (gasto sin categoría)\n"
         "• _pendiente: llamar al banco_\n"
-        "• _quiero: zapatillas_\n"
         "• _comprar: leche_\n"
         "• _resumen_"
     )

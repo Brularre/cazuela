@@ -92,51 +92,6 @@ def test_check_item_no_match(mock_client):
     assert "No encontré" in result
 
 
-def make_notes_rows(*contents):
-    return [{"id": str(i), "content": c} for i, c in enumerate(contents)]
-
-
-@patch("app.handlers.notes.client")
-def test_add_note(mock_client):
-    mock_client.table.return_value.insert.return_value.execute.return_value = None
-    from app.handlers.notes import add_note
-    result = add_note("compré flores hoy", FAKE_USER)
-    assert "guardada" in result
-    assert "compré flores hoy" in result
-
-
-@patch("app.handlers.notes.client")
-def test_list_notes_empty(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
-    from app.handlers.notes import list_notes
-    result = list_notes(FAKE_USER)
-    assert "No tienes notas" in result
-
-
-@patch("app.handlers.notes.client")
-def test_list_notes_with_items(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = make_notes_rows("compré flores", "llamé al médico")
-    from app.handlers.notes import list_notes
-    result = list_notes(FAKE_USER)
-    assert "compré flores" in result
-
-
-@patch("app.handlers.notes.client")
-def test_search_notes_found(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = make_notes_rows("compré flores hoy", "llamé al médico")
-    from app.handlers.notes import search_notes
-    result = search_notes("flores", FAKE_USER)
-    assert "compré flores" in result
-
-
-@patch("app.handlers.notes.client")
-def test_search_notes_not_found(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
-    from app.handlers.notes import search_notes
-    result = search_notes("dentista", FAKE_USER)
-    assert "No encontré" in result
-
-
 def make_waiting_rows(*descriptions):
     return [{"id": str(i), "description": d} for i, d in enumerate(descriptions)]
 
@@ -215,7 +170,7 @@ def test_add_pantry_item_with_category(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
     mock_client.table.return_value.insert.return_value.execute.return_value = None
     from app.handlers.pantry import add_pantry_item
-    result = add_pantry_item("arroz", 3, FAKE_USER, "cocina")
+    add_pantry_item("arroz", 3, FAKE_USER, "cocina")
     inserted = mock_client.table.return_value.insert.call_args[0][0]
     assert inserted["category"] == "cocina"
 
