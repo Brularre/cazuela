@@ -52,6 +52,7 @@ if not items:
 | File | Feature | Tables | Status |
 |------|---------|--------|--------|
 | expenses.py | Gastos | expenses | live |
+| budget.py | Presupuesto | budgets | live |
 | summary.py | Resumen semanal | expenses | live |
 | todos.py | Pendientes | todos | live |
 | waiting_on.py | Esperando | waiting_on | live |

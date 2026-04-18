@@ -88,6 +88,21 @@ once the despensa feature is built.
 
 ---
 
+## budgets ✓
+
+Weekly or monthly spending limit per user.
+Upserted on conflict (user_id, period) — only one budget per period.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | on delete cascade |
+| period | text | semana \| mes |
+| amount | numeric | spending limit |
+| created_at | timestamptz | default now() |
+
+---
+
 ## notes — deprecated
 
 Feature removed. Table still exists in Supabase but is unused.
@@ -183,3 +198,4 @@ current_quantity < desired_quantity flag as needing restock.
 5. `mcp_contexts_migration.sql` — mcp_contexts table
 6. `pantry_migration.sql` — pantry table
 7. `pantry_category_migration.sql` — add category column to pantry
+8. `budget_migration.sql` — budgets table

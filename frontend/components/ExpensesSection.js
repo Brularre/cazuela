@@ -10,13 +10,19 @@ export default function ExpensesSection({ gastos }) {
   if (!gastos) return null;
 
   const total = gastos.weekly_total || 0;
+  const budget = gastos.weekly_budget || null;
   const byDay = gastos.by_day || [];
   const byCategory = gastos.by_category || [];
   const maxAmount = Math.max(...byDay.map((d) => d.amount), 1);
 
   return (
     <CollapsibleSection title="Gastos esta semana" defaultOpen>
-      <p className={styles.total}>{formatAmount(total)}</p>
+      <p className={styles.total}>
+        {formatAmount(total)}
+        {budget && (
+          <span className={styles.budget}> / {formatAmount(budget)}</span>
+        )}
+      </p>
 
       {byDay.length > 0 && (
         <div className={styles.chartWrapper}>

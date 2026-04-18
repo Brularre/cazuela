@@ -307,3 +307,20 @@ def test_restock_all_pantry_already_stocked(mock_client):
     from app.handlers.pantry import restock_all_pantry
     result = restock_all_pantry(FAKE_USER)
     assert "al día" in result
+
+
+@patch("app.handlers.budget.client")
+def test_set_budget_semana(mock_client):
+    mock_client.table.return_value.upsert.return_value.execute.return_value = None
+    from app.handlers.budget import set_budget
+    result = set_budget("semana", 150000, FAKE_USER)
+    assert "semanal" in result
+    assert "150.000" in result
+
+
+@patch("app.handlers.budget.client")
+def test_set_budget_mes(mock_client):
+    mock_client.table.return_value.upsert.return_value.execute.return_value = None
+    from app.handlers.budget import set_budget
+    result = set_budget("mes", 500000, FAKE_USER)
+    assert "mensual" in result

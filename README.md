@@ -2,8 +2,7 @@
 
 A personal life assistant accessible via WhatsApp.
 Send natural language messages in Spanish — Cazuela logs expenses,
-gives weekly summaries, and will eventually manage todos, reminders,
-meals, and more.
+tracks todos, manages your pantry, and more.
 
 No app to install. Just save the number and start messaging.
 
@@ -14,8 +13,8 @@ No app to install. Just save the number and start messaging.
 - **Weekly summary:** `resumen`
 - **Todos:** `pendiente: llamar al banco` / `mis pendientes` / `listo: banco`
 - **Shopping list:** `comprar: leche` / `compras` / `compré leche`
-- **Wishlist:** `quiero: zapatillas` / `mis deseos`
-- **Notes:** `nota: flores en el jardín` / `mis notas` / `buscar nota: flores`
+- **Waiting on:** `esperando: respuesta del seguro` / `mis esperas` / `llegó: seguro`
+- **Pantry:** `despensa cocina: arroz 3` / `mi despensa` / `usé: jabón` / `compré todo`
 - **Help:** `ayuda` — shows all available commands
 - CSV / JSON export via REST API
 - Swagger UI at `/docs`
@@ -53,74 +52,14 @@ Edit `.env` and fill in your values:
 ```
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_KEY=your-service-role-key
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+SESSION_SECRET=any-long-random-string
 ```
 
 ### 3. Set up Supabase
 
-Create the following tables in your Supabase project
-(SQL editor → New query). Run each block separately:
-
-```sql
--- Users
-create table users (
-  id uuid primary key default gen_random_uuid(),
-  phone text unique not null,
-  created_at timestamptz default now()
-);
-
--- Expenses
-create table expenses (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  amount numeric not null,
-  category text not null,
-  note text,
-  date date default current_date,
-  created_at timestamptz default now()
-);
-
--- Todos
-create table todos (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  task text not null,
-  done boolean default false,
-  due_date date,
-  created_at timestamptz default now()
-);
-
--- Shopping list
-create table shopping_list (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  item text not null,
-  quantity integer,
-  unit text,
-  checked boolean default false,
-  created_at timestamptz default now()
-);
-
--- Wishlist
-create table wishlist (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  item text not null,
-  price_estimate numeric,
-  url text,
-  created_at timestamptz default now()
-);
-
--- Notes
-create table notes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  content text not null,
-  created_at timestamptz default now()
-);
-```
-
-Also run `backend/mcp_contexts_migration.sql` for the
-ambiguous expense confirmation flow.
+Run the migration files in `backend/` against your Supabase project
+(SQL editor → New query), in the order listed in `backend/SCHEMA.md`.
 
 ### 4. Run the server
 
@@ -156,7 +95,6 @@ cd backend
 
 Tests do not require a live Supabase connection —
 DB calls are mocked in unit and integration tests.
-`pytest.ini` sets `pythonpath = .` so no extra env setup is needed.
 
 ---
 
@@ -170,10 +108,7 @@ web: uvicorn main:app --host 0.0.0.0 --port $PORT
 
 1. Create a new project on [railway.app](https://railway.app)
 2. Connect your GitHub repository
-3. Add environment variables:
-   - `SUPABASE_URL` and `SUPABASE_KEY`
-   - `TWILIO_AUTH_TOKEN` — live auth token from Twilio console
-   - `EXPORT_TOKEN` — any secret string to protect the export endpoint
+3. Add environment variables (see `.env.example`)
 4. Railway auto-deploys on every push to `main`
 
 ---
@@ -194,11 +129,14 @@ Send `ayuda` at any time to see the full command reference.
 | `comprar: leche` | Add item to shopping list |
 | `compras` | View shopping list |
 | `compré leche` | Mark item as bought |
-| `quiero: zapatillas` | Add to wishlist |
-| `mis deseos` | View wishlist |
-| `nota: texto libre` | Save a note |
-| `mis notas` | List notes |
-| `buscar nota: palabra` | Search notes by keyword |
+| `esperando: respuesta del banco` | Track something waiting on someone else |
+| `mis esperas` | List open waiting items |
+| `llegó: banco` | Mark as resolved |
+| `despensa cocina: arroz 3` | Add pantry item with category |
+| `mi despensa` | View pantry stock |
+| `usé: jabón` | Consume one unit |
+| `compré: jabón` | Restock one item |
+| `compré todo` | Restock everything that's low |
 | `ayuda` | Show all commands |
 
 **Expense categories (auto-detected):**
@@ -223,29 +161,13 @@ cazuela/
 ├── backend/
 │   ├── app/
 │   │   ├── handlers/       # One module per feature
-│   │   │   ├── expenses.py
-│   │   │   ├── summary.py
-│   │   │   ├── todos.py
-│   │   │   ├── shopping.py
-│   │   │   ├── wishlist.py
-│   │   │   └── notes.py
 │   │   ├── mcp/            # Context store for confirm/cancel flow
-│   │   │   ├── context.py  # Supabase-backed context state machine
-│   │   │   ├── client.py   # Public API for handlers
-│   │   │   └── agent.py    # Stub agent (category proposal)
+│   │   ├── routes/         # Dashboard + auth REST API
 │   │   ├── db/             # Supabase client + user queries
 │   │   └── router.py       # Message routing (regex patterns)
 │   ├── tests/
-│   │   ├── fixtures/       # Shared test data
-│   │   ├── test_handlers.py
-│   │   ├── test_integration.py
-│   │   ├── test_main.py
-│   │   ├── test_mcp.py
-│   │   └── test_router.py
-│   ├── mcp_contexts_migration.sql
-│   ├── main.py
-│   ├── pytest.ini
-│   └── requirements.txt
+│   └── main.py
+├── frontend/               # Next.js dashboard
 └── README.md
 ```
 
@@ -257,9 +179,9 @@ cazuela/
 |-------|------|--------|
 | 0 | Infrastructure | ✓ done |
 | 1 | Core agent + Expenses | ✓ done |
-| 2 | Todos + Reminders + Google Calendar | todos done; reminders + calendar pending |
-| 3 | Budget + Savings goals + Email | pending |
-| 4 | Shopping list + Wishlist + Notes | ✓ done |
-| 5 | Despensa + Google Sheets + Meal planning | pending |
-| 6 | Dashboard (Next.js) | pending |
-| 7 | Onboarding + multi-user polish | pending |
+| 2 | Todos + waiting on | ✓ done |
+| 3 | Weekly budget | planned |
+| 4 | Shopping list | handler only |
+| 5 | Despensa + meal planning | despensa live |
+| 6 | Dashboard (Next.js) | in progress |
+| 7 | Onboarding + multi-user polish | planned |

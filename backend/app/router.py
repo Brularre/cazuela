@@ -5,6 +5,7 @@ from app.handlers.expenses import save_expense
 from app.handlers.summary import get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
+from app.handlers.budget import set_budget
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.handlers.pantry import (
     add_pantry_item, list_pantry,
@@ -30,6 +31,10 @@ SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORE
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
+BUDGET_SET_PATTERN = re.compile(
+    r'^presupuesto\s+(semana|mes)[:\s]+([\d.,]+)$', re.IGNORECASE
+)
+
 WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
 WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
 WAITING_RESOLVE_PATTERN = re.compile(r'^lleg[oó][:\s]+(.+)$', re.IGNORECASE)
@@ -53,6 +58,9 @@ HELP_TEXT = (
     "• _pagué 3000_ (sin categoría, te pregunto)\n"
     "• _confirmar_ / _cancelar_ — responde cuando te pregunte\n"
     "• _resumen_ — resumen semanal\n\n"
+    "*Presupuesto*\n"
+    "• _presupuesto semana 150.000_\n"
+    "• _presupuesto mes 500.000_\n\n"
     "*Pendientes*\n"
     "• _pendiente: llamar al banco_\n"
     "• _mis pendientes_\n"
@@ -152,6 +160,12 @@ def route(message: str, user: dict) -> str:
 
     if SUMMARY_PATTERN.match(message):
         return get_week_summary(user)
+
+    match = BUDGET_SET_PATTERN.match(message)
+    if match:
+        period = match.group(1).lower()
+        amount = float(match.group(2).replace(".", "").replace(",", "."))
+        return set_budget(period, amount, user)
 
     match = TODO_ADD_PATTERN.match(message)
     if match:

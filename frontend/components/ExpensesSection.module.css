@@ -5,6 +5,12 @@
   margin-bottom: 1rem;
 }
 
+.budget {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--cazuela-text-muted);
+}
+
 .chartWrapper {
   margin-bottom: 1.25rem;
 }
