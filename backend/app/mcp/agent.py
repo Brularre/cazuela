@@ -1,4 +1,5 @@
 import json
+import warnings
 import anthropic
 from app.config import settings
 
@@ -20,6 +21,17 @@ _SYSTEM_PROMPT = (
 )
 
 
+def _parse_ai_response(raw: str) -> dict:
+    result = json.loads(raw)
+    if result.get("category") not in CATEGORIES:
+        result["category"] = "otros"
+    result.setdefault("confidence", 0.5)
+    result.setdefault("reasoning", "")
+    if not result.get("reasoning"):
+        result["reasoning"] = "categorizado por IA"
+    return result
+
+
 def _propose_ai(context: dict) -> dict:
     payload = context.get("payload", {})
     history = payload.get("user_history", {})
@@ -37,11 +49,9 @@ def _propose_ai(context: dict) -> dict:
         system=_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
     )
-    raw = response.content[0].text.strip()
-    result = json.loads(raw)
-    if result.get("category") not in CATEGORIES:
-        result["category"] = "otros"
-    return result
+    if not response.content:
+        raise ValueError("Empty response from AI agent")
+    return _parse_ai_response(response.content[0].text.strip())
 
 
 def _propose_stub(context: dict) -> dict:
@@ -62,6 +72,6 @@ def propose(context: dict) -> dict:
     if settings.use_ai_agent and settings.anthropic_api_key:
         try:
             return _propose_ai(context)
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"AI agent failed, falling back to stub: {e}")
     return _propose_stub(context)

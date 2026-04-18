@@ -292,6 +292,72 @@ def test_ai_agent_falls_back_to_stub_on_error():
     assert result["category"] == "comida"
 
 
+def test_ai_agent_invalid_category_falls_back_to_otros():
+    fake_response = MagicMock()
+    fake_response.content = [MagicMock(text=json.dumps({
+        "category": "pizza",
+        "confidence": 0.7,
+        "reasoning": "es una pizza",
+    }))]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
+    }
+
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value = fake_client
+        result = propose(context)
+
+    assert result["category"] == "otros"
+
+
+def test_ai_agent_malformed_json_falls_back_to_stub():
+    fake_response = MagicMock()
+    fake_response.content = [MagicMock(text="not json at all")]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"transporte": 5}},
+    }
+
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value = fake_client
+        result = propose(context)
+
+    assert result["category"] == "transporte"
+
+
+def test_ai_agent_missing_fields_get_defaults():
+    from app.mcp.agent import _parse_ai_response
+    result = _parse_ai_response(json.dumps({"category": "comida"}))
+    assert result["category"] == "comida"
+    assert result["confidence"] == 0.5
+    assert result["reasoning"] == "categorizado por IA"
+
+
+def test_ai_agent_disabled_uses_stub():
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"salud": 3}},
+    }
+    with patch("app.mcp.agent.settings") as mock_settings:
+        mock_settings.use_ai_agent = False
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        result = propose(context)
+    assert result["category"] == "salud"
+
+
 def test_verify_refine_loop():
     payload_v1 = {
         **EXPENSE_PAYLOAD,
