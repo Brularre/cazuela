@@ -191,9 +191,8 @@ Tailwind CSS for frontend styling.
 **Decision:** Rejected — plain CSS classes preferred (CSS modules or global stylesheets)
 
 **Rationale:**
-Bruno's preference.
-He's comfortable with CSS and doesn't want utility-class frameworks
-adding a layer of abstraction he doesn't need.
+Personal preference — comfortable with CSS and doesn't want
+utility-class frameworks adding a layer of abstraction.
 
 ---
 
@@ -245,8 +244,8 @@ Verified end-to-end: WhatsApp message → Twilio → Railway webhook → reply r
 
 **Suggested:**
 Replace ngrok/localtunnel with Railway deployment for Twilio webhook testing.
-Bruno is on a work machine with endpoint security software
-that kills all tunneling processes (SSH, git-remote-https, localtunnel).
+Work machine has endpoint security software that kills all
+tunneling processes (SSH, git-remote-https, localtunnel).
 
 **Decision:** Accepted
 
@@ -313,7 +312,7 @@ centralizes sample data so it can be reused across future test files.
 
 ## 2026-04-15 — MCP as course assignment integration
 
-**Suggested (by Bruno, architecture shaped collaboratively):**
+**Suggested (collaboratively, architecture shaped by developer):**
 Integrate MCP (Model Context Protocol) as a multi-step
 agent flow for ambiguous expenses, satisfying a course assignment
 requirement alongside the Week 2 feature additions.
@@ -422,5 +421,23 @@ replying "confirmar" would silently lose the staged expense.
 The Supabase-backed store survives deploys.
 Tests were rewritten to use a stateful `FakeClient` fixture
 instead of accessing `_store` directly.
+
+---
+
+## 2026-04-17 — Next.js 16 proxy.js naming (middleware renamed)
+
+**Suggested:**
+Use `proxy.js` with `export function proxy()` instead of
+`middleware.js` — Next.js 16 renamed the file convention.
+Auth gatekeeper checks for `session` cookie and redirects
+to `/login` if absent.
+
+**Decision:** Accepted
+
+**Rationale:**
+The project's AGENTS.md warned that Next.js 16 has breaking
+changes from training data. Reading the bundled docs revealed
+the rename before any code was written, avoiding a silent
+failure where `middleware.js` would simply be ignored.
 
 ---

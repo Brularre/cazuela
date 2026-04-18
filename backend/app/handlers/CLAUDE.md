@@ -31,8 +31,6 @@ Always return a Spanish string. WhatsApp formatting:
 
 ## Fuzzy match pattern
 
-Used by complete_todo, resolve_waiting, check_item:
-
 ```python
 match = next(
     (i for i in items if fragment.lower() in i["field"].lower()),
@@ -57,9 +55,10 @@ if not items:
 | summary.py | Resumen semanal | expenses | live |
 | todos.py | Pendientes | todos | live |
 | waiting_on.py | Esperando | waiting_on | live |
+| pantry.py | Despensa | pantry | live |
 | shopping.py | Compras | shopping_list | handler only* |
 | notes.py | Notas | notes | handler only* |
 | wishlist.py | Deseos | wishlist | handler only* |
 
-*Handler and router patterns exist but Supabase table may not —
-check SCHEMA.md before using.
+*Handler exists and table is live in Supabase, but router
+patterns and tests are incomplete — not production-ready.

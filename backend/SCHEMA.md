@@ -3,7 +3,7 @@
 Live table definitions. Update this file after running any migration
 (use `/schema-sync` skill if available).
 
-Legend: ✓ confirmed by migration file · ~ inferred from handler code
+All tables confirmed live via Supabase MCP on 2026-04-17.
 
 ---
 
@@ -15,20 +15,26 @@ Primary identity table. One row per WhatsApp number.
 |--------|------|-------|
 | id | uuid PK | gen_random_uuid() |
 | phone | text | unique, format +56XXXXXXXXX |
+| name | text | nullable |
+| currency | text | default 'CLP' |
+| anthropic_key | text | nullable, encrypted |
+| ai_mode | boolean | default false |
 | created_at | timestamptz | default now() |
 
 ---
 
-## expenses ~
+## expenses ✓
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | uuid PK | |
-| user_id | uuid FK → users(id) | on delete cascade |
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
 | amount | numeric | |
+| currency | text | default 'CLP' |
 | category | text | one of CATEGORY_KEYWORDS keys + "otros" |
-| note | text | raw user input |
-| date | text | YYYY-MM-DD, set at save time |
+| note | text | nullable, raw user input |
+| date | date | default CURRENT_DATE |
+| receipt_url | text | nullable |
 | created_at | timestamptz | default now() |
 
 **Categories (fixed list):**
@@ -37,14 +43,15 @@ ropa, tecnología, educación, viajes, otros
 
 ---
 
-## todos ~
+## todos ✓
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | uuid PK | |
-| user_id | uuid FK → users(id) | on delete cascade |
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
 | task | text | |
 | done | boolean | default false |
+| due_date | date | nullable |
 | priority | text | hoy \| semana \| mes, default semana |
 | created_at | timestamptz | default now() |
 
@@ -55,9 +62,68 @@ ropa, tecnología, educación, viajes, otros
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid PK | gen_random_uuid() |
-| user_id | uuid FK → users(id) | on delete cascade |
+| user_id | uuid FK → users(id) | nullable |
 | description | text | |
 | resolved | boolean | default false |
+| created_at | timestamptz | default now() |
+
+---
+
+## shopping_list ✓
+
+Simple manual shopping list (add/check items).
+Will be superseded by the pantry threshold system
+once the despensa feature is built.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
+| item | text | |
+| quantity | integer | nullable |
+| unit | text | nullable |
+| checked | boolean | default false |
+| source | text | default 'manual' |
+| created_at | timestamptz | default now() |
+
+---
+
+## notes ✓
+
+RLS enabled.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
+| content | text | |
+| created_at | timestamptz | default now() |
+
+---
+
+## wishlist ✓
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
+| item | text | |
+| price_estimate | numeric | nullable |
+| url | text | nullable |
+| created_at | timestamptz | default now() |
+
+---
+
+## conversations ✓
+
+Conversation history per user. Currently unused (0 rows).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | nullable |
+| role | text | 'user' \| 'assistant' |
+| content | text | |
 | created_at | timestamptz | default now() |
 
 ---
@@ -82,75 +148,52 @@ Short-lived one-time passwords for dashboard login.
 
 Stateful conversation contexts for the MCP agent
 (currently used only for ambiguous expense confirmation).
+RLS enabled.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | context_id | uuid PK | |
 | version | text | default '1.0' |
 | domain | text | e.g. 'expense' |
-| user_id | uuid FK → users(id) | on delete cascade |
+| user_id | uuid FK → users(id) | |
 | created_at | timestamptz | default now() |
 | expires_at | timestamptz | |
 | status | text | pending \| staged \| confirmed \| rolled_back |
 | payload | jsonb | input data (amount, date, etc.) |
-| proposed | jsonb | agent suggestion (category, reasoning) |
+| proposed | jsonb | nullable, agent suggestion |
 | agent_model | text | default 'stub-v1' |
 | iteration_count | integer | default 0 |
 
 Indexes: (user_id, status), (expires_at)
-RLS: enabled, policy isolates by user_id
 
 ---
 
-## shopping_list ~
+## pantry ✓
+
+Threshold-based stock tracking. Items where
+current_quantity < desired_quantity flag as needing restock.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | uuid PK | |
+| id | uuid PK | gen_random_uuid() |
 | user_id | uuid FK → users(id) | on delete cascade |
-| item | text | |
-| quantity | integer | nullable |
-| unit | text | nullable |
-| checked | boolean | default false |
-| created_at | timestamptz | default now() |
-
----
-
-## notes ~
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| user_id | uuid FK → users(id) | on delete cascade |
-| content | text | |
-| created_at | timestamptz | default now() |
-
----
-
-## wishlist ~
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| user_id | uuid FK → users(id) | on delete cascade |
-| item | text | |
-| price_estimate | numeric | nullable |
+| item | text | free text name |
+| desired_quantity | integer | threshold — how many to keep at home |
+| current_quantity | integer | starts equal to desired at creation |
+| category | text | cocina \| baño \| otros, default 'otros' |
 | created_at | timestamptz | default now() |
 
 ---
 
 ## Migrations run (in order)
 
-1. Initial schema — users, expenses, todos
+1. Initial schema — users, expenses, todos, shopping_list,
+   notes, wishlist, conversations
    (no file, applied manually early in project)
 2. `waiting_on_migration.sql` — waiting_on table
 3. `priority_todos_migration.sql` —
    alter todos add column priority
 4. `otp_migration.sql` — otp_codes table
 5. `mcp_contexts_migration.sql` — mcp_contexts table
-
-## Tables without confirmed migrations
-
-shopping_list, notes, wishlist — handlers exist in the codebase
-but no migration files are present. Verify in Supabase before
-using these features.
+6. `pantry_migration.sql` — pantry table
+7. `pantry_category_migration.sql` — add category column to pantry
