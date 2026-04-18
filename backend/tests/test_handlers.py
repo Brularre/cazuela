@@ -44,6 +44,29 @@ def test_list_todos_grouped_by_priority(mock_client):
     assert result.index("llamar al banco") < result.index("renovar seguro")
 
 
+@patch("app.handlers.todos.client")
+def test_list_todos_null_priority_falls_back_to_semana(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"task": "tarea sin prioridad", "priority": None},
+    ]
+    from app.handlers.todos import list_todos
+    result = list_todos(FAKE_USER)
+    assert "tarea sin prioridad" in result
+    assert "Esta semana" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_consume_pantry_item_accent_insensitive(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabon", "current_quantity": 2}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import consume_pantry_item
+    result = consume_pantry_item("jabón", FAKE_USER)
+    assert "jabon" in result
+    assert "quedan 1" in result
+
+
 def make_shopping_rows(*items):
     return [{"id": str(i), "item": it} for i, it in enumerate(items)]
 
