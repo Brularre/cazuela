@@ -20,8 +20,8 @@ export default function Dashboard({ data }) {
       <Header onLogout={handleLogout} />
       <main className={styles.main}>
         <ExpensesSection gastos={data.gastos} />
-        <TodosSection pendientes={data.pendientes} />
         <ShoppingSection compras={data.compras} />
+        <TodosSection pendientes={data.pendientes} />
         <WaitingSection esperando={data.esperando} />
         <PantrySection despensa={data.despensa} />
       </main>
