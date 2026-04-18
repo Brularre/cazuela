@@ -46,7 +46,8 @@ WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
 WAITING_RESOLVE_PATTERN = re.compile(r'^lleg[oó][:\s]+(.+)$', re.IGNORECASE)
 
 PANTRY_ADD_PATTERN = re.compile(
-    r'^despensa[:\s]+(.+?)\s+(\d+)$', re.IGNORECASE
+    r'^despensa(?:\s+(cocina|baño|otros))?[:\s]+(.+?)\s+(\d+)$',
+    re.IGNORECASE
 )
 PANTRY_LIST_PATTERN = re.compile(r'^mi\s+despensa$', re.IGNORECASE)
 PANTRY_CONSUME_PATTERN = re.compile(r'^us[eé][:\s]+(.+)$', re.IGNORECASE)
@@ -83,7 +84,8 @@ HELP_TEXT = (
     "• _mis esperas_\n"
     "• _llegó: seguro_ — marcar como resuelto\n\n"
     "*Despensa*\n"
-    "• _despensa: jabón 2_ — agregar con cantidad deseada\n"
+    "• _despensa cocina: arroz 3_ — agregar con categoría\n"
+    "• _despensa: jabón 2_ — agregar (sin categoría → otros)\n"
     "• _mi despensa_ — ver stock\n"
     "• _usé: jabón_ — consumir uno\n"
     "• _compré: jabón_ — reponer uno\n"
@@ -207,9 +209,10 @@ def route(message: str, user: dict) -> str:
 
     match = PANTRY_ADD_PATTERN.match(message)
     if match:
-        item = match.group(1).strip()
-        qty = int(match.group(2))
-        return add_pantry_item(item, qty, user)
+        category = (match.group(1) or "otros").lower()
+        item = match.group(2).strip()
+        qty = int(match.group(3))
+        return add_pantry_item(item, qty, user, category)
 
     if PANTRY_LIST_PATTERN.match(message):
         return list_pantry(user)

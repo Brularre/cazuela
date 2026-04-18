@@ -3,6 +3,8 @@ import Header from "../components/Header";
 import GastosSection from "../components/GastosSection";
 import PendientesSection from "../components/PendientesSection";
 import EsperandoSection from "../components/EsperandoSection";
+import ShoppingSection from "../components/ShoppingSection";
+import DespeSection from "../components/DespeSection";
 import PlaceholderSection from "../components/PlaceholderSection";
 import styles from "../styles/dashboard.module.css";
 
@@ -21,13 +23,11 @@ export default function Dashboard({ data }) {
         <GastosSection gastos={data.gastos} />
         <PendientesSection pendientes={data.pendientes} />
         <EsperandoSection esperando={data.esperando} />
+        <ShoppingSection compras={data.compras} />
+        <DespeSection despensa={data.despensa} />
         <PlaceholderSection
           title="Calendario"
           description="Integración con Google Calendar próximamente."
-        />
-        <PlaceholderSection
-          title="Despensa"
-          description="Control de stock del hogar próximamente."
         />
       </main>
     </>
@@ -55,8 +55,17 @@ export async function getServerSideProps(context) {
 
     data = await res.json();
   } catch {
-    data = { gastos: null, pendientes: { hoy: [], semana: [], mes: [] }, esperando: [] };
+    data = {
+      gastos: null,
+      pendientes: { hoy: [], semana: [], mes: [] },
+      esperando: [],
+      compras: [],
+      despensa: { cocina: [], baño: [], otros: [] },
+    };
   }
+
+  data.compras = data.compras ?? [];
+  data.despensa = data.despensa ?? { cocina: [], baño: [], otros: [] };
 
   return { props: { data } };
 }

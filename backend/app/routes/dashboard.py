@@ -1,5 +1,7 @@
 from datetime import date, timedelta
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.db import client
 from app.handlers.summary import aggregate_by_category
 from app.middleware.auth import require_auth
@@ -71,6 +73,36 @@ def get_dashboard(phone: str = Depends(require_auth)):
         for row in (waiting_result.data or [])
     ]
 
+    pantry_result = (
+        client.table("pantry")
+        .select("id, item, current_quantity, desired_quantity, category")
+        .eq("user_id", uid)
+        .order("item")
+        .execute()
+    )
+    pantry_items = pantry_result.data or []
+
+    compras = [
+        {
+            "id": i["id"],
+            "item": i["item"],
+            "current_quantity": i["current_quantity"],
+            "desired_quantity": i["desired_quantity"],
+            "category": i["category"],
+        }
+        for i in pantry_items
+        if i["current_quantity"] < i["desired_quantity"]
+    ]
+
+    despensa = {"cocina": [], "baño": [], "otros": []}
+    for i in pantry_items:
+        despensa[i["category"]].append({
+            "id": i["id"],
+            "item": i["item"],
+            "current_quantity": i["current_quantity"],
+            "desired_quantity": i["desired_quantity"],
+        })
+
     return {
         "gastos": {
             "weekly_total": weekly_total,
@@ -79,6 +111,8 @@ def get_dashboard(phone: str = Depends(require_auth)):
         },
         "pendientes": pendientes,
         "esperando": esperando,
+        "compras": compras,
+        "despensa": despensa,
     }
 
 
@@ -93,4 +127,76 @@ def complete_todo(todo_id: str, phone: str = Depends(require_auth)):
 def resolve_waiting(item_id: str, phone: str = Depends(require_auth)):
     uid = _get_user_id(phone)
     client.table("waiting_on").update({"resolved": True}).eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+class PantryItemIn(BaseModel):
+    item: str
+    desired_quantity: int
+    category: Literal["cocina", "baño", "otros"] = "otros"
+
+
+class PantryItemUpdate(BaseModel):
+    desired_quantity: int | None = None
+    category: Literal["cocina", "baño", "otros"] | None = None
+
+
+@router.post("/pantry")
+def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = client.table("pantry").insert({
+        "user_id": uid,
+        "item": body.item,
+        "desired_quantity": body.desired_quantity,
+        "current_quantity": body.desired_quantity,
+        "category": body.category,
+    }).execute()
+    return {"ok": True, "id": result.data[0]["id"]}
+
+
+@router.patch("/pantry/restock-all")
+def restock_all(phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    items = (
+        client.table("pantry")
+        .select("id, desired_quantity, current_quantity")
+        .eq("user_id", uid)
+        .execute()
+    ).data or []
+    for i in [x for x in items if x["current_quantity"] < x["desired_quantity"]]:
+        client.table("pantry").update({"current_quantity": i["desired_quantity"]}).eq("id", i["id"]).execute()
+    return {"ok": True}
+
+
+@router.patch("/pantry/{item_id}")
+def update_pantry_item(item_id: str, body: PantryItemUpdate, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    data = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not data:
+        return {"ok": True}
+    client.table("pantry").update(data).eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+@router.delete("/pantry/{item_id}")
+def delete_pantry_item(item_id: str, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    client.table("pantry").delete().eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+@router.patch("/pantry/{item_id}/restock")
+def restock_pantry_item(item_id: str, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = (
+        client.table("pantry")
+        .select("desired_quantity")
+        .eq("id", item_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404)
+    desired = result.data[0]["desired_quantity"]
+    client.table("pantry").update({"current_quantity": desired}).eq("id", item_id).eq("user_id", uid).execute()
     return {"ok": True}
