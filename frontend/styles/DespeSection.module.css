@@ -1,0 +1,130 @@
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--cazuela-border);
+}
+
+.tab {
+  background: transparent;
+  color: var(--cazuela-text-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--cazuela-text-primary);
+}
+
+.tabActive {
+  color: var(--cazuela-text-primary);
+  border-bottom-color: var(--cazuela-accent);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th {
+  text-align: left;
+  color: var(--cazuela-text-muted);
+  font-weight: normal;
+  font-size: 0.8rem;
+  padding: 0 0.5rem 0.5rem 0;
+  border-bottom: 1px solid var(--cazuela-border);
+}
+
+.table td {
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-bottom: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-primary);
+}
+
+.itemName {
+  flex: 1;
+}
+
+.qty {
+  text-align: center;
+  width: 4rem;
+  color: var(--cazuela-text-muted);
+}
+
+.qtyEditable {
+  cursor: pointer;
+  border-bottom: 1px dashed var(--cazuela-text-muted);
+}
+
+.qtyEditable:hover {
+  color: var(--cazuela-text-primary);
+}
+
+.qtyInput {
+  width: 3.5rem;
+  background: var(--cazuela-bg);
+  border: 1px solid var(--cazuela-accent);
+  border-radius: 3px;
+  color: var(--cazuela-text-primary);
+  padding: 0.2rem 0.4rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.1rem 0.4rem;
+}
+
+.deleteBtn:hover {
+  color: var(--cazuela-accent);
+}
+
+.addRow td {
+  padding-top: 0.75rem;
+  border-bottom: none;
+}
+
+.addInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-primary);
+  font-size: 0.9rem;
+  padding: 0.2rem 0;
+  outline: none;
+}
+
+.addInput::placeholder {
+  color: var(--cazuela-text-muted);
+  font-style: italic;
+}
+
+.addInput:focus {
+  border-bottom-color: var(--cazuela-accent);
+}
+
+.addBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.addBtn:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}

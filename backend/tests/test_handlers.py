@@ -207,6 +207,17 @@ def test_add_pantry_item_new(mock_client):
     inserted = mock_client.table.return_value.insert.call_args[0][0]
     assert inserted["desired_quantity"] == 3
     assert inserted["current_quantity"] == 3
+    assert inserted["category"] == "otros"
+
+
+@patch("app.handlers.pantry.client")
+def test_add_pantry_item_with_category(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.pantry import add_pantry_item
+    result = add_pantry_item("arroz", 3, FAKE_USER, "cocina")
+    inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["category"] == "cocina"
 
 
 @patch("app.handlers.pantry.client")
@@ -229,14 +240,29 @@ def test_list_pantry_empty(mock_client):
 @patch("app.handlers.pantry.client")
 def test_list_pantry_marks_low_stock(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
-        {"item": "jabón", "current_quantity": 1, "desired_quantity": 3},
-        {"item": "papel", "current_quantity": 2, "desired_quantity": 2},
+        {"item": "jabón", "current_quantity": 1, "desired_quantity": 3, "category": "baño"},
+        {"item": "papel", "current_quantity": 2, "desired_quantity": 2, "category": "otros"},
     ]
     from app.handlers.pantry import list_pantry
     result = list_pantry(FAKE_USER)
     assert "jabón" in result
     assert "reponer" in result
     assert "papel" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_list_pantry_groups_by_category_in_order(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
+        {"item": "arroz", "current_quantity": 2, "desired_quantity": 2, "category": "cocina"},
+        {"item": "jabón", "current_quantity": 0, "desired_quantity": 2, "category": "baño"},
+        {"item": "pilas", "current_quantity": 1, "desired_quantity": 3, "category": "otros"},
+    ]
+    from app.handlers.pantry import list_pantry
+    result = list_pantry(FAKE_USER)
+    assert result.index("Cocina") < result.index("Baño") < result.index("Otros")
+    assert "arroz" in result
+    assert "jabón" in result
+    assert "pilas" in result
 
 
 @patch("app.handlers.pantry.client")

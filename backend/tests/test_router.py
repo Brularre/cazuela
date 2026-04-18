@@ -237,17 +237,18 @@ def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
         assert mock.call_args[0][0] == expected_fragment
 
 
-@pytest.mark.parametrize("message,expected_item,expected_qty", [
-    ("despensa: jabón 2", "jabón", 2),
-    ("despensa jabón de manos 3", "jabón de manos", 3),
-    ("despensa: detergente líquido 1", "detergente líquido", 1),
+@pytest.mark.parametrize("message,expected_item,expected_qty,expected_category", [
+    ("despensa: jabón 2", "jabón", 2, "otros"),
+    ("despensa cocina: arroz 3", "arroz", 3, "cocina"),
+    ("despensa baño jabón de manos 1", "jabón de manos", 1, "baño"),
 ])
-def test_pantry_add_routes_to_add_pantry_item(message, expected_item, expected_qty):
+def test_pantry_add_routes_to_add_pantry_item(message, expected_item, expected_qty, expected_category):
     with patch("app.router.add_pantry_item", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item
         assert mock.call_args[0][1] == expected_qty
+        assert mock.call_args[0][3] == expected_category
 
 
 @pytest.mark.parametrize("message", ["mi despensa", "Mi Despensa"])

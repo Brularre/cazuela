@@ -1,7 +1,7 @@
 from app.db import client
 
 
-def add_pantry_item(item: str, desired_qty: int, user: dict) -> str:
+def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "otros") -> str:
     existing = (
         client.table("pantry")
         .select("id")
@@ -12,6 +12,7 @@ def add_pantry_item(item: str, desired_qty: int, user: dict) -> str:
     if existing:
         client.table("pantry").update({
             "desired_quantity": desired_qty,
+            "category": category,
         }).eq("id", existing[0]["id"]).execute()
         return f"✓ Despensa actualizada: {item} (quieres {desired_qty})"
     client.table("pantry").insert({
@@ -19,6 +20,7 @@ def add_pantry_item(item: str, desired_qty: int, user: dict) -> str:
         "item": item,
         "desired_quantity": desired_qty,
         "current_quantity": desired_qty,
+        "category": category,
     }).execute()
     return f"✓ Agregado a tu despensa: {item} (necesitas {desired_qty})"
 
@@ -26,7 +28,7 @@ def add_pantry_item(item: str, desired_qty: int, user: dict) -> str:
 def list_pantry(user: dict) -> str:
     result = (
         client.table("pantry")
-        .select("item, current_quantity, desired_quantity")
+        .select("item, current_quantity, desired_quantity, category")
         .eq("user_id", user["id"])
         .order("item")
         .execute()
@@ -34,12 +36,20 @@ def list_pantry(user: dict) -> str:
     items = result.data or []
     if not items:
         return "Tu despensa está vacía. Agrega ítems con _despensa: jabón 2_."
-    lines = ["*Mi despensa:*"]
+    grouped = {"cocina": [], "baño": [], "otros": []}
     for i in items:
-        cur = i["current_quantity"]
-        des = i["desired_quantity"]
-        flag = " — *reponer*" if cur < des else ""
-        lines.append(f"• {i['item']}: {cur}/{des}{flag}")
+        grouped[i["category"]].append(i)
+    labels = {"cocina": "Cocina", "baño": "Baño", "otros": "Otros"}
+    lines = ["*Mi despensa:*"]
+    for cat in ("cocina", "baño", "otros"):
+        if not grouped[cat]:
+            continue
+        lines.append(f"*{labels[cat]}:*")
+        for i in grouped[cat]:
+            cur = i["current_quantity"]
+            des = i["desired_quantity"]
+            flag = " — *reponer*" if cur < des else ""
+            lines.append(f"• {i['item']}: {cur}/{des}{flag}")
     return "\n".join(lines)
 
 
