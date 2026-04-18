@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     twilio_account_sid: str = ""
     twilio_from_number: str = ""
+    anthropic_api_key: str = ""
+    use_ai_agent: bool = False
 
 
 settings = Settings()

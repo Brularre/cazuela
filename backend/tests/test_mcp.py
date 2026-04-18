@@ -1,6 +1,7 @@
+import json
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from app.mcp import context as ctx
 from app.mcp.client import send_context, request_action, receive_result, confirm, rollback
 from app.mcp.agent import propose
@@ -246,6 +247,49 @@ def test_stub_non_expense_domain_returns_confirmed():
     result = propose({"domain": "todo", "payload": {}})
     assert result == {"confirmed": True}
     assert "category" not in result
+
+
+def test_ai_agent_propose_called_when_enabled():
+    fake_response = MagicMock()
+    fake_response.content = [MagicMock(text=json.dumps({
+        "category": "transporte",
+        "confidence": 0.9,
+        "reasoning": "parece un gasto de transporte",
+    }))]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
+    }
+
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value = fake_client
+        result = propose(context)
+
+    assert result["category"] == "transporte"
+    assert result["confidence"] == 0.9
+    fake_client.messages.create.assert_called_once()
+
+
+def test_ai_agent_falls_back_to_stub_on_error():
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
+    }
+
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value.messages.create.side_effect = Exception("API error")
+        result = propose(context)
+
+    assert result["category"] == "comida"
 
 
 def test_verify_refine_loop():
