@@ -1,11 +1,10 @@
 import { useRouter } from "next/router";
 import Header from "../components/Header";
-import GastosSection from "../components/GastosSection";
-import PendientesSection from "../components/PendientesSection";
-import EsperandoSection from "../components/EsperandoSection";
+import ExpensesSection from "../components/ExpensesSection";
+import TodosSection from "../components/TodosSection";
+import WaitingSection from "../components/WaitingSection";
 import ShoppingSection from "../components/ShoppingSection";
-import DespeSection from "../components/DespeSection";
-import PlaceholderSection from "../components/PlaceholderSection";
+import PantrySection from "../components/PantrySection";
 import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {
@@ -20,15 +19,11 @@ export default function Dashboard({ data }) {
     <>
       <Header onLogout={handleLogout} />
       <main className={styles.main}>
-        <GastosSection gastos={data.gastos} />
-        <PendientesSection pendientes={data.pendientes} />
+        <ExpensesSection gastos={data.gastos} />
+        <TodosSection pendientes={data.pendientes} />
         <ShoppingSection compras={data.compras} />
-        <EsperandoSection esperando={data.esperando} />
-        <DespeSection despensa={data.despensa} />
-        <PlaceholderSection
-          title="Calendario"
-          description="Integración con Google Calendar próximamente."
-        />
+        <WaitingSection esperando={data.esperando} />
+        <PantrySection despensa={data.despensa} />
       </main>
     </>
   );

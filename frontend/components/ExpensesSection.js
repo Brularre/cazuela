@@ -1,12 +1,12 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import CollapsibleSection from "./CollapsibleSection";
-import styles from "./GastosSection.module.css";
+import styles from "./ExpensesSection.module.css";
 
 function formatAmount(n) {
   return "$" + Number(n).toLocaleString("es-CL");
 }
 
-export default function GastosSection({ gastos }) {
+export default function ExpensesSection({ gastos }) {
   if (!gastos) return null;
 
   const total = gastos.weekly_total || 0;

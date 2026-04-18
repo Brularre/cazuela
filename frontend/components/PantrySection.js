@@ -1,6 +1,6 @@
 import { useState } from "react";
 import CollapsibleSection from "./CollapsibleSection";
-import styles from "../styles/DespeSection.module.css";
+import styles from "../styles/PantrySection.module.css";
 
 const TABS = ["cocina", "baño", "otros"];
 const TAB_LABELS = { cocina: "Cocina", baño: "Baño", otros: "Otros" };
@@ -10,7 +10,7 @@ const DESCRIPTIONS = {
   otros: "Comida de mascota, pilas, velas…",
 };
 
-export default function DespeSection({ despensa: initial }) {
+export default function PantrySection({ despensa: initial }) {
   const [items, setItems] = useState(initial || { cocina: [], baño: [], otros: [] });
   const [activeTab, setActiveTab] = useState("cocina");
   const [newItem, setNewItem] = useState({ item: "", desired_quantity: 1 });

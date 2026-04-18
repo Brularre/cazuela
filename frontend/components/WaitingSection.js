@@ -1,6 +1,6 @@
 import { useState } from "react";
 import CollapsibleSection from "./CollapsibleSection";
-import styles from "./EsperandoSection.module.css";
+import styles from "./WaitingSection.module.css";
 
 function daysAgo(isoDate) {
   const ms = Date.now() - new Date(isoDate).getTime();
@@ -10,7 +10,7 @@ function daysAgo(isoDate) {
   return `hace ${days} días`;
 }
 
-export default function EsperandoSection({ esperando }) {
+export default function WaitingSection({ esperando }) {
   const [items, setItems] = useState(esperando || []);
 
   async function resolve(id) {

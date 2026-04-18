@@ -1,10 +1,10 @@
 import { useState } from "react";
 import CollapsibleSection from "./CollapsibleSection";
-import styles from "./PendientesSection.module.css";
+import styles from "./TodosSection.module.css";
 
 const BUCKET_LABELS = { hoy: "Hoy", semana: "Esta semana", mes: "Este mes" };
 
-export default function PendientesSection({ pendientes }) {
+export default function TodosSection({ pendientes }) {
   const [items, setItems] = useState(pendientes || { hoy: [], semana: [], mes: [] });
 
   async function complete(id) {
