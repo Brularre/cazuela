@@ -103,17 +103,6 @@ Upserted on conflict (user_id, period) — only one budget per period.
 
 ---
 
-## notes — deprecated
-
-Feature removed. Table still exists in Supabase but is unused.
-
----
-
-## wishlist — deprecated
-
-Feature removed. Table still exists in Supabase but is unused.
-
----
 
 ## conversations ✓
 
