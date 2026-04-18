@@ -156,42 +156,78 @@ def _handle_ambiguous_expense(amount: float, raw_message: str, user: dict) -> st
     )
 
 
-def _dispatch(intent: dict, user: dict) -> str | None:
+def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
     name = intent.get("intent")
     if name == "add_expense":
-        return save_expense(intent["amount"], intent["description"], user)
+        amount = intent.get("amount")
+        description = intent.get("description")
+        if amount is None or not description:
+            return None
+        return save_expense(amount, description, user)
     if name == "ambiguous_expense":
-        return _handle_ambiguous_expense(intent["amount"], str(intent["amount"]), user)
+        amount = intent.get("amount")
+        if amount is None:
+            return None
+        return _handle_ambiguous_expense(amount, raw_message, user)
     if name == "get_summary":
         return get_week_summary(user)
     if name == "set_budget":
-        return set_budget(intent["period"], intent["amount"], user)
+        period = intent.get("period")
+        amount = intent.get("amount")
+        if not period or amount is None:
+            return None
+        return set_budget(period, amount, user)
     if name == "add_todo":
-        return add_todo(intent["task"], user, intent.get("priority", "semana"))
+        task = intent.get("task")
+        if not task:
+            return None
+        return add_todo(task, user, intent.get("priority", "semana"))
     if name == "list_todos":
         return list_todos(user)
     if name == "complete_todo":
-        return complete_todo(intent["task_fragment"], user)
+        fragment = intent.get("task_fragment")
+        if not fragment:
+            return None
+        return complete_todo(fragment, user)
     if name == "add_to_shopping":
-        return add_to_shopping(intent["item"], user)
+        item = intent.get("item")
+        if not item:
+            return None
+        return add_to_shopping(item, user)
     if name == "list_shopping":
         return list_shopping(user)
     if name == "add_pantry_item":
-        return add_pantry_item(intent["item"], intent["qty"], user, intent.get("category", "otros"))
+        item = intent.get("item")
+        qty = intent.get("qty")
+        if not item or qty is None:
+            return None
+        return add_pantry_item(item, qty, user, intent.get("category", "otros"))
     if name == "list_pantry":
         return list_pantry(user)
     if name == "consume_pantry_item":
-        return consume_pantry_item(intent["item_fragment"], user)
+        fragment = intent.get("item_fragment")
+        if not fragment:
+            return None
+        return consume_pantry_item(fragment, user)
     if name == "restock_pantry_item":
-        return restock_pantry_item(intent["item_fragment"], user)
+        fragment = intent.get("item_fragment")
+        if not fragment:
+            return None
+        return restock_pantry_item(fragment, user)
     if name == "restock_all_pantry":
         return restock_all_pantry(user)
     if name == "add_waiting":
-        return add_waiting(intent["description"], user)
+        description = intent.get("description")
+        if not description:
+            return None
+        return add_waiting(description, user)
     if name == "list_waiting":
         return list_waiting(user)
     if name == "resolve_waiting":
-        return resolve_waiting(intent["fragment"], user)
+        fragment = intent.get("fragment")
+        if not fragment:
+            return None
+        return resolve_waiting(fragment, user)
     if name == "confirm":
         return _handle_confirm(user)
     if name == "cancel":
@@ -206,9 +242,13 @@ def route(message: str, user: dict) -> str:
 
     intent = classify(message)
     if intent:
-        result = _dispatch(intent, user)
-        if result is not None:
-            return result
+        try:
+            result = _dispatch(intent, message, user)
+            if result is not None:
+                return result
+        except Exception as e:
+            import warnings
+            warnings.warn(f"AI dispatch failed, falling back to regex: {e}")
 
     match = EXPENSE_PATTERN.match(message)
     if match:

@@ -1,6 +1,9 @@
 import json
+import warnings
 import anthropic
 from app.config import settings
+
+_MAX_MESSAGE_LEN = 1000
 
 _INTENTS = [
     "add_expense", "ambiguous_expense", "get_summary", "set_budget",
@@ -50,6 +53,8 @@ Rules:
 def classify(message: str) -> dict | None:
     if not settings.use_ai_agent or not settings.anthropic_api_key:
         return None
+    if len(message) > _MAX_MESSAGE_LEN:
+        return None
     try:
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         response = client.messages.create(
@@ -68,6 +73,5 @@ def classify(message: str) -> dict | None:
             return None
         return result
     except Exception as e:
-        import warnings
         warnings.warn(f"AI router failed, falling back to regex: {e}")
         return None

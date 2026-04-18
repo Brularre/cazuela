@@ -114,3 +114,34 @@ def test_route_falls_back_to_regex_when_ai_returns_none():
         result = route("gasté 5000 en almuerzo", FAKE_USER)
     assert result == "ok"
     mock_save.assert_called_once()
+
+
+def test_route_falls_back_to_regex_when_dispatch_raises():
+    with patch("app.router.classify", return_value={
+        "intent": "add_expense", "amount": 5000, "description": "almuerzo"
+    }), patch("app.router.save_expense", side_effect=Exception("db error")), \
+         patch("app.router.save_expense") as mock_regex_save:
+        from app.router import route
+        route("gasté 5000 en almuerzo", FAKE_USER)
+
+
+def test_dispatch_returns_none_on_missing_required_fields():
+    from app.router import _dispatch
+    assert _dispatch({"intent": "add_expense", "amount": 5000}, "msg", FAKE_USER) is None
+    assert _dispatch({"intent": "add_todo"}, "msg", FAKE_USER) is None
+    assert _dispatch({"intent": "add_pantry_item", "item": "arroz"}, "msg", FAKE_USER) is None
+
+
+def test_dispatch_ambiguous_expense_uses_raw_message():
+    from app.router import _dispatch
+    with patch("app.router._handle_ambiguous_expense", return_value="ok") as mock:
+        _dispatch({"intent": "ambiguous_expense", "amount": 3000}, "pagué 3000", FAKE_USER)
+    mock.assert_called_once_with(3000, "pagué 3000", FAKE_USER)
+
+
+def test_classify_long_message_returns_none():
+    with patch("app.ai_router.settings") as mock_settings:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        result = classify("a" * 1001)
+    assert result is None
