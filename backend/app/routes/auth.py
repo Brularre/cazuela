@@ -1,5 +1,5 @@
 import re
-import random
+import secrets
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
@@ -47,7 +47,7 @@ def request_otp(body: OTPRequest):
     if recent.data:
         return {"ok": True}
 
-    code = str(random.randint(100000, 999999))
+    code = str(secrets.randbelow(900000) + 100000)
     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
 
     client.table("otp_codes").insert({
@@ -56,7 +56,7 @@ def request_otp(body: OTPRequest):
         "expires_at": expires_at,
     }).execute()
 
-    if settings.twilio_account_sid and settings.twilio_from_number:
+    if settings.twilio_account_sid and settings.twilio_from_number and settings.twilio_auth_token:
         twilio = TwilioClient(settings.twilio_account_sid, settings.twilio_auth_token)
         twilio.messages.create(
             from_=settings.twilio_from_number,
