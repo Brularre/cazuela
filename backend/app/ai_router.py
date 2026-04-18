@@ -47,6 +47,8 @@ Rules:
 - Decimal amounts like "1,5" or "1.5" → unknown (invalid for CLP).
 - Default todo priority is "semana" unless the message says "hoy" or "mes".
 - Default pantry category is "otros" unless message specifies cocina or baño.
+- "me faltan X", "se me acabo X", "quedé sin X", "no tengo X" →
+  consume_pantry_item (the item ran out), NOT add_to_shopping.
 - Return unknown if unsure."""
 
 
