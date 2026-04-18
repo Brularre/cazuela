@@ -15,7 +15,7 @@ Keep `backend/SCHEMA.md` up to date after a migration.
 ## Steps
 
 1. Read `backend/SCHEMA.md` to understand the current state
-2. Read all `backend/*.sql` migration files
+2. Read all `backend/migrations/*.sql` migration files
 3. Read `backend/app/handlers/*.py` to infer tables used
    but not in a migration file
 4. For each table:
