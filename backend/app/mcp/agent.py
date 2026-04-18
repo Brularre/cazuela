@@ -26,9 +26,7 @@ def _parse_ai_response(raw: str) -> dict:
     if result.get("category") not in CATEGORIES:
         result["category"] = "otros"
     result.setdefault("confidence", 0.5)
-    result.setdefault("reasoning", "")
-    if not result.get("reasoning"):
-        result["reasoning"] = "categorizado por IA"
+    result.setdefault("reasoning", "categorizado por IA")
     return result
 
 

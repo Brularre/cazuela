@@ -343,7 +343,7 @@ def test_ai_agent_missing_fields_get_defaults():
     result = _parse_ai_response(json.dumps({"category": "comida"}))
     assert result["category"] == "comida"
     assert result["confidence"] == 0.5
-    assert result["reasoning"] == "categorizado por IA"
+    assert result["reasoning"] == "categorizado por IA"  # default when missing
 
 
 def test_ai_agent_disabled_uses_stub():
