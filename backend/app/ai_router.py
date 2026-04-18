@@ -65,8 +65,13 @@ def classify(message: str) -> dict | None:
             messages=[{"role": "user", "content": message}],
         )
         if not response.content:
+            warnings.warn("AI router: empty response from API")
             return None
-        result = json.loads(response.content[0].text.strip())
+        raw = response.content[0].text.strip()
+        if not raw:
+            warnings.warn("AI router: API returned empty text")
+            return None
+        result = json.loads(raw)
         if result.get("intent") not in _INTENTS:
             return None
         if result.get("intent") == "unknown":
