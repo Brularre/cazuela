@@ -441,3 +441,24 @@ the rename before any code was written, avoiding a silent
 failure where `middleware.js` would simply be ignored.
 
 ---
+
+## 2026-04-18 — AI intent router and agent toggle
+
+**Suggested:**
+Add `app/ai_router.py` to classify raw WhatsApp messages via
+Claude Haiku before the regex chain runs; add a USE_AI_AGENT
+env var toggle so the MCP agent's propose() can make a real
+model call instead of using the deterministic stub.
+
+**Decision:** Accepted
+
+**Rationale:**
+The regex router is battle-tested and handles edge cases well.
+Adding AI as an optional first-pass layer means natural language
+("mandame un recordatorio de llamar al banco") works without
+breaking existing users.
+The fallback also protects against API outages and cost surprises
+— if classify() returns None, route() falls through to the full
+regex chain unchanged.
+
+---
