@@ -1,6 +1,7 @@
 import re
 from datetime import date, timedelta
 from app.db import client as db
+from app.ai_router import classify
 from app.handlers.expenses import save_expense
 from app.handlers.summary import get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
@@ -155,8 +156,59 @@ def _handle_ambiguous_expense(amount: float, raw_message: str, user: dict) -> st
     )
 
 
+def _dispatch(intent: dict, user: dict) -> str | None:
+    name = intent.get("intent")
+    if name == "add_expense":
+        return save_expense(intent["amount"], intent["description"], user)
+    if name == "ambiguous_expense":
+        return _handle_ambiguous_expense(intent["amount"], str(intent["amount"]), user)
+    if name == "get_summary":
+        return get_week_summary(user)
+    if name == "set_budget":
+        return set_budget(intent["period"], intent["amount"], user)
+    if name == "add_todo":
+        return add_todo(intent["task"], user, intent.get("priority", "semana"))
+    if name == "list_todos":
+        return list_todos(user)
+    if name == "complete_todo":
+        return complete_todo(intent["task_fragment"], user)
+    if name == "add_to_shopping":
+        return add_to_shopping(intent["item"], user)
+    if name == "list_shopping":
+        return list_shopping(user)
+    if name == "add_pantry_item":
+        return add_pantry_item(intent["item"], intent["qty"], user, intent.get("category", "otros"))
+    if name == "list_pantry":
+        return list_pantry(user)
+    if name == "consume_pantry_item":
+        return consume_pantry_item(intent["item_fragment"], user)
+    if name == "restock_pantry_item":
+        return restock_pantry_item(intent["item_fragment"], user)
+    if name == "restock_all_pantry":
+        return restock_all_pantry(user)
+    if name == "add_waiting":
+        return add_waiting(intent["description"], user)
+    if name == "list_waiting":
+        return list_waiting(user)
+    if name == "resolve_waiting":
+        return resolve_waiting(intent["fragment"], user)
+    if name == "confirm":
+        return _handle_confirm(user)
+    if name == "cancel":
+        return _handle_cancel(user)
+    if name == "help":
+        return HELP_TEXT
+    return None
+
+
 def route(message: str, user: dict) -> str:
     message = message.strip()
+
+    intent = classify(message)
+    if intent:
+        result = _dispatch(intent, user)
+        if result is not None:
+            return result
 
     match = EXPENSE_PATTERN.match(message)
     if match:
