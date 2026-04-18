@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     twilio_auth_token: str = ""
+    twilio_skip_validation: bool = False
     export_token: str = ""
     session_secret: str = ""
+    cookie_secure: bool = False
     twilio_account_sid: str = ""
     twilio_from_number: str = ""
 

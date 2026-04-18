@@ -1,7 +1,7 @@
 import re
 import random
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -35,8 +35,20 @@ def request_otp(body: OTPRequest):
     if not result.data:
         return {"ok": True}
 
+    sixty_ago = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
+    recent = (
+        client.table("otp_codes")
+        .select("id")
+        .eq("phone", phone)
+        .eq("used", False)
+        .gt("created_at", sixty_ago)
+        .execute()
+    )
+    if recent.data:
+        return {"ok": True}
+
     code = str(random.randint(100000, 999999))
-    expires_at = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
 
     client.table("otp_codes").insert({
         "phone": phone,
@@ -66,7 +78,7 @@ def verify_otp(body: OTPVerify):
         .eq("phone", phone)
         .eq("code", code)
         .eq("used", False)
-        .gt("expires_at", datetime.utcnow().isoformat())
+        .gt("expires_at", datetime.now(timezone.utc).isoformat())
         .execute()
     )
 
@@ -78,7 +90,7 @@ def verify_otp(body: OTPVerify):
 
     payload = {
         "phone": phone,
-        "exp": datetime.utcnow() + timedelta(days=30),
+        "exp": datetime.now(timezone.utc) + timedelta(days=30),
     }
     token = jwt.encode(payload, settings.session_secret, algorithm="HS256")
 
@@ -88,6 +100,7 @@ def verify_otp(body: OTPVerify):
         value=token,
         httponly=True,
         samesite="lax",
+        secure=settings.cookie_secure,
         max_age=60 * 60 * 24 * 30,
     )
     return response

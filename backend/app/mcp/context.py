@@ -71,10 +71,17 @@ def update_context(context_id: str, **kwargs) -> dict:
 
 
 def confirm(context_id: str) -> dict:
-    context = get_context(context_id)
-    if context["status"] in ("confirmed", "rolled_back"):
-        raise ValueError(f"Cannot confirm context in status '{context['status']}'")
-    return update_context(context_id, status="confirmed")
+    get_context(context_id)
+    result = (
+        client.table("mcp_contexts")
+        .update({"status": "confirmed"})
+        .eq("context_id", context_id)
+        .eq("status", "staged")
+        .execute()
+    )
+    if not result.data:
+        raise ValueError("Context already confirmed or cancelled")
+    return result.data[0]
 
 
 def rollback(context_id: str) -> dict:

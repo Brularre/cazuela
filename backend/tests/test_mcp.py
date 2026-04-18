@@ -228,8 +228,9 @@ def test_no_sensitive_keys_in_serialized_context():
 
 def test_confirm_already_confirmed_raises():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    request_action(context_id)
     confirm(context_id)
-    with pytest.raises(ValueError, match="Cannot confirm"):
+    with pytest.raises(ValueError, match="Context already confirmed or cancelled"):
         confirm(context_id)
 
 

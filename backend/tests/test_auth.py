@@ -48,6 +48,7 @@ def test_request_otp_known_phone():
     db.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
         {"id": "user-1"}
     ]
+    db.table.return_value.select.return_value.eq.return_value.eq.return_value.gt.return_value.execute.return_value.data = []
     db.table.return_value.insert.return_value.execute.return_value.data = [{}]
 
     mock_twilio_cls = MagicMock()

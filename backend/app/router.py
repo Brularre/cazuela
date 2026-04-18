@@ -18,7 +18,7 @@ EXPENSE_PATTERN = re.compile(
     re.IGNORECASE
 )
 AMBIGUOUS_EXPENSE_PATTERN = re.compile(
-    r'^pagu[eé]\s+([\d.,]+)',
+    r'^pagu[eé]\s+([\d.,]+)(?:\s+(?:en\s+)?(.+))?$',
     re.IGNORECASE
 )
 SUMMARY_PATTERN = re.compile(r'^resumen', re.IGNORECASE)
@@ -88,13 +88,16 @@ def _handle_confirm(user: dict) -> str:
     context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
         return "No tengo ningún gasto pendiente de confirmar."
-    ctx = mcp.receive_result(context_id)
-    payload = ctx.get("payload", {})
-    proposed = ctx.get("proposed", {})
-    amount = payload.get("amount", 0)
-    category = proposed.get("category", "otros")
-    note = payload.get("raw_message", "")
-    mcp.confirm(context_id)
+    try:
+        ctx = mcp.receive_result(context_id)
+        payload = ctx.get("payload", {})
+        proposed = ctx.get("proposed", {})
+        amount = payload.get("amount", 0)
+        category = proposed.get("category", "otros")
+        note = payload.get("raw_message", "")
+        mcp.confirm(context_id)
+    except (ValueError, KeyError):
+        return "Este gasto ya fue confirmado, cancelado, o expiró."
     db.table("expenses").insert({
         "user_id": user["id"],
         "amount": amount,
@@ -124,9 +127,9 @@ def _build_user_history(user_id: str) -> dict:
     return history
 
 
-def _handle_ambiguous_expense(amount: float, user: dict) -> str:
+def _handle_ambiguous_expense(amount: float, raw_message: str, user: dict) -> str:
     context_id = mcp.send_context("expense", user["id"], {
-        "raw_message": f"pagué {amount}",
+        "raw_message": raw_message,
         "amount": amount,
         "date": str(date.today()),
         "note": None,
@@ -149,14 +152,21 @@ def route(message: str, user: dict) -> str:
     match = EXPENSE_PATTERN.match(message)
     if match:
         raw_amount, description = match.group(1), match.group(2).strip()
-        amount = float(raw_amount.replace(".", "").replace(",", "."))
+        if re.search(r'\.\d{1,2}$', raw_amount):
+            return "Los montos van en pesos enteros. Ejemplo: _gasté 5000 en almuerzo_"
+        amount = float(raw_amount.replace(".", "").replace(",", ""))
         return save_expense(amount, description, user)
 
     match = AMBIGUOUS_EXPENSE_PATTERN.match(message)
     if match:
         raw_amount = match.group(1)
-        amount = float(raw_amount.replace(".", "").replace(",", "."))
-        return _handle_ambiguous_expense(amount, user)
+        if re.search(r'\.\d{1,2}$', raw_amount):
+            return "Los montos van en pesos enteros. Ejemplo: _pagué 5000_"
+        amount = float(raw_amount.replace(".", "").replace(",", ""))
+        description = match.group(2)
+        if description:
+            return save_expense(amount, description.strip(), user)
+        return _handle_ambiguous_expense(amount, message, user)
 
     if SUMMARY_PATTERN.match(message):
         return get_week_summary(user)
