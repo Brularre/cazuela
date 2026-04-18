@@ -42,3 +42,10 @@
   font-size: 0.875rem;
   color: var(--cazuela-text-muted);
 }
+
+.tip {
+  font-size: 0.8rem;
+  color: var(--cazuela-text-muted);
+  margin-top: 0.75rem;
+  font-style: italic;
+}

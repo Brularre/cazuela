@@ -71,6 +71,12 @@ export default function ExpensesSection({ gastos }) {
       )}
 
       {total === 0 && <p className={styles.empty}>Sin gastos esta semana.</p>}
+      {!budget && (
+        <p className={styles.tip}>
+          Envía <em>presupuesto semana 150.000</em> por WhatsApp para
+          activar el seguimiento de presupuesto.
+        </p>
+      )}
     </CollapsibleSection>
   );
 }
