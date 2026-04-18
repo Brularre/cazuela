@@ -26,3 +26,6 @@ out/
 
 # Claude Code
 .claude/worktrees/
+
+# Project backlog (local only)
+BACKLOG.md

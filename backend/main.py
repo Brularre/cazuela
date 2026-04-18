@@ -21,6 +21,10 @@ if not settings.session_secret:
     warnings.warn("SESSION_SECRET is not set — dashboard auth will return 401 for all requests")
 if not settings.twilio_auth_token and not settings.twilio_skip_validation:
     warnings.warn("TWILIO_AUTH_TOKEN is not set — /webhook will reject all requests")
+if settings.twilio_skip_validation:
+    if settings.cookie_secure:
+        raise RuntimeError("TWILIO_SKIP_VALIDATION cannot be true in production")
+    warnings.warn("TWILIO_SKIP_VALIDATION is true — Twilio signature checks are disabled")
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 

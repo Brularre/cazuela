@@ -31,6 +31,26 @@ def _make_db(user_rows=None, otp_rows=None):
     return db
 
 
+def test_request_otp_throttled_when_recent_exists():
+    db = MagicMock()
+    db.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "user-1"}
+    ]
+    db.table.return_value.select.return_value.eq.return_value.eq.return_value.gt.return_value.execute.return_value.data = [
+        {"id": "otp-recent"}
+    ]
+    mock_twilio_cls = MagicMock()
+
+    with patch("app.routes.auth.client", db), \
+         patch("app.routes.auth.TwilioClient", mock_twilio_cls):
+        response = client.post("/auth/request-otp", json={"phone": TEST_PHONE})
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    db.table.return_value.insert.assert_not_called()
+    mock_twilio_cls.assert_not_called()
+
+
 def test_request_otp_unknown_phone():
     db = MagicMock()
     db.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []

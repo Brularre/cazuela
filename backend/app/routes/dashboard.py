@@ -15,7 +15,7 @@ DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 def _get_user_id(phone: str) -> str:
     result = client.table("users").select("id").eq("phone", phone).execute()
     if not result.data:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=401)
     return result.data[0]["id"]
 
 

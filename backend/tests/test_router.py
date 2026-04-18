@@ -122,6 +122,16 @@ def test_ambiguous_expense_routes_to_handle_ambiguous():
         route("pagué 5000", FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == 5000.0
+        assert mock.call_args[0][1] == "pagué 5000"
+        assert mock.call_args[0][2] == FAKE_USER
+
+
+def test_pague_with_description_routes_to_save_expense():
+    with patch("app.router.save_expense", return_value="ok") as mock:
+        route("pagué 5000 en almuerzo", FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == 5000.0
+        assert "almuerzo" in mock.call_args[0][1]
 
 
 def test_confirm_pattern_routes_to_handle_confirm():

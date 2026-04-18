@@ -13,6 +13,15 @@ from app.handlers.pantry import (
 )
 from app.mcp import client as mcp
 
+_DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
+
+
+def _parse_clp_amount(raw: str) -> float | None:
+    if _DECIMAL_RE.search(raw):
+        return None
+    return float(raw.replace(".", "").replace(",", ""))
+
+
 EXPENSE_PATTERN = re.compile(
     r'^gast[eé]?\s+([\d.,]+)\s+(?:en\s+)?(.+)$',
     re.IGNORECASE
@@ -152,17 +161,17 @@ def route(message: str, user: dict) -> str:
     match = EXPENSE_PATTERN.match(message)
     if match:
         raw_amount, description = match.group(1), match.group(2).strip()
-        if re.search(r'\.\d{1,2}$', raw_amount):
+        amount = _parse_clp_amount(raw_amount)
+        if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _gasté 5000 en almuerzo_"
-        amount = float(raw_amount.replace(".", "").replace(",", ""))
         return save_expense(amount, description, user)
 
     match = AMBIGUOUS_EXPENSE_PATTERN.match(message)
     if match:
         raw_amount = match.group(1)
-        if re.search(r'\.\d{1,2}$', raw_amount):
+        amount = _parse_clp_amount(raw_amount)
+        if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _pagué 5000_"
-        amount = float(raw_amount.replace(".", "").replace(",", ""))
         description = match.group(2)
         if description:
             return save_expense(amount, description.strip(), user)
@@ -174,7 +183,9 @@ def route(message: str, user: dict) -> str:
     match = BUDGET_SET_PATTERN.match(message)
     if match:
         period = match.group(1).lower()
-        amount = float(match.group(2).replace(".", "").replace(",", "."))
+        amount = _parse_clp_amount(match.group(2))
+        if amount is None:
+            return "Los montos van en pesos enteros. Ejemplo: _presupuesto semana 150.000_"
         return set_budget(period, amount, user)
 
     match = TODO_ADD_PATTERN.match(message)
