@@ -158,8 +158,9 @@ def test_add_pantry_item_new(mock_client):
     from app.handlers.pantry import add_pantry_item
     result = add_pantry_item("jabón", 3, FAKE_USER)
     assert "Agregado" in result
-    assert "jabón" in result
+    assert "jabon" in result
     inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["item"] == "jabon"
     assert inserted["desired_quantity"] == 3
     assert inserted["current_quantity"] == 3
     assert inserted["category"] == "otros"

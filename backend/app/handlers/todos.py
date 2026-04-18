@@ -23,7 +23,8 @@ def list_todos(user: dict) -> str:
         return "No tienes pendientes."
     buckets = {"hoy": [], "semana": [], "mes": []}
     for item in items:
-        buckets[item["priority"]].append(item["task"])
+        key = item.get("priority") or "semana"
+        buckets.get(key, buckets["semana"]).append(item["task"])
     labels = {"hoy": "*Hoy:*", "semana": "*Esta semana:*", "mes": "*Este mes:*"}
     lines = []
     for key in ("hoy", "semana", "mes"):

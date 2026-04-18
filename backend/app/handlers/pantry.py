@@ -1,12 +1,18 @@
+import unicodedata
 from app.db import client
 
 
+def _normalize(text: str) -> str:
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").lower()
+
+
 def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "otros") -> str:
+    normalized = _normalize(item)
     existing = (
         client.table("pantry")
         .select("id")
         .eq("user_id", user["id"])
-        .ilike("item", item)
+        .ilike("item", normalized)
         .execute()
     ).data or []
     if existing:
@@ -14,15 +20,15 @@ def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "ot
             "desired_quantity": desired_qty,
             "category": category,
         }).eq("id", existing[0]["id"]).execute()
-        return f"✓ Despensa actualizada: {item} (quieres {desired_qty})"
+        return f"✓ Despensa actualizada: {normalized} (quieres {desired_qty})"
     client.table("pantry").insert({
         "user_id": user["id"],
-        "item": item,
+        "item": normalized,
         "desired_quantity": desired_qty,
         "current_quantity": desired_qty,
         "category": category,
     }).execute()
-    return f"✓ Agregado a tu despensa: {item} (necesitas {desired_qty})"
+    return f"✓ Agregado a tu despensa: {normalized} (necesitas {desired_qty})"
 
 
 def list_pantry(user: dict) -> str:
@@ -61,8 +67,9 @@ def consume_pantry_item(item_fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
+    needle = _normalize(item_fragment)
     match = next(
-        (i for i in items if item_fragment.lower() in i["item"].lower()),
+        (i for i in items if needle in _normalize(i["item"])),
         None,
     )
     if not match:
@@ -82,8 +89,9 @@ def restock_pantry_item(item_fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
+    needle = _normalize(item_fragment)
     match = next(
-        (i for i in items if item_fragment.lower() in i["item"].lower()),
+        (i for i in items if needle in _normalize(i["item"])),
         None,
     )
     if not match:
