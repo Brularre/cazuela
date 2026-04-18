@@ -71,6 +71,8 @@ def classify(message: str) -> dict | None:
         if not raw:
             warnings.warn("AI router: API returned empty text")
             return None
+        if raw.startswith("```"):
+            raw = raw.split("```")[1].removeprefix("json").strip()
         result = json.loads(raw)
         if result.get("intent") not in _INTENTS:
             return None
@@ -78,5 +80,5 @@ def classify(message: str) -> dict | None:
             return None
         return result
     except Exception as e:
-        warnings.warn(f"AI router failed, falling back to regex: {e}")
+        warnings.warn(f"AI router failed ({type(e).__name__}): {e!r}")
         return None
