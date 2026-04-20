@@ -79,7 +79,7 @@ export default function PantrySection({ despensa: initial }) {
   return (
     <CollapsibleSection
       title="Despensa"
-      description="Administra tu despensa con 'agregar despensa arroz 2kg' por WhatsApp. Los ítems bajo stock aparecen automáticamente en la lista de compras."
+      description="Administra tu despensa con 'despensa cocina arroz 3' por WhatsApp. Los ítems bajo stock aparecen automáticamente en la lista de compras."
       defaultOpen={false}
     >
       <div className={styles.tabs}>

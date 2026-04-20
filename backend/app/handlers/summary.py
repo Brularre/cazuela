@@ -42,7 +42,9 @@ def get_week_summary(user: dict) -> str:
 
     totals = aggregate_by_category(result.data)
 
-    lines = [f"*Resumen semana del {monday.strftime('%d/%m')}*\n"]
+    name = user.get("name")
+    header = f"*Resumen semana del {monday.strftime('%d/%m')}*"
+    lines = [f"¡Hola {name}! {header}\n" if name else f"{header}\n"]
     for category, total in totals.items():
         lines.append(f"• {category}: {format_amount(total)}")
 

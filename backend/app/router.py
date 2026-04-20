@@ -29,7 +29,7 @@ from app.mcp import client as mcp
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
 
 BATCH_EXPENSE_PATTERN = re.compile(
-    r"^(?:gast[eé]?|pagu[eé])\s+([\d.,]+)\s+en\s+(?:el\s+)?s[uú]per(?:mercado)?[:]\s*(.+)$",
+    r"^(?:gast[eé]?|pagu[eé])\s+([\d.,]+)\s+en\s+(?:el\s+)?s[uú]per(?:mercado)?[:\s]+(.+)$",
     re.IGNORECASE,
 )
 
@@ -78,40 +78,63 @@ PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
+ME_LLAMO_PATTERN = re.compile(r'^me llamo\s+(.+)$', re.IGNORECASE)
 
 HELP_TEXT = (
     "*Comandos disponibles:*\n\n"
     "*Gastos*\n"
     "• _gasté 5000 en almuerzo_\n"
     "• _pagué 3000_ (sin categoría, te pregunto)\n"
-    "• _gasté 18000 en supermercado: pan, leche, queso, lavalozas_ — batch\n"
+    "• _gasté 18000 en supermercado pan, leche, queso, lavalozas_ — batch\n"
     "• _confirmar_ / _cancelar_ — responde cuando te pregunte\n"
     "• _resumen_ — resumen semanal\n\n"
     "*Presupuesto*\n"
-    "• _presupuesto semana 150.000_\n"
-    "• _presupuesto mes 500.000_\n\n"
+    "• _presupuesto semana 150.000_\n\n"
     "*Pendientes*\n"
-    "• _pendiente: llamar al banco_\n"
+    "• _pendiente llamar al banco_\n"
     "• _mis pendientes_\n"
-    "• _listo: llamar al banco_\n\n"
+    "• _listo llamar al banco_\n\n"
     "*Compras*\n"
     "• _necesito comprar shampoo y balsamo_ — te pregunto dónde guardarlo\n"
-    "• _comprar: leche_\n"
+    "• _comprar leche_\n"
     "• _compras_ — ver lista\n"
     "• _compré leche_ — marcar como comprado\n\n"
     "*Esperando*\n"
-    "• _esperando: respuesta del seguro_\n"
+    "• _esperando respuesta del seguro_\n"
     "• _mis esperas_\n"
-    "• _llegó: seguro_ — marcar como resuelto\n\n"
+    "• _llegó seguro_ — marcar como resuelto\n\n"
     "*Despensa*\n"
-    "• _despensa cocina: arroz 3_ — agregar con categoría\n"
-    "• _despensa: jabón 2_ — agregar (sin categoría → otros)\n"
+    "• _despensa cocina arroz 3_ — agregar con categoría\n"
+    "• _despensa jabón 2_ — agregar (sin categoría → otros)\n"
     "• _mi despensa_ — ver stock\n"
-    "• _usé: jabón_ — consumir uno\n"
-    "• _compré: jabón_ — reponer uno\n"
+    "• _usé jabón_ — consumir uno\n"
+    "• _compré jabón_ — reponer uno\n"
     "• _compré todo_ — reponer todo lo que falta\n\n"
-    "Escribe *ayuda* en cualquier momento para ver esto."
+    "Escribe *ayuda* en cualquier momento para ver esto.\n\n"
+    "*Tu perfil*\n"
+    "• _me llamo Bruno_ — guardar tu nombre"
 )
+
+WELCOME_TEXT = (
+    "¡Hola! Soy Cazuela, tu asistente personal por WhatsApp.\n\n"
+    "*Lo que puedo hacer:*\n"
+    "• *Gastos* — _gasté 5000 en almuerzo_ · _resumen_\n"
+    "• *Presupuesto* — _presupuesto semana 150.000_\n"
+    "• *Pendientes* — _pendiente llamar al banco_\n"
+    "• *Lista de compras* — _comprar leche_\n"
+    "• *Esperando* — _esperando respuesta del seguro_\n"
+    "• *Despensa* — _despensa cocina arroz 3_\n\n"
+    "Escribe *ayuda* para ver todos los comandos.\n\n"
+    "_Para que te llame por tu nombre, escribe_ *me llamo [tu nombre]*."
+)
+
+
+def _handle_set_name(name: str, user: dict) -> str:
+    clean = name.strip()
+    if not clean:
+        return "No entendí el nombre."
+    db.table("users").update({"name": clean}).eq("id", user["id"]).execute()
+    return f"¡Listo, {clean}!"
 
 
 def _handle_bought(fragment: str, user: dict) -> str:
@@ -429,6 +452,10 @@ def route(message: str, user: dict) -> str:
     if match:
         return resolve_waiting(match.group(1).strip(), user)
 
+    match = ME_LLAMO_PATTERN.match(message)
+    if match:
+        return _handle_set_name(match.group(1), user)
+
     if HELP_PATTERN.match(message):
         return HELP_TEXT
 
@@ -438,12 +465,4 @@ def route(message: str, user: dict) -> str:
     if CANCEL_PATTERN.match(message):
         return _handle_cancel(user)
 
-    return (
-        "No entendí ese mensaje.\n\n"
-        "Puedes decirme cosas como:\n"
-        "• _gasté 5000 en almuerzo_\n"
-        "• _pagué 3000_ (gasto sin categoría)\n"
-        "• _pendiente: llamar al banco_\n"
-        "• _comprar: leche_\n"
-        "• _resumen_"
-    )
+    return "No entendí ese mensaje. Escribe *ayuda* para ver los comandos disponibles."

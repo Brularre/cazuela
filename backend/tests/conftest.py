@@ -8,4 +8,6 @@ os.environ.setdefault("SESSION_SECRET", "test-secret-that-is-long-enough-for-jwt
 os.environ.setdefault("TWILIO_SKIP_VALIDATION", "true")
 
 sys.modules.setdefault("app.db", MagicMock())
-sys.modules.setdefault("app.db.users", MagicMock())
+_mock_users = MagicMock()
+_mock_users.get_or_create_user.return_value = (MagicMock(), False)
+sys.modules.setdefault("app.db.users", _mock_users)

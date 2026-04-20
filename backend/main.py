@@ -10,7 +10,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.config import settings
 from app.db import client
 from app.db.users import get_or_create_user
-from app.router import route
+from app.router import route, WELCOME_TEXT
 from app.routes.auth import router as auth_router
 from app.routes.dashboard import router as dashboard_router
 
@@ -49,8 +49,12 @@ async def webhook(request: Request):
     body = form.get("Body", "").strip()
     sender = form.get("From", "")
 
-    user = get_or_create_user(sender)
-    text = route(body, user)
+    try:
+        user, is_new = get_or_create_user(sender)
+        text = WELCOME_TEXT if is_new else route(body, user)
+    except Exception as e:
+        warnings.warn(f"Webhook error for {sender}: {e}")
+        text = "Tuve un problema. Por favor intenta nuevamente."
 
     reply = MessagingResponse()
     reply.message(text)
@@ -63,7 +67,7 @@ def export(phone: str, format: str = "json", token: str = ""):
     if not settings.export_token or token != settings.export_token:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    user = get_or_create_user(phone)
+    user, _ = get_or_create_user(phone)
 
     result = (
         client.table("expenses")

@@ -31,7 +31,7 @@ export default function ShoppingSection({ compras: initial }) {
   return (
     <CollapsibleSection
       title="Lista de compras"
-      description="Acá puedes encontrar ítems que te faltan en tu despensa. También puedes agregar ítems con 'agregar a la lista leche y pan'."
+      description="Acá puedes encontrar ítems que te faltan en tu despensa. También puedes agregar ítems con 'comprar leche'."
       defaultOpen={true}
     >
       {items.length === 0 ? (

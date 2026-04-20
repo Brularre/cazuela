@@ -25,7 +25,7 @@ export default function TodosSection({ pendientes }) {
   return (
     <CollapsibleSection
       title="Pendientes"
-      description="Crea tareas con 'tarea estudiar para el viernes'. Márcalas como listas tocando el ✓."
+      description="Envía 'pendiente llamar al banco' para agregar. Toca ✓ para completar."
       defaultOpen
     >
       {total === 0 && <p className={styles.empty}>Todo al día.</p>}

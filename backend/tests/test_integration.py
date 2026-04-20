@@ -66,6 +66,47 @@ def test_unrecognized_message_returns_help(mock_users_client):
     assert "No entendí" in response.text
 
 
+@patch("main.get_or_create_user")
+def test_new_user_receives_welcome(mock_get_user):
+    mock_get_user.return_value = (FAKE_USER, True)
+
+    response = client.post(
+        "/webhook",
+        data={"Body": "hola", "From": "whatsapp:+56912345678"},
+    )
+
+    assert response.status_code == 200
+    assert "Cazuela" in response.text
+    assert "me llamo" in response.text
+
+
+@patch("app.db.users.client")
+def test_me_llamo_saves_name(mock_users_client):
+    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
+    mock_users_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+
+    response = client.post(
+        "/webhook",
+        data={"Body": "me llamo Bruno", "From": "whatsapp:+56912345678"},
+    )
+
+    assert response.status_code == 200
+    assert "Bruno" in response.text
+
+
+@patch("app.db.users.client")
+def test_me_llamo_empty_name_rejected(mock_users_client):
+    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
+
+    response = client.post(
+        "/webhook",
+        data={"Body": "me llamo   ", "From": "whatsapp:+56912345678"},
+    )
+
+    assert response.status_code == 200
+    assert "No entendí ese mensaje" in response.text
+
+
 @patch("app.db.users.client")
 @patch("app.handlers.todos.client")
 def test_todos_add(mock_handler_client, mock_users_client):
@@ -297,7 +338,7 @@ def _make_mcp_expense_fake_client(ctx_store, expense_rows):
 
 @patch("main.get_or_create_user")
 def test_supermercado_batch_webhook_reply(mock_get_user, monkeypatch):
-    mock_get_user.return_value = FAKE_USER
+    mock_get_user.return_value = (FAKE_USER, False)
     fc = _make_mcp_expense_fake_client({}, [])
     monkeypatch.setattr("app.mcp.context.client", fc)
     monkeypatch.setattr("app.handlers.expense_batch.client", fc)
