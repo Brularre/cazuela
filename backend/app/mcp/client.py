@@ -11,11 +11,13 @@ def send_context(domain: str, user_id: str, payload: dict) -> str:
 def request_action(context_id: str) -> dict:
     context = ctx.get_context(context_id)
     proposed = agent.propose(context)
+    model = agent.get_model_for(context)
     return ctx.update_context(
         context_id,
         proposed=proposed,
         status="staged",
         iteration_count=context["iteration_count"] + 1,
+        agent_model=model,
     )
 
 

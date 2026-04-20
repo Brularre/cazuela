@@ -82,6 +82,12 @@ def _propose_stub_batch(context: dict) -> dict:
     }
 
 
+def get_model_for(context: dict) -> str:
+    if context.get("domain") == "expense" and settings.use_ai_agent and settings.anthropic_api_key:
+        return MODEL_NAME
+    return STUB_MODEL_NAME
+
+
 def propose(context: dict) -> dict:
     domain = context.get("domain")
     if domain == "reconciliation":

@@ -405,7 +405,7 @@ def test_reconciliation_batch_round_trip():
 
 def test_reconciliation_batch_reproducibility():
     ids = [send_context("reconciliation", FAKE_USER_ID, BATCH_PAYLOAD) for _ in range(3)]
-    outputs = [json.dumps(request_action(i)["proposed"], sort_keys=True) for i in ids]
+    outputs = [json.dumps(request_action(ctx_id)["proposed"], sort_keys=True) for ctx_id in ids]
     assert outputs[0] == outputs[1] == outputs[2], f"Variance detected: {outputs}"
 
 
@@ -445,6 +445,43 @@ def test_reconciliation_empty_history_returns_otros():
     result = request_action(context_id)
     assert all(c["category"] == "otros"
                for c in result["proposed"]["categorizations"])
+
+
+def test_reconciliation_empty_transactions_raises():
+    with pytest.raises(ValueError, match="at least one"):
+        send_context("reconciliation", FAKE_USER_ID, {
+            **BATCH_PAYLOAD, "transactions": [],
+        })
+
+
+def test_agent_model_updated_to_ai_when_ai_mode_enabled():
+    fake_response = MagicMock()
+    fake_response.content = [MagicMock(text=json.dumps({
+        "category": "transporte",
+        "confidence": 0.9,
+        "reasoning": "parece un gasto de transporte",
+    }))]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value = fake_client
+        result = request_action(context_id)
+
+    assert result["agent_model"] == "claude-haiku-4-5-20251001"
+
+
+def test_agent_model_stays_stub_when_ai_disabled():
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    with patch("app.mcp.agent.settings") as mock_settings:
+        mock_settings.use_ai_agent = False
+        mock_settings.anthropic_api_key = ""
+        result = request_action(context_id)
+    assert result["agent_model"] == "stub-v1"
 
 
 def test_ai_reproducibility_across_3_mocked_runs():

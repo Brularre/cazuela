@@ -37,6 +37,8 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
 
     if domain == "reconciliation" and "transactions" in payload:
         txns = payload["transactions"]
+        if not txns:
+            raise ValueError("Reconciliation batch requires at least one transaction")
         if len(txns) > MAX_BATCH_SIZE:
             payload = {**payload, "transactions": txns[:MAX_BATCH_SIZE]}
 
