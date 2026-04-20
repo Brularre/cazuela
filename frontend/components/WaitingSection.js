@@ -22,8 +22,8 @@ export default function WaitingSection({ esperando }) {
 
   return (
     <CollapsibleSection
-      title="Esperando"
-      description="Registra lo que esperas de otros con 'esperando respuesta de Juan'. Ciérralos cuando lleguen tocando 'Llegó'."
+      title="Pendientes (de terceros)"
+      description="Registra pendientes que no dependen de ti con 'esperando respuesta de Juan'. Ciérralos cuando lleguen tocando 'Llegó'."
     >
       {items.length === 0 ? (
         <p className={styles.empty}>Nada pendiente de otros.</p>
