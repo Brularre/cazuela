@@ -1,6 +1,6 @@
 # MCP Integration Comparison Report
 **Project:** Cazuela — WhatsApp personal finance assistant
-**Date:** 2026-04-18
+**Date:** 2026-04-20 (updated)
 
 ---
 
@@ -26,7 +26,7 @@ reply asks user to confirm → `confirm()` writes to DB.
 |---|---|---|
 | Tests written | 0 (no flow to test) | 16 (test_mcp.py) |
 | Passing | N/A | 16 / 16 (100%) |
-| Total suite | 154 passing | 170 passing |
+| Total suite | 154 passing | 191 passing |
 
 ### Iterations to green tests
 
@@ -149,3 +149,46 @@ confirm gate is worth the extra step.
 The deterministic stub satisfies the reproducibility criterion
 out of the box. Replacing it with a live model would require noting
 output variance across runs; the schema and lifecycle are unchanged.
+
+---
+
+## AI Mode — Live Results (2026-04-20)
+
+The stub agent was extended with an optional Claude Haiku path,
+toggled via `USE_AI_AGENT=true`. Both the MCP propose step and a
+new AI intent router were deployed to production.
+
+### Intent routing (AI mode)
+
+The AI router (`app/ai_router.py`) classifies raw Spanish messages
+into typed intents before the regex chain runs. Tested live via
+WhatsApp:
+
+| Message sent | Intent classified | Result |
+|---|---|---|
+| "Se me acabo la leche" | `consume_pantry_item` | ✓ Usaste Leche |
+| "Agrega 6 huevos a mi despensa" | `add_pantry_item` | ✓ Agregado |
+| "Me faltan huevos" | `consume_pantry_item` | No encontré 'huevos'* |
+
+*Correct — item not in pantry yet. Routing was accurate.
+
+### Stub vs AI agent — replay comparison
+
+| | Stub (3 runs) | AI/Haiku (3 runs) |
+|---|---|---|
+| Scenario | pagué 5000, history: comida×8 | same |
+| Proposed category | comida (all 3) | tested live, not scripted† |
+| Variance | 0 | N/A |
+| Iteration count | 1 | 1 |
+
+†AI replay requires the production API key. Stub replay confirmed
+reproducible locally (`scripts/replay_mcp_context.py`).
+
+### AI mode friction points
+
+- Intent ambiguity: "me faltan X" initially routed to shopping list
+  instead of pantry consume — fixed by adding explicit rule to the
+  system prompt. One prompt edit, no code change.
+- Fallback works: when AI call fails or returns non-JSON, regex
+  router handles the message transparently. Observed in early deploy
+  logs before the markdown-fence fix.
