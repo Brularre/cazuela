@@ -70,7 +70,8 @@ def get_week_summary(user: dict) -> str:
                 f" — excedido por {format_amount(-remaining)}"
             )
 
-    monthly_estimate = grand_total * 4
+    days_in_month = ((month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - month_start).days
+    monthly_estimate = (monthly_total / today.day) * days_in_month
     lines.append(
         f"_Este mes llevas {format_amount(monthly_total)}"
         f" (estimado mensual: {format_amount(monthly_estimate)})_"
