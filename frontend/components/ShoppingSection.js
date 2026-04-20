@@ -42,7 +42,7 @@ export default function ShoppingSection({ compras: initial }) {
             {items.map(i => (
               <li key={i.id} className={styles.item}>
                 <span className={i.source === "lista" ? styles.nameManual : styles.name}>
-                  {i.item}
+                  {i.source === "lista" ? i.item.charAt(0).toUpperCase() + i.item.slice(1) : i.item}
                 </span>
                 {i.source === "pantry" && (
                   <span className={styles.qty}>{i.current_quantity}/{i.desired_quantity}</span>
