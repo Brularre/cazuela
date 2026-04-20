@@ -111,9 +111,23 @@ def get_dashboard(phone: str = Depends(require_auth)):
             "current_quantity": i["current_quantity"],
             "desired_quantity": i["desired_quantity"],
             "category": i["category"],
+            "source": "pantry",
         }
         for i in pantry_items
         if i["current_quantity"] < i["desired_quantity"]
+    ]
+
+    lista_result = (
+        client.table("shopping_list")
+        .select("id, item")
+        .eq("user_id", uid)
+        .eq("checked", False)
+        .order("id")
+        .execute()
+    )
+    compras += [
+        {"id": r["id"], "item": r["item"], "source": "lista"}
+        for r in (lista_result.data or [])
     ]
 
     despensa = {"cocina": [], "baño": [], "otros": []}
@@ -177,6 +191,13 @@ def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
         "category": body.category,
     }).execute()
     return {"ok": True, "id": result.data[0]["id"]}
+
+
+@router.patch("/shopping/{item_id}/check")
+def check_shopping_item(item_id: str, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    client.table("shopping_list").update({"checked": True}).eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
 
 
 @router.patch("/pantry/restock-all")

@@ -10,8 +10,15 @@ export default function ShoppingSection({ compras: initial }) {
     await fetch(`/api/dashboard/pantry/${id}/restock`, { method: "PATCH" });
   }
 
+  async function handleCheck(id) {
+    setItems(prev => prev.filter(i => i.id !== id));
+    await fetch(`/api/dashboard/shopping/${id}/check`, { method: "PATCH" });
+  }
+
+  const pantryItems = items.filter(i => i.source === "pantry");
+
   async function handleRestockAll() {
-    setItems([]);
+    setItems(prev => prev.filter(i => i.source !== "pantry"));
     await fetch("/api/dashboard/pantry/restock-all", { method: "PATCH" });
   }
 
@@ -24,17 +31,26 @@ export default function ShoppingSection({ compras: initial }) {
           <ul className={styles.list}>
             {items.map(i => (
               <li key={i.id} className={styles.item}>
-                <span className={styles.name}>{i.item}</span>
-                <span className={styles.qty}>{i.current_quantity}/{i.desired_quantity}</span>
-                <button className={styles.btn} onClick={() => handleRestock(i.id)}>
+                <span className={i.source === "lista" ? styles.nameManual : styles.name}>
+                  {i.item}
+                </span>
+                {i.source === "pantry" && (
+                  <span className={styles.qty}>{i.current_quantity}/{i.desired_quantity}</span>
+                )}
+                <button
+                  className={i.source === "lista" ? styles.btnGhost : styles.btn}
+                  onClick={() => i.source === "lista" ? handleCheck(i.id) : handleRestock(i.id)}
+                >
                   Compré
                 </button>
               </li>
             ))}
           </ul>
-          <button className={styles.btnAll} onClick={handleRestockAll}>
-            Compré todo
-          </button>
+          {pantryItems.length > 0 && (
+            <button className={styles.btnAll} onClick={handleRestockAll}>
+              Compré todo (despensa)
+            </button>
+          )}
         </>
       )}
     </CollapsibleSection>

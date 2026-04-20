@@ -27,6 +27,26 @@
   font-size: 0.95rem;
 }
 
+.nameManual {
+  flex: 1;
+  color: var(--cazuela-text-muted);
+  font-size: 0.95rem;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--cazuela-text-muted);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 4px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btnGhost:hover {
+  border-color: var(--cazuela-text-muted);
+}
+
 .qty {
   color: var(--cazuela-text-muted);
   font-size: 0.85rem;
