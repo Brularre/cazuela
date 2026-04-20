@@ -3,6 +3,11 @@ from datetime import date, timedelta
 from app.db import client as db
 from app.ai_router import classify
 from app.handlers.expenses import save_expense
+from app.handlers.expense_batch import (
+    handle_batch_create,
+    handle_batch_confirm,
+    handle_batch_cancel,
+)
 from app.handlers.summary import get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
@@ -15,6 +20,11 @@ from app.handlers.pantry import (
 from app.mcp import client as mcp
 
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
+
+BATCH_EXPENSE_PATTERN = re.compile(
+    r"^(?:gast[eé]?|pagu[eé])\s+([\d.,]+)\s+en\s+(?:el\s+)?s[uú]per(?:mercado)?[:]\s*(.+)$",
+    re.IGNORECASE,
+)
 
 
 def _parse_clp_amount(raw: str) -> float | None:
@@ -66,6 +76,7 @@ HELP_TEXT = (
     "*Gastos*\n"
     "• _gasté 5000 en almuerzo_\n"
     "• _pagué 3000_ (sin categoría, te pregunto)\n"
+    "• _gasté 18000 en supermercado: pan, leche, queso, lavalozas_ — batch\n"
     "• _confirmar_ / _cancelar_ — responde cuando te pregunte\n"
     "• _resumen_ — resumen semanal\n\n"
     "*Presupuesto*\n"
@@ -100,6 +111,11 @@ def _handle_confirm(user: dict) -> str:
         return "No tengo ningún gasto pendiente de confirmar."
     try:
         ctx = mcp.receive_result(context_id)
+    except (ValueError, KeyError):
+        return "Este gasto ya fue confirmado, cancelado, o expiró."
+    if ctx.get("domain") == "expense_batch":
+        return handle_batch_confirm(context_id, user)
+    try:
         payload = ctx.get("payload", {})
         proposed = ctx.get("proposed", {})
         amount = payload.get("amount", 0)
@@ -123,7 +139,16 @@ def _handle_cancel(user: dict) -> str:
     context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
         return "No tengo ningún gasto pendiente de cancelar."
-    mcp.rollback(context_id)
+    try:
+        peek = mcp.receive_result(context_id)
+    except (ValueError, KeyError):
+        return "Este gasto ya fue confirmado, cancelado, o expiró."
+    if peek.get("domain") == "expense_batch":
+        return handle_batch_cancel(context_id, user)
+    try:
+        mcp.rollback(context_id)
+    except ValueError:
+        return "Este gasto ya fue confirmado, cancelado, o expiró."
     return "Gasto cancelado."
 
 
@@ -169,6 +194,13 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
         if amount is None:
             return None
         return _handle_ambiguous_expense(amount, raw_message, user)
+    if name == "ambiguous_batch":
+        amount = intent.get("amount")
+        items_csv = intent.get("items_csv")
+        if amount is None or not items_csv:
+            return None
+        _, reply = handle_batch_create(raw_message, float(amount), str(items_csv), user)
+        return reply
     if name == "get_summary":
         return get_week_summary(user)
     if name == "set_budget":
@@ -239,6 +271,16 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
 
 def route(message: str, user: dict) -> str:
     message = message.strip()
+
+    match = BATCH_EXPENSE_PATTERN.match(message)
+    if match:
+        raw_amount = match.group(1)
+        amount = _parse_clp_amount(raw_amount)
+        if amount is None:
+            return "Los montos van en pesos enteros. Ejemplo: _gasté 5000 en almuerzo_"
+        items_csv = match.group(2).strip()
+        _, reply = handle_batch_create(message, amount, items_csv, user)
+        return reply
 
     intent = classify(message)
     if intent:

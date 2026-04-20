@@ -1,4 +1,5 @@
 import json
+import threading
 import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch
@@ -233,6 +234,133 @@ def test_confirm_already_confirmed_raises():
     confirm(context_id)
     with pytest.raises(ValueError, match="Context already confirmed or cancelled"):
         confirm(context_id)
+
+
+def test_confirm_is_idempotent_on_status_check():
+    """
+    Calling confirm more than once on a staged context must not apply twice;
+    the second call raises so the DB write path cannot run twice.
+    """
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    request_action(context_id)
+    confirm(context_id)
+    with pytest.raises(ValueError, match="already confirmed"):
+        confirm(context_id)
+
+
+def test_two_concurrent_confirms_raises_on_second(monkeypatch):
+    """
+    Confirms that only one caller can move status staged→confirmed.
+
+    FakeClient here wraps execute() with a threading.Lock so only one
+    UPDATE ... WHERE status='staged' can observe a matching row at a time.
+    Postgres provides the real guarantee via row-level locking; we cannot
+    run that without a live database.
+    """
+    store = {}
+    exec_lock = threading.Lock()
+
+    class FakeExecute:
+        def __init__(self, data):
+            self.data = data
+
+    class FakeQuery:
+        def __init__(self, store_ref):
+            self._store = store_ref
+            self._eq_filters = {}
+            self._lt_filter = None
+            self._pending_insert = None
+            self._pending_update = None
+            self._do_delete = False
+
+        def select(self, *args):
+            return self
+
+        def insert(self, data):
+            self._pending_insert = data
+            return self
+
+        def update(self, data):
+            self._pending_update = data
+            return self
+
+        def delete(self):
+            self._do_delete = True
+            return self
+
+        def eq(self, field, value):
+            self._eq_filters[field] = value
+            return self
+
+        def lt(self, field, value):
+            self._lt_filter = (field, value)
+            return self
+
+        def execute(self):
+            with exec_lock:
+                if self._pending_insert is not None:
+                    self._store[self._pending_insert["context_id"]] = dict(
+                        self._pending_insert
+                    )
+                    return FakeExecute([self._store[self._pending_insert["context_id"]]])
+
+                if self._pending_update is not None:
+                    results = []
+                    for row in self._store.values():
+                        if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                            row.update(self._pending_update)
+                            results.append(dict(row))
+                    return FakeExecute(results)
+
+                if self._do_delete:
+                    to_del = []
+                    for cid, row in self._store.items():
+                        if self._lt_filter:
+                            field, val = self._lt_filter
+                            if row.get(field, "") < val:
+                                to_del.append(cid)
+                    deleted = [self._store.pop(cid) for cid in to_del]
+                    return FakeExecute(deleted)
+
+                results = [
+                    dict(row) for row in self._store.values()
+                    if all(row.get(k) == v for k, v in self._eq_filters.items())
+                ]
+                return FakeExecute(results)
+
+    class FakeClient:
+        def __init__(self, store_ref):
+            self._store = store_ref
+
+        def table(self, name):
+            return FakeQuery(self._store)
+
+    monkeypatch.setattr("app.mcp.context.client", FakeClient(store))
+
+    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
+    request_action(context_id)
+    barrier = threading.Barrier(2)
+    out: list[tuple[str, Exception | None]] = []
+
+    def worker():
+        barrier.wait()
+        try:
+            confirm(context_id)
+            out.append(("ok", None))
+        except ValueError as e:
+            out.append(("err", e))
+
+    t1 = threading.Thread(target=worker)
+    t2 = threading.Thread(target=worker)
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    oks = [x for x in out if x[0] == "ok"]
+    errs = [x for x in out if x[0] == "err"]
+    assert len(oks) == 1 and len(errs) == 1
+    assert "already confirmed" in str(errs[0][1])
 
 
 def test_rollback_already_rolled_back_raises():
@@ -509,3 +637,48 @@ def test_ai_reproducibility_across_3_mocked_runs():
     serialized = [json.dumps(r, sort_keys=True) for r in results]
     assert serialized[0] == serialized[1] == serialized[2], \
         f"AI output varied across runs: {serialized}"
+
+
+def test_context_accepts_user_profile_field():
+    profile = {"name": "Ana", "currency": "CLP", "preferred_categories": ["comida", "transporte"]}
+    payload = {**EXPENSE_PAYLOAD, "user_profile": profile}
+    context_id = send_context("expense", FAKE_USER_ID, payload)
+    stored = ctx.get_context(context_id)["payload"]["user_profile"]
+    assert stored == profile
+
+
+def test_stub_uses_category_map_when_present():
+    payload = {
+        **EXPENSE_PAYLOAD,
+        "raw_message": "pagué 5000 por almuerzo",
+        "category_map": {"almuerzo": "comida"},
+    }
+    context = ctx.create_context("expense", FAKE_USER_ID, payload)
+    result = propose(context)
+    assert result["category"] == "comida"
+    assert result["confidence"] == 0.9
+
+
+def test_user_profile_redacted_for_sensitive_keys():
+    payload = {
+        **EXPENSE_PAYLOAD,
+        "user_profile": {"name": "Ana", "anthropic_key": "sk-secret"},
+    }
+    context_id = send_context("expense", FAKE_USER_ID, payload)
+    redacted = ctx.redact(ctx.get_context(context_id))
+
+    def collect(d):
+        s = set(d.keys())
+        for v in d.values():
+            if isinstance(v, dict):
+                s |= collect(v)
+        return s
+
+    assert "anthropic_key" not in collect(redacted.get("payload", {}))
+
+
+def test_category_map_pruned_to_max_keys():
+    cmap = {f"k{i}": "comida" for i in range(50)}
+    context_id = send_context("expense", FAKE_USER_ID, {**EXPENSE_PAYLOAD, "category_map": cmap})
+    stored = ctx.get_context(context_id)["payload"]["category_map"]
+    assert len(stored) <= ctx.MAX_CATEGORY_MAP_KEYS
