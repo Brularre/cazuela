@@ -18,6 +18,7 @@ def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "ot
     if existing:
         client.table("pantry").update({
             "desired_quantity": desired_qty,
+            "current_quantity": desired_qty,
             "category": category,
         }).eq("id", existing[0]["id"]).execute()
         return f"✓ Despensa actualizada: {normalized} (quieres {desired_qty})"

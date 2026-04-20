@@ -152,6 +152,7 @@ def _pantry_db(pantry_mock=None):
 
 def test_create_pantry_item_returns_id():
     pantry = MagicMock()
+    pantry.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
     pantry.insert.return_value.execute.return_value.data = [{"id": "item-456"}]
     db = _pantry_db(pantry)
     with patch("app.routes.dashboard.client", db), \

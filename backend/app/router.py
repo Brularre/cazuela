@@ -133,22 +133,25 @@ def _handle_confirm(user: dict) -> str:
         return "Este gasto ya fue confirmado, cancelado, o expiró."
     if ctx.get("domain") == "expense_batch":
         return handle_batch_confirm(context_id, user)
+    payload = ctx.get("payload", {})
+    proposed = ctx.get("proposed", {})
+    amount = payload.get("amount", 0)
+    category = proposed.get("category", "otros")
+    note = payload.get("raw_message", "")
     try:
-        payload = ctx.get("payload", {})
-        proposed = ctx.get("proposed", {})
-        amount = payload.get("amount", 0)
-        category = proposed.get("category", "otros")
-        note = payload.get("raw_message", "")
+        db.table("expenses").insert({
+            "user_id": user["id"],
+            "amount": amount,
+            "category": category,
+            "note": note,
+            "date": str(date.today()),
+        }).execute()
+    except Exception:
+        return "Hubo un problema al guardar el gasto. Intenta _confirmar_ de nuevo."
+    try:
         mcp.confirm(context_id)
     except (ValueError, KeyError):
         return "Este gasto ya fue confirmado, cancelado, o expiró."
-    db.table("expenses").insert({
-        "user_id": user["id"],
-        "amount": amount,
-        "category": category,
-        "note": note,
-        "date": str(date.today()),
-    }).execute()
     formatted = "$" + f"{amount:,.0f}".replace(",", ".")
     return f"✓ Gasto guardado\n{formatted} · {category}"
 

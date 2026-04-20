@@ -1,3 +1,4 @@
+import unicodedata
 from datetime import date, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
@@ -184,9 +185,29 @@ class PantryItemUpdate(BaseModel):
 @router.post("/pantry")
 def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
     uid = _get_user_id(phone)
+    normalized = (
+        unicodedata.normalize("NFKD", body.item)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .lower()
+    )
+    existing = (
+        client.table("pantry")
+        .select("id")
+        .eq("user_id", uid)
+        .ilike("item", normalized)
+        .execute()
+    ).data or []
+    if existing:
+        client.table("pantry").update({
+            "desired_quantity": body.desired_quantity,
+            "current_quantity": body.desired_quantity,
+            "category": body.category,
+        }).eq("id", existing[0]["id"]).execute()
+        return {"ok": True, "id": existing[0]["id"]}
     result = client.table("pantry").insert({
         "user_id": uid,
-        "item": body.item,
+        "item": normalized,
         "desired_quantity": body.desired_quantity,
         "current_quantity": body.desired_quantity,
         "category": body.category,
