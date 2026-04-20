@@ -1,0 +1,19 @@
+{
+    "context_id": "bbbbbbbb-0000-0000-0000-000000000001",
+    "version": "1.0",
+    "domain": "expense",
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "created_at": "2026-04-15T10:00:00+00:00",
+    "expires_at": "2099-12-31T23:59:59+00:00",
+    "status": "pending",
+    "payload": {
+        "raw_message": "pagué 2000",
+        "amount": 2000.0,
+        "date": "2026-04-15",
+        "note": null,
+        "user_history": {}
+    },
+    "proposed": null,
+    "agent_model": "stub-v1",
+    "iteration_count": 0
+}

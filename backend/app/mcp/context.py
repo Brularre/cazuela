@@ -6,6 +6,7 @@ from app.db import client
 
 TTL_SECONDS = 3600
 MAX_HISTORY_ENTRIES = 10
+MAX_BATCH_SIZE = 5
 
 SENSITIVE_KEYS = {"phone", "anthropic_key", "supabase_key", "google_tokens", "password"}
 
@@ -33,6 +34,11 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
         if len(history) > MAX_HISTORY_ENTRIES:
             top = sorted(history.items(), key=lambda x: x[1], reverse=True)
             payload = {**payload, "user_history": dict(top[:MAX_HISTORY_ENTRIES])}
+
+    if domain == "reconciliation" and "transactions" in payload:
+        txns = payload["transactions"]
+        if len(txns) > MAX_BATCH_SIZE:
+            payload = {**payload, "transactions": txns[:MAX_BATCH_SIZE]}
 
     row = {
         "context_id": str(uuid.uuid4()),

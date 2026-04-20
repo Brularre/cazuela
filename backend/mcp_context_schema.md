@@ -5,7 +5,8 @@ why it exists, and its constraints.
 
 ---
 
-## Example context (serialized)
+## Example context — single expense (staged)
+
 
 ```json
 {
@@ -37,6 +38,40 @@ why it exists, and its constraints.
 }
 ```
 
+## Example context — reconciliation batch (staged)
+
+```json
+{
+  "context_id": "ffffffff-0000-0000-0000-000000000005",
+  "version": "1.0",
+  "domain": "reconciliation",
+  "user_id": "11111111-1111-1111-1111-111111111111",
+  "created_at": "2026-04-20T10:00:00+00:00",
+  "expires_at": "2026-04-20T11:00:00+00:00",
+  "status": "staged",
+  "payload": {
+    "transactions": [
+      {"raw_message": "pagué 5000", "amount": 5000, "date": "2026-04-18"},
+      {"raw_message": "compré pan", "amount": 1500, "date": "2026-04-18"},
+      {"raw_message": "taxi al trabajo", "amount": 3000, "date": "2026-04-18"}
+    ],
+    "user_history": {"comida": 8, "transporte": 3}
+  },
+  "proposed": {
+    "categorizations": [
+      {"index": 0, "category": "comida",
+       "confidence": 0.8, "reasoning": "categoría más frecuente"},
+      {"index": 1, "category": "comida",
+       "confidence": 0.8, "reasoning": "categoría más frecuente"},
+      {"index": 2, "category": "comida",
+       "confidence": 0.8, "reasoning": "categoría más frecuente"}
+    ]
+  },
+  "agent_model": "stub-v1",
+  "iteration_count": 1
+}
+```
+
 ---
 
 ## Field reference
@@ -57,12 +92,17 @@ why it exists, and its constraints.
 - **Constraints:** Currently always `"1.0"`.
 
 ### `domain`
-- **Type:** string — one of `expense`, `todo`,
-  `wishlist`, `shopping_list`
+- **Type:** string — one of `expense`, `reconciliation`,
+  `todo`, `wishlist`, `shopping_list`
 - **Why it exists:** Determines which agent logic runs
-  during `requestAction`. The stub agent only classifies
-  expense domains; other domains return `{"confirmed": true}`
-  immediately.
+  during `requestAction`.
+  - `expense` — single ambiguous transaction; stub or
+    Claude Haiku proposes one category.
+  - `reconciliation` — batch of up to `MAX_BATCH_SIZE = 5`
+    transactions; stub proposes a category for each in one
+    pass. Designed for the multi-step categorization flow
+    (send → request → verify → confirm/rollback).
+  - Other domains return `{"confirmed": true}` immediately.
 - **Constraints:** Required. No default.
 
 ### `user_id`
@@ -120,6 +160,13 @@ why it exists, and its constraints.
   - `note` — optional free-text note
   - `user_history` — dict of category → count
     (last 30 days, pruned to `MAX_HISTORY_ENTRIES = 10`)
+- **Reconciliation payload fields:**
+  - `transactions` — list of up to `MAX_BATCH_SIZE = 5`
+    transaction dicts (each with `raw_message`, `amount`,
+    `date`). Longer lists are truncated at creation time.
+  - `user_history` — same format as expense domain;
+    used by the batch proposer to assign a default category
+    to all transactions in one pass.
 - **Safety:** `redact()` strips any key in `SENSITIVE_KEYS`
   from the payload before passing to agent logic.
   Sensitive keys: `phone`, `anthropic_key`, `supabase_key`,
@@ -142,7 +189,10 @@ why it exists, and its constraints.
   the proposal. Needed for reproducibility — if the stub
   algorithm changes, contexts created under `"stub-v1"`
   can be replayed and compared against the old behaviour.
-- **Constraints:** Currently always `"stub-v1"`.
+  If `USE_AI_AGENT=true`, updated to the live model name
+  after `requestAction` so the log reflects what actually ran.
+- **Values:** `"stub-v1"` (default) or
+  `"claude-haiku-4-5-20251001"` (AI mode).
 
 ### `iteration_count`
 - **Type:** integer

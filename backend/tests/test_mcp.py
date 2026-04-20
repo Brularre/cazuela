@@ -377,3 +377,98 @@ def test_verify_refine_loop():
 
     confirm(id2)
     assert ctx.get_context(id2)["status"] == "confirmed"
+
+
+BATCH_PAYLOAD = {
+    "transactions": [
+        {"raw_message": "pagué 5000", "amount": 5000, "date": "2026-04-18"},
+        {"raw_message": "compré pan", "amount": 1500, "date": "2026-04-18"},
+        {"raw_message": "taxi al trabajo", "amount": 3000, "date": "2026-04-18"},
+    ],
+    "user_history": {"comida": 8, "transporte": 3},
+}
+
+
+def test_reconciliation_batch_round_trip():
+    context_id = send_context("reconciliation", FAKE_USER_ID, BATCH_PAYLOAD)
+    assert ctx.get_context(context_id)["status"] == "pending"
+
+    result = request_action(context_id)
+    assert result["status"] == "staged"
+    cats = result["proposed"]["categorizations"]
+    assert len(cats) == 3
+    assert all("category" in c and "confidence" in c for c in cats)
+
+    final = confirm(context_id)
+    assert final["status"] == "confirmed"
+
+
+def test_reconciliation_batch_reproducibility():
+    ids = [send_context("reconciliation", FAKE_USER_ID, BATCH_PAYLOAD) for _ in range(3)]
+    outputs = [json.dumps(request_action(i)["proposed"], sort_keys=True) for i in ids]
+    assert outputs[0] == outputs[1] == outputs[2], f"Variance detected: {outputs}"
+
+
+def test_reconciliation_batch_pruned_to_max():
+    big_batch = [
+        {"raw_message": f"gasto {i}", "amount": i * 1000, "date": "2026-04-18"}
+        for i in range(8)
+    ]
+    context_id = send_context("reconciliation", FAKE_USER_ID, {
+        **BATCH_PAYLOAD, "transactions": big_batch,
+    })
+    stored = ctx.get_context(context_id)["payload"]["transactions"]
+    assert len(stored) <= ctx.MAX_BATCH_SIZE
+
+
+def test_reconciliation_verify_refine_loop():
+    payload_v1 = {**BATCH_PAYLOAD, "user_history": {"otros": 5}}
+    id1 = send_context("reconciliation", FAKE_USER_ID, payload_v1)
+    result1 = request_action(id1)
+    assert all(c["category"] == "otros"
+               for c in result1["proposed"]["categorizations"])
+    rollback(id1)
+    assert ctx.get_context(id1)["status"] == "rolled_back"
+
+    payload_v2 = {**BATCH_PAYLOAD, "user_history": {"comida": 8, "otros": 2}}
+    id2 = send_context("reconciliation", FAKE_USER_ID, payload_v2)
+    result2 = request_action(id2)
+    assert all(c["category"] == "comida"
+               for c in result2["proposed"]["categorizations"])
+    confirm(id2)
+    assert ctx.get_context(id2)["status"] == "confirmed"
+
+
+def test_reconciliation_empty_history_returns_otros():
+    payload = {**BATCH_PAYLOAD, "user_history": {}}
+    context_id = send_context("reconciliation", FAKE_USER_ID, payload)
+    result = request_action(context_id)
+    assert all(c["category"] == "otros"
+               for c in result["proposed"]["categorizations"])
+
+
+def test_ai_reproducibility_across_3_mocked_runs():
+    fixed = {"category": "comida", "confidence": 0.9,
+             "reasoning": "historial frecuente"}
+    fake_response = MagicMock()
+    fake_response.content = [MagicMock(text=json.dumps(fixed))]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    context = {
+        "domain": "expense",
+        "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
+    }
+
+    results = []
+    with patch("app.mcp.agent.settings") as mock_settings, \
+         patch("app.mcp.agent.anthropic") as mock_anthropic:
+        mock_settings.use_ai_agent = True
+        mock_settings.anthropic_api_key = "sk-ant-fake"
+        mock_anthropic.Anthropic.return_value = fake_client
+        for _ in range(3):
+            results.append(propose(context))
+
+    serialized = [json.dumps(r, sort_keys=True) for r in results]
+    assert serialized[0] == serialized[1] == serialized[2], \
+        f"AI output varied across runs: {serialized}"

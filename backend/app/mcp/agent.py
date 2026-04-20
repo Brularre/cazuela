@@ -64,8 +64,29 @@ def _propose_stub(context: dict) -> dict:
     }
 
 
+def _propose_stub_batch(context: dict) -> dict:
+    payload = context.get("payload", {})
+    transactions = payload.get("transactions", [])
+    history = payload.get("user_history", {})
+    best = max(history, key=lambda k: history[k]) if history else "otros"
+    return {
+        "categorizations": [
+            {
+                "index": i,
+                "category": best,
+                "confidence": 0.8,
+                "reasoning": "categoría más frecuente del usuario",
+            }
+            for i in range(len(transactions))
+        ]
+    }
+
+
 def propose(context: dict) -> dict:
-    if context.get("domain") != "expense":
+    domain = context.get("domain")
+    if domain == "reconciliation":
+        return _propose_stub_batch(context)
+    if domain != "expense":
         return {"confirmed": True}
     if settings.use_ai_agent and settings.anthropic_api_key:
         try:

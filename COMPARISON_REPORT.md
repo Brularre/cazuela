@@ -24,9 +24,9 @@ reply asks user to confirm → `confirm()` writes to DB.
 
 | | Without MCP | With MCP |
 |---|---|---|
-| Tests written | 0 (no flow to test) | 16 (test_mcp.py) |
-| Passing | N/A | 16 / 16 (100%) |
-| Total suite | 154 passing | 191 passing |
+| Tests written | 0 (no flow to test) | 23 (test_mcp.py) |
+| Passing | N/A | 23 / 23 (100%) |
+| Total suite | 154 passing | 197 passing |
 
 ### Iterations to green tests
 
@@ -192,3 +192,43 @@ reproducible locally (`scripts/replay_mcp_context.py`).
 - Fallback works: when AI call fails or returns non-JSON, regex
   router handles the message transparently. Observed in early deploy
   logs before the markdown-fence fix.
+
+---
+
+## Reconciliation Batch Domain (2026-04-20)
+
+The MCP module was extended with a `reconciliation` domain that
+carries a batch of up to 5 ambiguous transactions in a single
+context, categorizing all of them in one `requestAction` pass.
+
+### New deliverables
+
+| Deliverable | Details |
+|---|---|
+| `domain: "reconciliation"` | Batch context with `MAX_BATCH_SIZE = 5` pruning |
+| `_propose_stub_batch()` | Assigns highest-history category to every tx |
+| `test_reconciliation_*` (5 tests) | Round-trip, reproducibility, pruning, verify→refine, empty history |
+| `test_ai_reproducibility_across_3_mocked_runs` | 3 identical mocked AI calls → identical output |
+| Fixture snapshot | `fixtures/mcp_snapshots/reconciliation_batch.json` |
+| Agent iteration log | `agent_iteration_log.md` (5 entries, full format) |
+| 4 additional snapshots | `expense_empty_history`, `expense_staged`, `expense_verify_refine_step1/2` |
+
+### Reconciliation batch — 3-run reproducibility
+
+| Run | Transactions | All proposed | Identical? |
+|-----|-------------|-------------|----------|
+| 1 | 3 (pagué 5000, pan, taxi) | comida × 3 | — |
+| 2 | same | comida × 3 | ✓ |
+| 3 | same | comida × 3 | ✓ |
+
+**Variance: 0.** Stub batch proposer is fully deterministic.
+
+### Verify→refine loop (batch)
+
+```
+Context 1 (history: otros×5): pending → staged → rolled_back
+Context 2 (history: comida×8): pending → staged → confirmed
+```
+
+The same two-pass lifecycle demonstrated for single expenses
+applies identically to the batch domain.
