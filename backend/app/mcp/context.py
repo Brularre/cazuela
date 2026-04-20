@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import TypedDict
@@ -65,6 +66,20 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
             raise ValueError("expense_batch requires at least one item")
         if len(parts) > MAX_ITEMS:
             payload = {**payload, "items_csv": ",".join(parts[:MAX_ITEMS])}
+
+    if domain == "pantry_add_batch":
+        items_raw = (payload.get("items_raw") or "").strip()
+        if not items_raw:
+            raise ValueError("pantry_add_batch requires non-empty items_raw")
+        parts = [
+            p.strip()
+            for p in re.split(r",\s*|\s+y\s+", items_raw, flags=re.IGNORECASE)
+            if p.strip()
+        ]
+        if not parts:
+            raise ValueError("pantry_add_batch requires at least one item")
+        if len(parts) > MAX_ITEMS:
+            payload = {**payload, "items_raw": ", ".join(parts[:MAX_ITEMS])}
 
     if "category_map" in payload and isinstance(payload["category_map"], dict):
         cm = payload["category_map"]

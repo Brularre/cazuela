@@ -333,6 +333,45 @@ def test_restock_all_pantry_already_stocked(mock_client):
     assert "al día" in result
 
 
+@patch("app.handlers.summary.client")
+def test_week_summary_shows_budget_remaining(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"amount": "50000", "category": "comida"}
+    ]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"amount": "150000"}
+    ]
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(FAKE_USER)
+    assert "te quedan" in result
+    assert "150.000" in result
+
+
+@patch("app.handlers.summary.client")
+def test_week_summary_shows_budget_exceeded(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"amount": "200000", "category": "comida"}
+    ]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"amount": "150000"}
+    ]
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(FAKE_USER)
+    assert "excedido" in result
+    assert "⚠" in result
+
+
+@patch("app.handlers.summary.client")
+def test_week_summary_no_budget_line_when_unset(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"amount": "50000", "category": "comida"}
+    ]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(FAKE_USER)
+    assert "Presupuesto" not in result
+
+
 @patch("app.handlers.budget.client")
 def test_set_budget_semana(mock_client):
     mock_client.table.return_value.upsert.return_value.execute.return_value = None

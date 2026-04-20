@@ -1,4 +1,5 @@
 import json
+import re
 import warnings
 import anthropic
 from app.config import settings
@@ -176,10 +177,46 @@ def _propose_stub_batch(context: dict) -> dict:
     }
 
 
+_PANTRY_KEYWORDS = {
+    "baño": [
+        "shampoo", "champú", "champu", "balsamo", "bálsamo", "jabón", "jabon",
+        "pasta dental", "cepillo", "desodorante", "papel higiénico",
+        "papel higienico", "toalla", "loción", "locion", "crema", "perfume",
+    ],
+    "cocina": [
+        "aceite", "sal", "azúcar", "azucar", "harina", "arroz", "fideos",
+        "café", "cafe", "té", "te", "leche", "huevo", "pan", "mantequilla",
+        "queso", "yogur", "cereal", "vinagre",
+    ],
+}
+
+_ITEM_SPLIT_RE = re.compile(r",\s*|\s+y\s+", re.IGNORECASE)
+
+
+def _infer_pantry_category(item_name: str) -> str:
+    lower = item_name.lower()
+    for cat, keywords in _PANTRY_KEYWORDS.items():
+        if any(kw in lower for kw in keywords):
+            return cat
+    return "otros"
+
+
+def _propose_pantry_add_batch(context: dict) -> dict:
+    payload = context.get("payload", {})
+    items_raw = (payload.get("items_raw") or "").strip()
+    names = [p.strip() for p in _ITEM_SPLIT_RE.split(items_raw) if p.strip()]
+    items = [{"name": n, "category": _infer_pantry_category(n)} for n in names]
+    return {
+        "items": items,
+        "reasoning": "categorías inferidas por palabras clave",
+    }
+
+
 def get_model_for(context: dict) -> str:
-    if context.get("domain") == "expense_batch":
+    domain = context.get("domain")
+    if domain in ("expense_batch", "reconciliation", "pantry_add_batch"):
         return STUB_MODEL_NAME
-    if context.get("domain") == "expense" and settings.use_ai_agent and settings.anthropic_api_key:
+    if domain == "expense" and settings.use_ai_agent and settings.anthropic_api_key:
         return MODEL_NAME
     return STUB_MODEL_NAME
 
@@ -190,6 +227,8 @@ def propose(context: dict) -> dict:
         return _propose_stub_batch(context)
     if domain == "expense_batch":
         return _propose_expense_batch(context)
+    if domain == "pantry_add_batch":
+        return _propose_pantry_add_batch(context)
     if domain != "expense":
         return {"confirmed": True}
     if settings.use_ai_agent and settings.anthropic_api_key:

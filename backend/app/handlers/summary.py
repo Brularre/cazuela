@@ -38,4 +38,25 @@ def get_week_summary(user: dict) -> str:
     grand_total = sum(totals.values())
     lines.append(f"\n*Total: {format_amount(grand_total)}*")
 
+    budget_result = (
+        client.table("budgets")
+        .select("amount")
+        .eq("user_id", user["id"])
+        .eq("period", "semana")
+        .execute()
+    )
+    if budget_result.data:
+        limit = float(budget_result.data[0]["amount"])
+        remaining = limit - grand_total
+        if remaining >= 0:
+            lines.append(
+                f"Presupuesto semana: {format_amount(limit)}"
+                f" — te quedan {format_amount(remaining)}"
+            )
+        else:
+            lines.append(
+                f"⚠ Presupuesto semana: {format_amount(limit)}"
+                f" — excedido por {format_amount(-remaining)}"
+            )
+
     return "\n".join(lines)

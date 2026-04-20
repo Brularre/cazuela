@@ -17,6 +17,12 @@ from app.handlers.pantry import (
     add_pantry_item, list_pantry,
     consume_pantry_item, restock_pantry_item, restock_all_pantry,
 )
+from app.handlers.pantry_shopping import (
+    handle_pantry_add_create,
+    handle_pantry_add_confirm_despensa,
+    handle_pantry_add_confirm_lista,
+    handle_pantry_add_cancel,
+)
 from app.mcp import client as mcp
 
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
@@ -47,6 +53,7 @@ TODO_ADD_PATTERN = re.compile(r'^(?:pendiente|tarea)[:\s]+(.+)$', re.IGNORECASE)
 TODO_LIST_PATTERN = re.compile(r'^mis?\s+pendientes?$', re.IGNORECASE)
 TODO_DONE_PATTERN = re.compile(r'^(?:listo|hice|complet[eé])[:\s]+(.+)$', re.IGNORECASE)
 
+NECESITO_COMPRAR_PATTERN = re.compile(r'^necesito\s+comprar\s+(.+)$', re.IGNORECASE)
 SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORECASE)
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
 PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
@@ -87,6 +94,7 @@ HELP_TEXT = (
     "• _mis pendientes_\n"
     "• _listo: llamar al banco_\n\n"
     "*Compras*\n"
+    "• _necesito comprar shampoo y balsamo_ — te pregunto dónde guardarlo\n"
     "• _comprar: leche_\n"
     "• _compras_ — ver lista\n"
     "• _compré leche_ — marcar como comprado\n\n"
@@ -145,6 +153,8 @@ def _handle_cancel(user: dict) -> str:
         return "Este gasto ya fue confirmado, cancelado, o expiró."
     if peek.get("domain") == "expense_batch":
         return handle_batch_cancel(context_id, user)
+    if peek.get("domain") == "pantry_add_batch":
+        return handle_pantry_add_cancel(context_id, user)
     try:
         mcp.rollback(context_id)
     except ValueError:
@@ -221,6 +231,11 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
         if not fragment:
             return None
         return complete_todo(fragment, user)
+    if name == "necesito_comprar":
+        items_raw = intent.get("items_raw")
+        if not items_raw:
+            return None
+        return handle_pantry_add_create(str(items_raw), user)
     if name == "add_to_shopping":
         item = intent.get("item")
         if not item:
@@ -282,6 +297,18 @@ def route(message: str, user: dict) -> str:
         _, reply = handle_batch_create(message, amount, items_csv, user)
         return reply
 
+    if re.match(r'^(?:despensa|lista)$', message, re.IGNORECASE):
+        pending_id = mcp.find_pending_for_user(user["id"])
+        if pending_id:
+            try:
+                ctx = mcp.receive_result(pending_id)
+                if ctx.get("domain") == "pantry_add_batch":
+                    if message.lower() == "despensa":
+                        return handle_pantry_add_confirm_despensa(pending_id, user)
+                    return handle_pantry_add_confirm_lista(pending_id, user)
+            except (ValueError, KeyError):
+                pass
+
     intent = classify(message)
     if intent:
         try:
@@ -340,6 +367,10 @@ def route(message: str, user: dict) -> str:
     match = TODO_DONE_PATTERN.match(message)
     if match:
         return complete_todo(match.group(1).strip(), user)
+
+    match = NECESITO_COMPRAR_PATTERN.match(message)
+    if match:
+        return handle_pantry_add_create(match.group(1).strip(), user)
 
     match = SHOPPING_ADD_PATTERN.match(message)
     if match:

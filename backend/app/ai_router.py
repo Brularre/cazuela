@@ -8,7 +8,7 @@ _MAX_MESSAGE_LEN = 1000
 _INTENTS = [
     "add_expense", "ambiguous_expense", "ambiguous_batch", "get_summary", "set_budget",
     "add_todo", "list_todos", "complete_todo",
-    "add_to_shopping", "list_shopping",
+    "necesito_comprar", "add_to_shopping", "list_shopping",
     "add_pantry_item", "list_pantry", "consume_pantry_item",
     "restock_pantry_item", "restock_all_pantry",
     "add_waiting", "list_waiting", "resolve_waiting",
@@ -29,6 +29,7 @@ Intents and their JSON shapes:
 - add_todo: {"intent": "add_todo", "task": "<str>", "priority": "hoy"|"semana"|"mes"}
 - list_todos: {"intent": "list_todos"}
 - complete_todo: {"intent": "complete_todo", "task_fragment": "<str>"}
+- necesito_comprar: {"intent": "necesito_comprar", "items_raw": "<comma-separated items>"}
 - add_to_shopping: {"intent": "add_to_shopping", "item": "<str>"}
 - list_shopping: {"intent": "list_shopping"}
 - add_pantry_item: {"intent": "add_pantry_item", "item": "<str>", "qty": <int>, "category": "cocina"|"baño"|"otros"}
@@ -51,6 +52,8 @@ Rules:
 - Default pantry category is "otros" unless message specifies cocina or baño.
 - "me faltan X", "se me acabo X", "quedé sin X", "no tengo X" →
   consume_pantry_item (the item ran out), NOT add_to_shopping.
+- "necesito comprar X" → necesito_comprar (NOT add_to_shopping);
+  extract items as comma-separated list, splitting on "y" and ",".
 - Return unknown if unsure."""
 
 
