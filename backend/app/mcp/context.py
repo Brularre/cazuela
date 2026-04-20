@@ -1,4 +1,5 @@
 import copy
+import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import TypedDict
@@ -7,8 +8,21 @@ from app.db import client
 TTL_SECONDS = 3600
 MAX_HISTORY_ENTRIES = 10
 MAX_BATCH_SIZE = 5
+MAX_ITEMS = 10
+MAX_USER_PROFILE_JSON_CHARS = 500
+MAX_CATEGORY_MAP_KEYS = 20
 
 SENSITIVE_KEYS = {"phone", "anthropic_key", "supabase_key", "google_tokens", "password"}
+
+
+def _prune_user_profile_to_budget(profile: dict) -> dict:
+    keys = sorted(profile.keys())
+    pruned: dict = {}
+    for k in keys:
+        cand = {**pruned, k: profile[k]}
+        if len(json.dumps(cand, sort_keys=True, ensure_ascii=False)) <= MAX_USER_PROFILE_JSON_CHARS:
+            pruned = cand
+    return pruned
 
 
 class MCPContext(TypedDict):
@@ -41,6 +55,26 @@ def create_context(domain: str, user_id: str, payload: dict) -> dict:
             raise ValueError("Reconciliation batch requires at least one transaction")
         if len(txns) > MAX_BATCH_SIZE:
             payload = {**payload, "transactions": txns[:MAX_BATCH_SIZE]}
+
+    if domain == "expense_batch":
+        items_csv = (payload.get("items_csv") or "").strip()
+        if not items_csv:
+            raise ValueError("expense_batch requires non-empty items_csv")
+        parts = [p.strip() for p in items_csv.split(",") if p.strip()]
+        if not parts:
+            raise ValueError("expense_batch requires at least one item")
+        if len(parts) > MAX_ITEMS:
+            payload = {**payload, "items_csv": ",".join(parts[:MAX_ITEMS])}
+
+    if "category_map" in payload and isinstance(payload["category_map"], dict):
+        cm = payload["category_map"]
+        if len(cm) > MAX_CATEGORY_MAP_KEYS:
+            payload = {**payload, "category_map": dict(list(cm.items())[:MAX_CATEGORY_MAP_KEYS])}
+
+    if "user_profile" in payload and isinstance(payload["user_profile"], dict):
+        up = payload["user_profile"]
+        if len(json.dumps(up, sort_keys=True, ensure_ascii=False)) > MAX_USER_PROFILE_JSON_CHARS:
+            payload = {**payload, "user_profile": _prune_user_profile_to_budget(up)}
 
     row = {
         "context_id": str(uuid.uuid4()),

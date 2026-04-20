@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 from fastapi.testclient import TestClient
 from main import app
 
@@ -200,5 +201,119 @@ def test_shopping_check_item(mock_handler_client, mock_users_client):
     assert response.status_code == 200
     assert "Repuesto" in response.text
     assert "leche" in response.text
+
+
+def _make_mcp_expense_fake_client(ctx_store, expense_rows):
+    class FakeExecute:
+        def __init__(self, data):
+            self.data = data
+
+    class FakeQuery:
+        def __init__(self, store_ref, table_name, expense_bucket):
+            self._store = store_ref
+            self._table = table_name
+            self._expense_bucket = expense_bucket
+            self._eq_filters = {}
+            self._lt_filter = None
+            self._pending_insert = None
+            self._pending_update = None
+            self._do_delete = False
+
+        def select(self, *args):
+            return self
+
+        def insert(self, data):
+            self._pending_insert = data
+            return self
+
+        def update(self, data):
+            self._pending_update = data
+            return self
+
+        def delete(self):
+            self._do_delete = True
+            return self
+
+        def eq(self, field, value):
+            self._eq_filters[field] = value
+            return self
+
+        def lt(self, field, value):
+            self._lt_filter = (field, value)
+            return self
+
+        def gte(self, field, value):
+            return self
+
+        def execute(self):
+            if self._pending_insert is not None:
+                if self._table == "expenses":
+                    row = dict(self._pending_insert)
+                    self._expense_bucket.append(row)
+                    return FakeExecute([row])
+                self._store[self._pending_insert["context_id"]] = dict(
+                    self._pending_insert
+                )
+                return FakeExecute([self._store[self._pending_insert["context_id"]]])
+
+            if self._pending_update is not None:
+                results = []
+                for row in self._store.values():
+                    if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                        row.update(self._pending_update)
+                        results.append(dict(row))
+                return FakeExecute(results)
+
+            if self._do_delete:
+                to_del = []
+                for cid, row in self._store.items():
+                    if self._lt_filter:
+                        field, val = self._lt_filter
+                        if row.get(field, "") < val:
+                            to_del.append(cid)
+                deleted = [self._store.pop(cid) for cid in to_del]
+                return FakeExecute(deleted)
+
+            if self._table == "expenses":
+                return FakeExecute([])
+
+            results = [
+                dict(row)
+                for row in self._store.values()
+                if all(row.get(k) == v for k, v in self._eq_filters.items())
+            ]
+            return FakeExecute(results)
+
+    class FakeClient:
+        def __init__(self, store_ref, expense_bucket):
+            self._store = store_ref
+            self._expense_bucket = expense_bucket
+
+        def table(self, name):
+            return FakeQuery(self._store, name, self._expense_bucket)
+
+    return FakeClient(ctx_store, expense_rows)
+
+
+@patch("main.get_or_create_user")
+def test_supermercado_batch_webhook_reply(mock_get_user, monkeypatch):
+    mock_get_user.return_value = FAKE_USER
+    fc = _make_mcp_expense_fake_client({}, [])
+    monkeypatch.setattr("app.mcp.context.client", fc)
+    monkeypatch.setattr("app.handlers.expense_batch.client", fc)
+
+    response = client.post(
+        "/webhook",
+        data={
+            "Body": "gasté 18000 en supermercado: pan, leche, jabón",
+            "From": "whatsapp:+56912345678",
+        },
+    )
+
+    assert response.status_code == 200
+    t = response.text
+    assert "confirmar" in t.lower() or "Confirmar" in t
+    assert "pan" in t
+    assert "comida" in t
 
 

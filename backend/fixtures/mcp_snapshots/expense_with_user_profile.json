@@ -1,0 +1,24 @@
+{
+  "context_id": "00000000-0000-4000-8000-000000000004",
+  "version": "1.0",
+  "domain": "expense",
+  "user_id": "11111111-1111-1111-1111-111111111111",
+  "created_at": "2026-04-20T10:00:00+00:00",
+  "expires_at": "2099-12-31T23:59:59+00:00",
+  "status": "pending",
+  "payload": {
+    "raw_message": "pagué 5000",
+    "amount": 5000,
+    "date": "2026-04-20",
+    "note": null,
+    "user_history": {"comida": 8, "transporte": 2},
+    "user_profile": {
+      "name": "Ana",
+      "currency": "CLP",
+      "preferred_categories": ["comida", "transporte"]
+    }
+  },
+  "proposed": null,
+  "agent_model": "stub-v1",
+  "iteration_count": 0
+}

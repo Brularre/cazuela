@@ -1,0 +1,154 @@
+{
+  "single_scenario": {
+    "raw_message": "pagué 5000",
+    "amount": 5000,
+    "user_history": {
+      "comida": 8,
+      "transporte": 3,
+      "otros": 1
+    },
+    "date": "2026-04-18"
+  },
+  "batch_scenario": {
+    "raw_message": "gasté 18000 en supermercado: pan, leche, queso, lavalozas",
+    "total_amount": 18000.0,
+    "items_csv": "pan, leche, queso, lavalozas",
+    "date": "2026-04-18",
+    "user_history": {
+      "comida": 5
+    }
+  },
+  "runs": [
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.02287491224706173,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "single"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.008124974556267262,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "single"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.006542075425386429,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.1923340605571866,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.034624943509697914,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.024791923351585865,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 2.0533339120447636,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.39937510155141354,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.24449999909847975,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t07",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.228332937695086,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t07",
+      "final_category": "comida",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.23125007282942533,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "single"
+    },
+    {
+      "mode": "mcp-claude-t07",
+      "final_category": "hogar",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.23999996483325958,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "single"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.017125043086707592,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "batch"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": [
+        "comida",
+        "otros",
+        "otros",
+        "otros"
+      ],
+      "iteration_count": 3,
+      "wall_clock_ms": 0.06574997678399086,
+      "db_rows_written": 4,
+      "run": 1,
+      "scenario": "batch"
+    }
+  ]
+}

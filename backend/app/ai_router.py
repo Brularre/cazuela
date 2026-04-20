@@ -6,7 +6,7 @@ from app.config import settings
 _MAX_MESSAGE_LEN = 1000
 
 _INTENTS = [
-    "add_expense", "ambiguous_expense", "get_summary", "set_budget",
+    "add_expense", "ambiguous_expense", "ambiguous_batch", "get_summary", "set_budget",
     "add_todo", "list_todos", "complete_todo",
     "add_to_shopping", "list_shopping",
     "add_pantry_item", "list_pantry", "consume_pantry_item",
@@ -22,6 +22,8 @@ Intents and their JSON shapes:
 - add_expense: {"intent": "add_expense", "amount": <int>, "description": "<str>"}
 - ambiguous_expense: {"intent": "ambiguous_expense", "amount": <int>}
   (amount given but no clear description/category)
+- ambiguous_batch: {"intent": "ambiguous_batch", "amount": <int>, "items_csv": "<str>"}
+  (supermercado line-items batch; same semantics as regex batch gasto)
 - get_summary: {"intent": "get_summary"}
 - set_budget: {"intent": "set_budget", "period": "semana"|"mes", "amount": <int>}
 - add_todo: {"intent": "add_todo", "task": "<str>", "priority": "hoy"|"semana"|"mes"}
