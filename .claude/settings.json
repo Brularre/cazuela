@@ -15,6 +15,12 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(git commit*)",
+            "statusMessage": "Pre-commit reminder...",
+            "command": "python3 -c \"import json; print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'additionalContext': 'Reminder: run /review-feature before committing if you have not reviewed the changes in this session.'}}))\" 2>/dev/null || true"
+          },
+          {
+            "type": "command",
             "if": "Bash(git push*)",
             "statusMessage": "Pre-push reminder...",
             "command": "python3 -c \"import json; print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'additionalContext': 'Reminder: run /review-feature before pushing if you have not reviewed the changes in this session.'}}))\" 2>/dev/null || true"

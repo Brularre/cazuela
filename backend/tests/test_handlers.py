@@ -379,6 +379,8 @@ def test_set_budget_semana(mock_client):
     result = set_budget("semana", 150000, FAKE_USER)
     assert "semanal" in result
     assert "150.000" in result
+    assert "estimado mensual" in result
+    assert "600.000" in result
 
 
 @patch("app.handlers.budget.client")

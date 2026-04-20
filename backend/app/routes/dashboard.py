@@ -25,6 +25,7 @@ def get_dashboard(phone: str = Depends(require_auth)):
 
     today = date.today()
     monday = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
 
     expense_result = (
         client.table("expenses")
@@ -45,6 +46,18 @@ def get_dashboard(phone: str = Depends(require_auth)):
     by_category_list = [{"category": k, "amount": v} for k, v in totals.items()]
 
     weekly_total = sum(float(e["amount"]) for e in expenses)
+
+    month_result = (
+        client.table("expenses")
+        .select("amount")
+        .eq("user_id", uid)
+        .gte("date", month_start.isoformat())
+        .execute()
+    )
+    monthly_total = sum(
+        float(r["amount"]) for r in (month_result.data or [])
+    )
+    monthly_estimate = weekly_total * 4
 
     budget_result = (
         client.table("budgets")
@@ -116,6 +129,8 @@ def get_dashboard(phone: str = Depends(require_auth)):
         "gastos": {
             "weekly_total": weekly_total,
             "weekly_budget": weekly_budget,
+            "monthly_total": monthly_total,
+            "monthly_estimate": monthly_estimate,
             "by_day": by_day_list,
             "by_category": by_category_list,
         },

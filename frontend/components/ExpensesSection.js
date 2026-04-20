@@ -21,6 +21,8 @@ export default function ExpensesSection({ gastos }) {
     : "var(--cazuela-accent)";
   const byDay = gastos.by_day || [];
   const byCategory = gastos.by_category || [];
+  const monthlyTotal = gastos.monthly_total || 0;
+  const monthlyEstimate = gastos.monthly_estimate || 0;
   const maxAmount = Math.max(...byDay.map((d) => d.amount), 1);
 
   return (
@@ -89,6 +91,12 @@ export default function ExpensesSection({ gastos }) {
       )}
 
       {total === 0 && <p className={styles.empty}>Sin gastos esta semana.</p>}
+      {total > 0 && (
+        <p className={styles.monthlyEstimate}>
+          Este mes llevas {formatAmount(monthlyTotal)}
+          {" · "}estimado mensual: {formatAmount(monthlyEstimate)}
+        </p>
+      )}
       {!budget && (
         <p className={styles.tip}>
           Envía <em>presupuesto semana 150.000</em> por WhatsApp para

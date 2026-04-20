@@ -17,6 +17,7 @@ def aggregate_by_category(expenses: list) -> dict:
 def get_week_summary(user: dict) -> str:
     today = date.today()
     monday = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
 
     result = (
         client.table("expenses")
@@ -26,8 +27,18 @@ def get_week_summary(user: dict) -> str:
         .execute()
     )
 
+    month_result = (
+        client.table("expenses")
+        .select("amount")
+        .eq("user_id", user["id"])
+        .gte("date", month_start.isoformat())
+        .execute()
+    )
+
     if not result.data:
         return "No hay gastos registrados esta semana."
+
+    monthly_total = sum(float(r["amount"]) for r in (month_result.data or []))
 
     totals = aggregate_by_category(result.data)
 
@@ -58,5 +69,11 @@ def get_week_summary(user: dict) -> str:
                 f"⚠ Presupuesto semana: {format_amount(limit)}"
                 f" — excedido por {format_amount(-remaining)}"
             )
+
+    monthly_estimate = grand_total * 4
+    lines.append(
+        f"_Este mes llevas {format_amount(monthly_total)}"
+        f" (estimado mensual: {format_amount(monthly_estimate)})_"
+    )
 
     return "\n".join(lines)
