@@ -26,7 +26,11 @@ export default function ExpensesSection({ gastos }) {
   const maxAmount = Math.max(...byDay.map((d) => d.amount), 1);
 
   return (
-    <CollapsibleSection title="Gastos esta semana" defaultOpen>
+    <CollapsibleSection
+      title="Gastos esta semana"
+      description="Escribe 'gasté 5000 en comida' por WhatsApp para registrar un gasto. El gráfico muestra el desglose semanal y el estimado mensual."
+      defaultOpen
+    >
       <p className={styles.total}>{formatAmount(total)}</p>
       {budget && (
         <>

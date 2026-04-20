@@ -6,24 +6,34 @@ export default function ShoppingSection({ compras: initial }) {
   const [items, setItems] = useState(initial || []);
 
   async function handleRestock(id) {
+    const snapshot = items;
     setItems(prev => prev.filter(i => i.id !== id));
-    await fetch(`/api/dashboard/pantry/${id}/restock`, { method: "PATCH" });
+    const res = await fetch(`/api/dashboard/pantry/${id}/restock`, { method: "PATCH" });
+    if (!res.ok) setItems(snapshot);
   }
 
   async function handleCheck(id) {
+    const snapshot = items;
     setItems(prev => prev.filter(i => i.id !== id));
-    await fetch(`/api/dashboard/shopping/${id}/check`, { method: "PATCH" });
+    const res = await fetch(`/api/dashboard/shopping/${id}/check`, { method: "PATCH" });
+    if (!res.ok) setItems(snapshot);
   }
 
   const pantryItems = items.filter(i => i.source === "pantry");
 
   async function handleRestockAll() {
+    const snapshot = items;
     setItems(prev => prev.filter(i => i.source !== "pantry"));
-    await fetch("/api/dashboard/pantry/restock-all", { method: "PATCH" });
+    const res = await fetch("/api/dashboard/pantry/restock-all", { method: "PATCH" });
+    if (!res.ok) setItems(snapshot);
   }
 
   return (
-    <CollapsibleSection title="Lista de compras" defaultOpen={true}>
+    <CollapsibleSection
+      title="Lista de compras"
+      description="Agrega ítems con 'agregar a la lista leche y pan'. Marca lo comprado con 'compré leche' por WhatsApp o tocando Compré aquí."
+      defaultOpen={true}
+    >
       {items.length === 0 ? (
         <p className={styles.empty}>Todo está al día.</p>
       ) : (

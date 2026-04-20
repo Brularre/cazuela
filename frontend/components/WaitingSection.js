@@ -14,31 +14,37 @@ export default function WaitingSection({ esperando }) {
   const [items, setItems] = useState(esperando || []);
 
   async function resolve(id) {
+    const snapshot = items;
     setItems((prev) => prev.filter((i) => i.id !== id));
-    await fetch(`/api/dashboard/waiting_on/${id}/resolve`, { method: "PATCH" });
+    const res = await fetch(`/api/dashboard/waiting_on/${id}/resolve`, { method: "PATCH" });
+    if (!res.ok) setItems(snapshot);
   }
 
   return (
-    <CollapsibleSection title="Esperando">
-      {items.length === 0 && (
+    <CollapsibleSection
+      title="Esperando"
+      description="Registra lo que esperas de otros con 'esperando respuesta de Juan'. Ciérralos cuando lleguen tocando 'Llegó'."
+    >
+      {items.length === 0 ? (
         <p className={styles.empty}>Nada pendiente de otros.</p>
+      ) : (
+        <ul className={styles.list}>
+          {items.map((item) => (
+            <li key={item.id} className={styles.item}>
+              <div className={styles.info}>
+                <span className={styles.description}>{item.description.charAt(0).toUpperCase() + item.description.slice(1)}</span>
+                <span className={styles.age}>{daysAgo(item.created_at)}</span>
+              </div>
+              <button
+                className={styles.resolve}
+                onClick={() => resolve(item.id)}
+              >
+                Llegó
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
-      <ul className={styles.list}>
-        {items.map((item) => (
-          <li key={item.id} className={styles.item}>
-            <div className={styles.info}>
-              <span className={styles.description}>{item.description.charAt(0).toUpperCase() + item.description.slice(1)}</span>
-              <span className={styles.age}>{daysAgo(item.created_at)}</span>
-            </div>
-            <button
-              className={styles.resolve}
-              onClick={() => resolve(item.id)}
-            >
-              Llegó
-            </button>
-          </li>
-        ))}
-      </ul>
     </CollapsibleSection>
   );
 }

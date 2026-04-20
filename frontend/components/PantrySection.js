@@ -43,11 +43,13 @@ export default function PantrySection({ despensa: initial }) {
   }
 
   async function handleDelete(id) {
+    const snapshot = items;
     setItems(prev => ({
       ...prev,
       [activeTab]: prev[activeTab].filter(i => i.id !== id),
     }));
-    await fetch(`/api/dashboard/pantry/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/dashboard/pantry/${id}`, { method: "DELETE" });
+    if (!res.ok) setItems(snapshot);
   }
 
   function startEdit(id, qty) {
@@ -57,7 +59,8 @@ export default function PantrySection({ despensa: initial }) {
 
   async function commitEdit(id) {
     const qty = parseInt(editQty, 10);
-    if (isNaN(qty) || qty < 1) { setEditingId(null); return; }
+    if (isNaN(qty) || qty < 1) return;
+    const snapshot = items;
     setItems(prev => ({
       ...prev,
       [activeTab]: prev[activeTab].map(i =>
@@ -65,15 +68,20 @@ export default function PantrySection({ despensa: initial }) {
       ),
     }));
     setEditingId(null);
-    await fetch(`/api/dashboard/pantry/${id}`, {
+    const res = await fetch(`/api/dashboard/pantry/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ desired_quantity: qty }),
     });
+    if (!res.ok) setItems(snapshot);
   }
 
   return (
-    <CollapsibleSection title="Despensa" defaultOpen={false}>
+    <CollapsibleSection
+      title="Despensa"
+      description="Administra tu despensa con 'agregar despensa arroz 2kg' por WhatsApp. Los ítems bajo stock aparecen automáticamente en la lista de compras."
+      defaultOpen={false}
+    >
       <div className={styles.tabs}>
         {TABS.map(tab => (
           <button

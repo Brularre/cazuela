@@ -23,7 +23,11 @@ export default function TodosSection({ pendientes }) {
   );
 
   return (
-    <CollapsibleSection title="Pendientes" defaultOpen>
+    <CollapsibleSection
+      title="Pendientes"
+      description="Crea tareas con 'tarea estudiar para el viernes'. Márcalas como listas tocando el ✓."
+      defaultOpen
+    >
       {total === 0 && <p className={styles.empty}>Todo al día.</p>}
       {["hoy", "semana", "mes"].map((bucket) => {
         const list = items[bucket] || [];
