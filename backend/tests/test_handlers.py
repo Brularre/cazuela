@@ -99,6 +99,35 @@ def test_complete_todo_no_match(mock_client):
 
 
 @patch("app.handlers.shopping.client")
+def test_add_to_shopping(mock_client):
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.shopping import add_to_shopping
+    result = add_to_shopping("papel higiénico", FAKE_USER)
+    assert "papel higiénico" in result
+    assert "✓" in result
+
+
+@patch("app.handlers.shopping.client")
+def test_list_shopping_with_items(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"item": "leche", "quantity": None, "unit": None, "checked": False},
+        {"item": "pan", "quantity": None, "unit": None, "checked": False},
+    ]
+    from app.handlers.shopping import list_shopping
+    result = list_shopping(FAKE_USER)
+    assert "leche" in result
+    assert "pan" in result
+
+
+@patch("app.handlers.shopping.client")
+def test_list_shopping_empty(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    from app.handlers.shopping import list_shopping
+    result = list_shopping(FAKE_USER)
+    assert "vacía" in result
+
+
+@patch("app.handlers.shopping.client")
 def test_check_item_partial_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_shopping_rows("leche entera", "pan integral")
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None

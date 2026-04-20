@@ -113,6 +113,19 @@ HELP_TEXT = (
 )
 
 
+def _handle_bought(fragment: str, user: dict) -> str:
+    results = []
+    shopping_result = check_item(fragment, user)
+    pantry_result = restock_pantry_item(fragment, user)
+    if not shopping_result.startswith("No encontré"):
+        results.append(shopping_result)
+    if not pantry_result.startswith("No encontré"):
+        results.append(pantry_result)
+    if results:
+        return "\n".join(results)
+    return f"No encontré '{fragment}' en tu lista ni en tu despensa."
+
+
 def _handle_confirm(user: dict) -> str:
     context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
@@ -242,6 +255,11 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
         return add_to_shopping(item, user)
     if name == "list_shopping":
         return list_shopping(user)
+    if name == "check_shopping":
+        fragment = intent.get("item_fragment")
+        if not fragment:
+            return None
+        return _handle_bought(fragment, user)
     if name == "add_pantry_item":
         item = intent.get("item")
         qty = intent.get("qty")
@@ -396,7 +414,7 @@ def route(message: str, user: dict) -> str:
 
     match = PANTRY_RESTOCK_PATTERN.match(message)
     if match:
-        return restock_pantry_item(match.group(1).strip(), user)
+        return _handle_bought(match.group(1).strip(), user)
 
     match = WAITING_ADD_PATTERN.match(message)
     if match:

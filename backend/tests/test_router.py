@@ -110,8 +110,8 @@ def test_shopping_list_routes_to_list_shopping(message):
     ("compré leche", "leche"),
     ("compre el pan", "el pan"),
 ])
-def test_shopping_check_routes_to_restock_pantry_item(message, expected_item):
-    with patch("app.router.restock_pantry_item", return_value="ok") as mock:
+def test_compre_routes_to_handle_bought(message, expected_item):
+    with patch("app.router._handle_bought", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item

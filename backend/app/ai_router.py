@@ -8,7 +8,7 @@ _MAX_MESSAGE_LEN = 1000
 _INTENTS = [
     "add_expense", "ambiguous_expense", "ambiguous_batch", "get_summary", "set_budget",
     "add_todo", "list_todos", "complete_todo",
-    "necesito_comprar", "add_to_shopping", "list_shopping",
+    "necesito_comprar", "add_to_shopping", "list_shopping", "check_shopping",
     "add_pantry_item", "list_pantry", "consume_pantry_item",
     "restock_pantry_item", "restock_all_pantry",
     "add_waiting", "list_waiting", "resolve_waiting",
@@ -32,6 +32,7 @@ Intents and their JSON shapes:
 - necesito_comprar: {"intent": "necesito_comprar", "items_raw": "<comma-separated items>"}
 - add_to_shopping: {"intent": "add_to_shopping", "item": "<str>"}
 - list_shopping: {"intent": "list_shopping"}
+- check_shopping: {"intent": "check_shopping", "item_fragment": "<str>"}
 - add_pantry_item: {"intent": "add_pantry_item", "item": "<str>", "qty": <int>, "category": "cocina"|"baño"|"otros"}
 - list_pantry: {"intent": "list_pantry"}
 - consume_pantry_item: {"intent": "consume_pantry_item", "item_fragment": "<str>"}
