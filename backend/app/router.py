@@ -59,7 +59,7 @@ SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECAS
 PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
 BUDGET_SET_PATTERN = re.compile(
-    r'^presupuesto\s+(semana|mes)[:\s]+([\d.,]+)$', re.IGNORECASE
+    r'^presupuesto\s+semana[:\s]+([\d.,]+)$', re.IGNORECASE
 )
 
 WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
@@ -214,11 +214,10 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
     if name == "get_summary":
         return get_week_summary(user)
     if name == "set_budget":
-        period = intent.get("period")
         amount = intent.get("amount")
-        if not period or amount is None:
+        if amount is None:
             return None
-        return set_budget(period, amount, user)
+        return set_budget(amount, user)
     if name == "add_todo":
         task = intent.get("task")
         if not task:
@@ -343,11 +342,10 @@ def route(message: str, user: dict) -> str:
 
     match = BUDGET_SET_PATTERN.match(message)
     if match:
-        period = match.group(1).lower()
-        amount = _parse_clp_amount(match.group(2))
+        amount = _parse_clp_amount(match.group(1))
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _presupuesto semana 150.000_"
-        return set_budget(period, amount, user)
+        return set_budget(amount, user)
 
     match = TODO_ADD_PATTERN.match(message)
     if match:

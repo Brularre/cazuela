@@ -25,7 +25,7 @@ Intents and their JSON shapes:
 - ambiguous_batch: {"intent": "ambiguous_batch", "amount": <int>, "items_csv": "<str>"}
   (supermercado line-items batch; same semantics as regex batch gasto)
 - get_summary: {"intent": "get_summary"}
-- set_budget: {"intent": "set_budget", "period": "semana"|"mes", "amount": <int>}
+- set_budget: {"intent": "set_budget", "period": "semana", "amount": <int>}
 - add_todo: {"intent": "add_todo", "task": "<str>", "priority": "hoy"|"semana"|"mes"}
 - list_todos: {"intent": "list_todos"}
 - complete_todo: {"intent": "complete_todo", "task_fragment": "<str>"}

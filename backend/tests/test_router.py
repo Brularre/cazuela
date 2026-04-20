@@ -251,14 +251,12 @@ def test_pantry_restock_routes_to_restock_pantry_item(message, expected_fragment
         assert mock.call_args[0][0] == expected_fragment
 
 
-@pytest.mark.parametrize("message,expected_period,expected_amount", [
-    ("presupuesto semana 150.000", "semana", 150000.0),
-    ("presupuesto mes 500.000", "mes", 500000.0),
-    ("presupuesto semana 80000", "semana", 80000.0),
+@pytest.mark.parametrize("message,expected_amount", [
+    ("presupuesto semana 150.000", 150000.0),
+    ("presupuesto semana 80000", 80000.0),
 ])
-def test_budget_set_routes_to_set_budget(message, expected_period, expected_amount):
+def test_budget_set_routes_to_set_budget(message, expected_amount):
     with patch("app.router.set_budget", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_period
-        assert mock.call_args[0][1] == expected_amount
+        assert mock.call_args[0][0] == expected_amount
