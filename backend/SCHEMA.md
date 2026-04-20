@@ -136,22 +136,22 @@ Short-lived one-time passwords for dashboard login.
 
 ## mcp_contexts ✓
 
-Stateful conversation contexts for the MCP agent
-(currently used only for ambiguous expense confirmation).
-RLS enabled.
+Stateful conversation contexts for the MCP staging pattern.
+Used by the `expense`, `expense_batch`, and `reconciliation`
+domains. RLS enabled; TTL = 1 hour.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | context_id | uuid PK | |
 | version | text | default '1.0' |
-| domain | text | e.g. 'expense' |
+| domain | text | expense \| expense_batch \| reconciliation |
 | user_id | uuid FK → users(id) | |
 | created_at | timestamptz | default now() |
-| expires_at | timestamptz | |
+| expires_at | timestamptz | created_at + 3600s |
 | status | text | pending \| staged \| confirmed \| rolled_back |
-| payload | jsonb | input data (amount, date, etc.) |
+| payload | jsonb | input data (amount, items_csv, etc.) |
 | proposed | jsonb | nullable, agent suggestion |
-| agent_model | text | default 'stub-v1' |
+| agent_model | text | stub-v1 or claude-haiku-4-5-20251001 |
 | iteration_count | integer | default 0 |
 
 Indexes: (user_id, status), (expires_at)

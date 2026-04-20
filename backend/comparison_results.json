@@ -23,7 +23,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.02287491224706173,
+      "wall_clock_ms": 0.021041021682322025,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -32,7 +32,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.008124974556267262,
+      "wall_clock_ms": 0.0076669966802001,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -41,7 +41,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.006542075425386429,
+      "wall_clock_ms": 0.005833106115460396,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -50,7 +50,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.1923340605571866,
+      "wall_clock_ms": 0.27366599533706903,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -59,7 +59,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.034624943509697914,
+      "wall_clock_ms": 0.03324996214359999,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -68,7 +68,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.024791923351585865,
+      "wall_clock_ms": 0.023290980607271194,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -77,7 +77,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 2.0533339120447636,
+      "wall_clock_ms": 0.48441707622259855,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -86,7 +86,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.39937510155141354,
+      "wall_clock_ms": 0.30504202004522085,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -95,7 +95,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.24449999909847975,
+      "wall_clock_ms": 0.23879192303866148,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -104,7 +104,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.228332937695086,
+      "wall_clock_ms": 0.21908397320657969,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -113,7 +113,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.23125007282942533,
+      "wall_clock_ms": 0.20649994257837534,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -122,7 +122,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "hogar",
       "iteration_count": 1,
-      "wall_clock_ms": 0.23999996483325958,
+      "wall_clock_ms": 0.20574999507516623,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -131,7 +131,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.017125043086707592,
+      "wall_clock_ms": 0.01579197123646736,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "batch"
@@ -145,7 +145,7 @@
         "otros"
       ],
       "iteration_count": 3,
-      "wall_clock_ms": 0.06574997678399086,
+      "wall_clock_ms": 0.062083941884338856,
       "db_rows_written": 4,
       "run": 1,
       "scenario": "batch"

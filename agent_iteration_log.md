@@ -260,3 +260,19 @@ mcp_contexts row updated:
 3× identical output confirmed by test suite (variance = 0).
 
 ---
+
+## 2026-04-20 — Documentation and CI gap-closing
+
+**Suggested:** Rewrote COMPARISON_REPORT.md and
+mcp_context_schema.md to cover expense_batch and
+reconciliation domains; added replay CI step to ci.yml;
+added `replay-check` Makefile target; updated SCHEMA.md
+mcp_contexts description; redirected backend/mcp_comparison_report.md
+to root-level report.
+**Decision:** Accepted
+**Rationale:** Assignment requires evidence that all
+three domains (expense, expense_batch, reconciliation)
+are tested and documented. Replay fixtures now run on
+every CI push, catching regressions without a live API.
+
+---
