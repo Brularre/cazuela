@@ -32,6 +32,9 @@ jobs:
       - name: Replay fixture snapshots (stub mode)
         run: |
           cd backend
+          # expense_staged, expense_verify_refine_step{1,2} are
+          # state-capture snapshots; their lifecycle is covered by
+          # pytest (test_verify_refine_loop, test_round_trip_*).
           for f in fixtures/mcp_snapshots/expense_batch_*.json; do
             python replay.py "$f" --mode stub --runs 2 \
               --expect-final-status confirmed \

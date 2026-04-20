@@ -41,8 +41,8 @@ to confirm → `confirm()` writes to DB.
 
 | | Without MCP | With MCP |
 |---|---|---|
-| Tests written | 0 (no flow to test) | 38 (test_mcp.py + test_expense_batch.py) |
-| Passing | N/A | 38 / 38 (100%) |
+| Tests written | 0 (no flow to test) | 54 (39 test_mcp.py + 15 test_expense_batch.py) |
+| Passing | N/A | 54 / 54 (100%) |
 | Total suite | 154 passing | 238 passing |
 
 ### Iterations to green tests
@@ -191,7 +191,7 @@ send_context("expense_batch", user_id, {
 
 **Handler:** `backend/app/handlers/expense_batch.py`
 **Fixtures:** `backend/fixtures/mcp_snapshots/expense_batch_*.json`
-**Tests:** `backend/tests/test_expense_batch.py` (14 tests)
+**Tests:** `backend/tests/test_expense_batch.py` (15 tests)
 
 ---
 

@@ -300,8 +300,7 @@ Constants live in `backend/app/mcp/context.py`.
   ~200 entries. No automated pruning.
 
 **`backend/mcp_interaction_log.jsonl`:**
-- Append-only JSONL written by `replay.py` and the old
-  `scripts/replay_mcp_context.py` script.
+- Append-only JSONL written by `backend/replay.py`.
 - Manual rotation: archive when the file exceeds ~1 MB.
 
 ---

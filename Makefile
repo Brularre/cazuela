@@ -4,6 +4,8 @@ benchmark:
 	cd backend && .venv/bin/python scripts/run_comparison.py
 
 replay-check:
+	# expense_staged + expense_verify_refine_* are state-capture
+	# snapshots; covered by pytest, not replayed here.
 	cd backend && \
 	for f in fixtures/mcp_snapshots/expense_batch_*.json; do \
 		.venv/bin/python replay.py "$$f" --mode stub --runs 2 \
