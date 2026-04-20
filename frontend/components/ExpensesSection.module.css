@@ -5,10 +5,24 @@
   margin-bottom: 1rem;
 }
 
-.budget {
-  font-size: 1.2rem;
-  font-weight: 400;
+.budgetBar {
+  height: 5px;
+  background: var(--cazuela-border);
+  border-radius: 3px;
+  margin: 0.5rem 0 0.4rem;
+  overflow: hidden;
+}
+
+.budgetFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.budgetLabel {
+  font-size: 0.8rem;
   color: var(--cazuela-text-muted);
+  margin-bottom: 1rem;
 }
 
 .chartWrapper {

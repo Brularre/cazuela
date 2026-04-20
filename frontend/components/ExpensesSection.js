@@ -11,18 +11,36 @@ export default function ExpensesSection({ gastos }) {
 
   const total = gastos.weekly_total || 0;
   const budget = gastos.weekly_budget || null;
+  const pct = budget ? Math.min((total / budget) * 100, 100) : 0;
+  const fillColor = !budget
+    ? null
+    : total > budget
+    ? "#E74C3C"
+    : pct >= 80
+    ? "#E67E22"
+    : "var(--cazuela-accent)";
   const byDay = gastos.by_day || [];
   const byCategory = gastos.by_category || [];
   const maxAmount = Math.max(...byDay.map((d) => d.amount), 1);
 
   return (
     <CollapsibleSection title="Gastos esta semana" defaultOpen>
-      <p className={styles.total}>
-        {formatAmount(total)}
-        {budget && (
-          <span className={styles.budget}> / {formatAmount(budget)}</span>
-        )}
-      </p>
+      <p className={styles.total}>{formatAmount(total)}</p>
+      {budget && (
+        <>
+          <div className={styles.budgetBar}>
+            <div
+              className={styles.budgetFill}
+              style={{ width: `${pct}%`, background: fillColor }}
+            />
+          </div>
+          <p className={styles.budgetLabel}>
+            {total > budget
+              ? `⚠ Excedido por ${formatAmount(total - budget)}`
+              : `Te quedan ${formatAmount(budget - total)} de ${formatAmount(budget)}`}
+          </p>
+        </>
+      )}
 
       {byDay.length > 0 && (
         <div className={styles.chartWrapper}>
