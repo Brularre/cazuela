@@ -3,7 +3,7 @@
 Live table definitions. Update this file after running any migration
 (use `/schema-sync` skill if available).
 
-All tables confirmed live via Supabase MCP on 2026-04-17.
+All tables confirmed live via Supabase MCP on 2026-04-20.
 
 ---
 
@@ -90,8 +90,9 @@ Dashboard compras section shows both sources side by side.
 
 ## budgets ✓
 
-Weekly spending limit per user. Monthly budget via WhatsApp
-is not supported — period is always 'semana'.
+Weekly spending limit per user. No monthly budget limit —
+only a projected monthly estimate (weekly × 4) is shown
+in the dashboard and resumen. Period is always 'semana'.
 Upserted on conflict (user_id, period).
 
 | Column | Type | Notes |
