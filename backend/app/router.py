@@ -115,12 +115,9 @@ HELP_TEXT = (
 
 def _handle_bought(fragment: str, user: dict) -> str:
     results = []
-    shopping_result = check_item(fragment, user)
-    pantry_result = restock_pantry_item(fragment, user)
-    if not shopping_result.startswith("No encontré"):
-        results.append(shopping_result)
-    if not pantry_result.startswith("No encontré"):
-        results.append(pantry_result)
+    for result in (check_item(fragment, user), restock_pantry_item(fragment, user)):
+        if result and not result.startswith("No encontré"):
+            results.append(result)
     if results:
         return "\n".join(results)
     return f"No encontré '{fragment}' en tu lista ni en tu despensa."

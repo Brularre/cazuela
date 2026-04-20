@@ -117,6 +117,41 @@ def test_compre_routes_to_handle_bought(message, expected_item):
         assert mock.call_args[0][0] == expected_item
 
 
+def test_handle_bought_both_match():
+    with patch("app.router.check_item", return_value="✓ Marcado: leche"), \
+         patch("app.router.restock_pantry_item", return_value="✓ Repuesto: leche"):
+        from app.router import _handle_bought
+        result = _handle_bought("leche", FAKE_USER)
+        assert "✓ Marcado: leche" in result
+        assert "✓ Repuesto: leche" in result
+
+
+def test_handle_bought_only_shopping():
+    with patch("app.router.check_item", return_value="✓ Marcado: leche"), \
+         patch("app.router.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
+        from app.router import _handle_bought
+        result = _handle_bought("leche", FAKE_USER)
+        assert "✓ Marcado: leche" in result
+        assert "No encontré" not in result
+
+
+def test_handle_bought_only_pantry():
+    with patch("app.router.check_item", return_value="No encontré 'leche' en la lista."), \
+         patch("app.router.restock_pantry_item", return_value="✓ Repuesto: leche"):
+        from app.router import _handle_bought
+        result = _handle_bought("leche", FAKE_USER)
+        assert "✓ Repuesto: leche" in result
+        assert "No encontré" not in result
+
+
+def test_handle_bought_neither_match():
+    with patch("app.router.check_item", return_value="No encontré 'leche' en la lista."), \
+         patch("app.router.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
+        from app.router import _handle_bought
+        result = _handle_bought("leche", FAKE_USER)
+        assert "en tu lista ni en tu despensa" in result
+
+
 def test_ambiguous_expense_routes_to_handle_ambiguous():
     with patch("app.router._handle_ambiguous_expense", return_value="ok") as mock:
         route("pagué 5000", FAKE_USER)
