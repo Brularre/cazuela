@@ -52,12 +52,13 @@ if not items:
 | File | Feature | Tables | Status |
 |------|---------|--------|--------|
 | expenses.py | Gastos | expenses | live |
-| budget.py | Presupuesto | budgets | live |
+| budget.py | Presupuesto semanal | budgets | live |
 | summary.py | Resumen semanal | expenses | live |
 | todos.py | Pendientes | todos | live |
 | waiting_on.py | Esperando | waiting_on | live |
 | pantry.py | Despensa | pantry | live |
-| shopping.py | Compras | shopping_list | handler only* |
+| pantry_shopping.py | "Necesito comprar" MCP flow | pantry, shopping_list | live |
+| shopping.py | Lista de compras | shopping_list | handler only* |
 
 *Handler exists and table is live in Supabase, but router
 patterns and tests are incomplete — not production-ready.

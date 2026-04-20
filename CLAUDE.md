@@ -45,22 +45,24 @@ manually applied. Run `/review-feature` before every push.
 | 0 | Infrastructure | done |
 | 1 | Expenses + WhatsApp parsing | done |
 | 2 | Todos + waiting_on | done |
-| 3 | Weekly budget (set via WhatsApp, shown in dashboard) | planned |
-| 4 | Shopping list | handler only |
-| 5 | Despensa + meal planning + Google Sheets | despensa live |
-| 6 | Dashboard (Next.js) | in progress |
+| 3 | Weekly budget + monthly estimate | done |
+| 4 | Shopping list | handler only — router incomplete |
+| 5 | Despensa + "necesito comprar" MCP flow | despensa live; batch add live |
+| 5b | Meal planning + Google Sheets | planned |
+| 6 | Dashboard (Next.js) | live; expenses, todos, pantry, waiting_on |
 | 7 | Onboarding + multi-user polish | planned |
 
 ## Feature Modules
 
-**DINERO** — expenses (live), budget, savings goals (planned)
+**DINERO** — expenses (live), weekly budget + monthly estimate (live)
 Expense categories: comida, transporte, salud, hogar,
 entretenimiento, ropa, tecnología, educación, viajes, otros
 
 **TIEMPO** — todos (live); reminders and calendar decided against
 
-**COMIDA** — despensa/pantry (live); shopping list (handler only);
-meal planning + Google Sheets integration (planned, Phase 5)
+**COMIDA** — despensa/pantry (live); "necesito comprar" → MCP →
+confirm to despensa or lista (live); shopping list router incomplete;
+meal planning + Google Sheets (planned)
 
-**DASHBOARD** — expenses, todos, shopping list, waiting_on,
-pantry management; auth via WhatsApp OTP + session cookie
+**DASHBOARD** — expenses + budget bar + monthly estimate, todos,
+waiting_on, pantry management; auth via WhatsApp OTP + session cookie
