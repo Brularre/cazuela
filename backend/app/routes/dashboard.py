@@ -1,9 +1,9 @@
-import unicodedata
 from datetime import date, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.db import client
+from app.handlers.pantry import normalize as normalize_pantry_item
 from app.handlers.summary import aggregate_by_category
 from app.middleware.auth import require_auth
 
@@ -185,33 +185,16 @@ class PantryItemUpdate(BaseModel):
 @router.post("/pantry")
 def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
     uid = _get_user_id(phone)
-    normalized = (
-        unicodedata.normalize("NFKD", body.item)
-        .encode("ascii", "ignore")
-        .decode("ascii")
-        .lower()
-    )
-    existing = (
-        client.table("pantry")
-        .select("id")
-        .eq("user_id", uid)
-        .ilike("item", normalized)
-        .execute()
-    ).data or []
-    if existing:
-        client.table("pantry").update({
-            "desired_quantity": body.desired_quantity,
-            "current_quantity": body.desired_quantity,
-            "category": body.category,
-        }).eq("id", existing[0]["id"]).execute()
-        return {"ok": True, "id": existing[0]["id"]}
-    result = client.table("pantry").insert({
+    normalized = normalize_pantry_item(body.item)
+    result = client.table("pantry").upsert({
         "user_id": uid,
         "item": normalized,
         "desired_quantity": body.desired_quantity,
         "current_quantity": body.desired_quantity,
         "category": body.category,
-    }).execute()
+    }, on_conflict="user_id,item").execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Pantry upsert returned no data")
     return {"ok": True, "id": result.data[0]["id"]}
 
 

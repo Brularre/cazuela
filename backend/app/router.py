@@ -1,4 +1,5 @@
 import re
+import warnings
 from datetime import date, timedelta
 from app.db import client as db
 from app.ai_router import classify
@@ -146,7 +147,8 @@ def _handle_confirm(user: dict) -> str:
             "note": note,
             "date": str(date.today()),
         }).execute()
-    except Exception:
+    except Exception as e:
+        warnings.warn(f"Expense insert failed for context {context_id}: {e}")
         return "Hubo un problema al guardar el gasto. Intenta _confirmar_ de nuevo."
     try:
         mcp.confirm(context_id)

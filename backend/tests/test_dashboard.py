@@ -152,8 +152,7 @@ def _pantry_db(pantry_mock=None):
 
 def test_create_pantry_item_returns_id():
     pantry = MagicMock()
-    pantry.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
-    pantry.insert.return_value.execute.return_value.data = [{"id": "item-456"}]
+    pantry.upsert.return_value.execute.return_value.data = [{"id": "item-456"}]
     db = _pantry_db(pantry)
     with patch("app.routes.dashboard.client", db), \
          patch("app.middleware.auth.settings") as s:
@@ -165,6 +164,38 @@ def test_create_pantry_item_returns_id():
         )
     assert res.status_code == 200
     assert res.json()["id"] == "item-456"
+
+
+def test_create_pantry_item_normalizes_item_name():
+    pantry = MagicMock()
+    pantry.upsert.return_value.execute.return_value.data = [{"id": "item-789"}]
+    db = _pantry_db(pantry)
+    with patch("app.routes.dashboard.client", db), \
+         patch("app.middleware.auth.settings") as s:
+        s.session_secret = TEST_SECRET
+        client.post(
+            "/dashboard/pantry",
+            json={"item": "Jabón de manos", "desired_quantity": 2, "category": "baño"},
+            cookies=_authed_cookies(),
+        )
+    upserted = pantry.upsert.call_args[0][0]
+    assert upserted["item"] == "jabon de manos"
+
+
+def test_create_pantry_item_upsert_passes_on_conflict():
+    pantry = MagicMock()
+    pantry.upsert.return_value.execute.return_value.data = [{"id": "item-999"}]
+    db = _pantry_db(pantry)
+    with patch("app.routes.dashboard.client", db), \
+         patch("app.middleware.auth.settings") as s:
+        s.session_secret = TEST_SECRET
+        client.post(
+            "/dashboard/pantry",
+            json={"item": "arroz", "desired_quantity": 5, "category": "cocina"},
+            cookies=_authed_cookies(),
+        )
+    _, kwargs = pantry.upsert.call_args
+    assert kwargs.get("on_conflict") == "user_id,item"
 
 
 def test_create_pantry_item_invalid_category():

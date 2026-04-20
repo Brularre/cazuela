@@ -238,6 +238,17 @@ def test_add_pantry_item_existing_updates_desired(mock_client):
 
 
 @patch("app.handlers.pantry.client")
+def test_add_pantry_item_existing_resets_current_qty(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [{"id": "x"}]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import add_pantry_item
+    add_pantry_item("jabón", 5, FAKE_USER)
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["current_quantity"] == 5
+    assert updated["desired_quantity"] == 5
+
+
+@patch("app.handlers.pantry.client")
 def test_list_pantry_empty(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
     from app.handlers.pantry import list_pantry

@@ -2,12 +2,12 @@ import unicodedata
 from app.db import client
 
 
-def _normalize(text: str) -> str:
+def normalize(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").lower()
 
 
 def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "otros") -> str:
-    normalized = _normalize(item)
+    normalized = normalize(item)
     existing = (
         client.table("pantry")
         .select("id")
@@ -68,9 +68,9 @@ def consume_pantry_item(item_fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
-    needle = _normalize(item_fragment)
+    needle = normalize(item_fragment)
     match = next(
-        (i for i in items if needle in _normalize(i["item"])),
+        (i for i in items if needle in normalize(i["item"])),
         None,
     )
     if not match:
@@ -90,9 +90,9 @@ def restock_pantry_item(item_fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
-    needle = _normalize(item_fragment)
+    needle = normalize(item_fragment)
     match = next(
-        (i for i in items if needle in _normalize(i["item"])),
+        (i for i in items if needle in normalize(i["item"])),
         None,
     )
     if not match:
