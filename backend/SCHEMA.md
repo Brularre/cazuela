@@ -71,9 +71,9 @@ ropa, tecnología, educación, viajes, otros
 
 ## shopping_list ✓
 
-Simple manual shopping list (add/check items).
-Will be superseded by the pantry threshold system
-once the despensa feature is built.
+Manual shopping list for one-off items (not pantry staples).
+Separate from pantry: items here are not stock-tracked.
+Dashboard compras section shows both sources side by side.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -90,14 +90,15 @@ once the despensa feature is built.
 
 ## budgets ✓
 
-Weekly or monthly spending limit per user.
-Upserted on conflict (user_id, period) — only one budget per period.
+Weekly spending limit per user. Monthly budget via WhatsApp
+is not supported — period is always 'semana'.
+Upserted on conflict (user_id, period).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid PK | gen_random_uuid() |
 | user_id | uuid FK → users(id) | on delete cascade |
-| period | text | semana \| mes |
+| period | text | always 'semana' |
 | amount | numeric | spending limit |
 | created_at | timestamptz | default now() |
 
@@ -144,7 +145,7 @@ domains. RLS enabled; TTL = 1 hour.
 |--------|------|-------|
 | context_id | uuid PK | |
 | version | text | default '1.0' |
-| domain | text | expense \| expense_batch \| reconciliation |
+| domain | text | expense \| expense_batch \| reconciliation \| pantry_add_batch |
 | user_id | uuid FK → users(id) | |
 | created_at | timestamptz | default now() |
 | expires_at | timestamptz | created_at + 3600s |

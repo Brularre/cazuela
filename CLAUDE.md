@@ -46,7 +46,7 @@ manually applied. Run `/review-feature` before every push.
 | 1 | Expenses + WhatsApp parsing | done |
 | 2 | Todos + waiting_on | done |
 | 3 | Weekly budget + monthly estimate | done |
-| 4 | Shopping list | handler only — router incomplete |
+| 4 | Shopping list | live |
 | 5 | Despensa + "necesito comprar" MCP flow | despensa live; batch add live |
 | 5b | Meal planning + Google Sheets | planned |
 | 6 | Dashboard (Next.js) | live; expenses, todos, pantry, waiting_on |
@@ -61,8 +61,10 @@ entretenimiento, ropa, tecnología, educación, viajes, otros
 **TIEMPO** — todos (live); reminders and calendar decided against
 
 **COMIDA** — despensa/pantry (live); "necesito comprar" → MCP →
-confirm to despensa or lista (live); shopping list router incomplete;
+confirm to despensa or lista (live); shopping list fully live (manual
+add + check off, shown on dashboard alongside pantry-derived items);
 meal planning + Google Sheets (planned)
 
 **DASHBOARD** — expenses + budget bar + monthly estimate, todos,
-waiting_on, pantry management; auth via WhatsApp OTP + session cookie
+waiting_on, pantry management, combined shopping list (pantry +
+manual); auth via WhatsApp OTP + session cookie

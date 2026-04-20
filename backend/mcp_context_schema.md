@@ -70,6 +70,32 @@ why it exists, and its constraints.
 }
 ```
 
+## Example context — pantry_add_batch (staged)
+
+```json
+{
+  "context_id": "cccccccc-0000-0000-0000-000000000003",
+  "version": "1.0",
+  "domain": "pantry_add_batch",
+  "user_id": "11111111-1111-1111-1111-111111111111",
+  "created_at": "2026-04-20T10:00:00+00:00",
+  "expires_at": "2026-04-20T11:00:00+00:00",
+  "status": "staged",
+  "payload": {
+    "items_raw": "shampoo, balsamo"
+  },
+  "proposed": {
+    "items": [
+      {"name": "shampoo", "category": "baño"},
+      {"name": "balsamo", "category": "baño"}
+    ],
+    "reasoning": "keyword match: baño"
+  },
+  "agent_model": "stub-v1",
+  "iteration_count": 1
+}
+```
+
 ## Example context — reconciliation batch (staged)
 
 ```json
@@ -125,7 +151,7 @@ why it exists, and its constraints.
 
 ### `domain`
 - **Type:** string — one of `expense`, `expense_batch`,
-  `reconciliation`, `todo`, `wishlist`, `shopping_list`
+  `reconciliation`, `pantry_add_batch`
 - **Why it exists:** Determines which agent logic runs
   during `requestAction`.
   - `expense` — single ambiguous transaction; stub or
@@ -138,7 +164,10 @@ why it exists, and its constraints.
   - `reconciliation` — batch of up to `MAX_BATCH_SIZE = 5`
     transactions; stub proposes a category for each in
     one pass.
-  - Other domains return `{"confirmed": true}` immediately.
+  - `pantry_add_batch` — "necesito comprar X y Y" flow.
+    Stub infers category (cocina/baño/otros) per item using
+    keyword lists. User confirms to despensa or lista.
+    Handler: `backend/app/handlers/pantry_shopping.py`.
 - **Constraints:** Required. No default.
 
 ### `user_id`
@@ -203,6 +232,10 @@ why it exists, and its constraints.
     `MAX_ITEMS = 10` entries at creation time
   - `date` — ISO date string (YYYY-MM-DD)
   - `user_history` — same format as expense domain
+- **pantry_add_batch payload fields:**
+  - `items_raw` — comma/y-separated string of item names
+    (e.g. "shampoo, balsamo"); pruned to `MAX_ITEMS = 10`
+    items at creation time
 - **Reconciliation payload fields:**
   - `transactions` — list of up to `MAX_BATCH_SIZE = 5`
     transaction dicts (each with `raw_message`, `amount`,
@@ -278,6 +311,7 @@ silently during retrieval.
 | `user_history` | 10 keys | `MAX_HISTORY_ENTRIES` | Keep top-N by count |
 | `transactions` | 5 entries | `MAX_BATCH_SIZE` | Truncate tail |
 | `items_csv` | 10 items | `MAX_ITEMS` | Truncate tail |
+| `items_raw` (pantry_add_batch) | 10 items | `MAX_ITEMS` | Truncate tail after split |
 | `user_profile` | 500 chars (JSON) | `MAX_USER_PROFILE_JSON_CHARS` | Alphabetical key eviction |
 | `category_map` | 20 keys | `MAX_CATEGORY_MAP_KEYS` | Truncate (insertion order) |
 
