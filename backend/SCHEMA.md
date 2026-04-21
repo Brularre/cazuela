@@ -177,6 +177,69 @@ current_quantity < desired_quantity flag as needing restock.
 
 ---
 
+## recipes ✓
+
+Recipes created by the user, with a list of ingredients.
+Ingredients are normalized (lowercase, no accents) to match
+pantry item names for cross-referencing.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | on delete cascade |
+| name | text | recipe display name |
+| servings | int | default 2 |
+| created_at | timestamptz | default now() |
+
+---
+
+## recipe_ingredients ✓
+
+Ingredients belonging to a recipe. Cascade-deleted with recipe.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| recipe_id | uuid FK → recipes(id) | on delete cascade |
+| item | text | normalized ingredient name |
+| quantity | numeric | nullable |
+| unit | text | nullable (taza, g, kg, etc.) |
+| created_at | timestamptz | default now() |
+
+---
+
+## meal_plans ✓
+
+One plan per user per week. week_start is always a Monday.
+Unique constraint on (user_id, week_start).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | on delete cascade |
+| week_start | date | Monday of the planned week |
+| created_at | timestamptz | default now() |
+
+---
+
+## meal_plan_entries ✓
+
+Individual meal slots within a plan. day_of_week is a Spanish
+day name (lunes–domingo). slot_name is user-defined (almuerzo,
+cena, or any custom name). recipe_id is nullable — a slot can
+exist with no recipe assigned yet.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| meal_plan_id | uuid FK → meal_plans(id) | on delete cascade |
+| day_of_week | text | lunes/martes/.../domingo |
+| slot_name | text | almuerzo/cena/custom |
+| recipe_id | uuid FK → recipes(id) | on delete set null |
+| created_at | timestamptz | default now() |
+
+---
+
 ## Migrations run (in order)
 
 1. Initial schema — users, expenses, todos, shopping_list,
@@ -190,3 +253,5 @@ current_quantity < desired_quantity flag as needing restock.
 6. `pantry_migration.sql` — pantry table
 7. `pantry_category_migration.sql` — add category column to pantry
 8. `budget_migration.sql` — budgets table
+9. `meal_planning` — recipes, recipe_ingredients,
+   meal_plans, meal_plan_entries tables

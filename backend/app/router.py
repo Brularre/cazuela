@@ -24,6 +24,13 @@ from app.handlers.pantry_shopping import (
     handle_pantry_add_confirm_lista,
     handle_pantry_add_cancel,
 )
+from app.handlers.recipes import (
+    nueva_receta,
+    confirm_recipe_create,
+    cancel_recipe_create,
+    list_recipes,
+    show_recipe,
+)
 from app.mcp import client as mcp
 
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
@@ -80,6 +87,12 @@ CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
 ME_LLAMO_PATTERN = re.compile(r'^me llamo\s+(.+)$', re.IGNORECASE)
 
+RECIPE_NEW_PATTERN = re.compile(
+    r'^nueva\s+receta[:\s]+(.+)$', re.IGNORECASE
+)
+RECIPE_LIST_PATTERN = re.compile(r'^mis?\s+recetas?$', re.IGNORECASE)
+RECIPE_SHOW_PATTERN = re.compile(r'^receta[:\s]+(.+)$', re.IGNORECASE)
+
 HELP_TEXT = (
     "*Comandos disponibles:*\n\n"
     "*Gastos*\n"
@@ -110,6 +123,10 @@ HELP_TEXT = (
     "• _usé jabón_ — consumir uno\n"
     "• _compré jabón_ — reponer uno\n"
     "• _compré todo_ — reponer todo lo que falta\n\n"
+    "*Recetas*\n"
+    "• _nueva receta: cazuela_ — crear receta (con IA si está activa)\n"
+    "• _mis recetas_ — ver todas\n"
+    "• _receta cazuela_ — ver ingredientes\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto.\n\n"
     "*Tu perfil*\n"
     "• _me llamo Bruno_ — guardar tu nombre"
@@ -150,11 +167,13 @@ def _handle_bought(fragment: str, user: dict) -> str:
 def _handle_confirm(user: dict) -> str:
     context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
-        return "No tengo ningún gasto pendiente de confirmar."
+        return "No tengo ninguna operación pendiente de confirmar."
     try:
         ctx = mcp.receive_result(context_id)
     except (ValueError, KeyError):
-        return "Este gasto ya fue confirmado, cancelado, o expiró."
+        return "Esta operación ya fue confirmada, cancelada, o expiró."
+    if ctx.get("domain") == "recipe_create":
+        return confirm_recipe_create(context_id, user, ctx)
     if ctx.get("domain") == "expense_batch":
         return handle_batch_confirm(context_id, user)
     payload = ctx.get("payload", {})
@@ -184,7 +203,7 @@ def _handle_confirm(user: dict) -> str:
 def _handle_cancel(user: dict) -> str:
     context_id = mcp.find_pending_for_user(user["id"])
     if not context_id:
-        return "No tengo ningún gasto pendiente de cancelar."
+        return "No tengo ninguna operación pendiente de cancelar."
     try:
         peek = mcp.receive_result(context_id)
     except (ValueError, KeyError):
@@ -193,11 +212,13 @@ def _handle_cancel(user: dict) -> str:
         return handle_batch_cancel(context_id, user)
     if peek.get("domain") == "pantry_add_batch":
         return handle_pantry_add_cancel(context_id, user)
+    if peek.get("domain") == "recipe_create":
+        return cancel_recipe_create(context_id, user)
     try:
         mcp.rollback(context_id)
     except ValueError:
-        return "Este gasto ya fue confirmado, cancelado, o expiró."
-    return "Gasto cancelado."
+        return "Esta operación ya fue confirmada, cancelada, o expiró."
+    return "Operación cancelada."
 
 
 def _build_user_history(user_id: str) -> dict:
@@ -451,6 +472,17 @@ def route(message: str, user: dict) -> str:
     match = WAITING_RESOLVE_PATTERN.match(message)
     if match:
         return resolve_waiting(match.group(1).strip(), user)
+
+    match = RECIPE_NEW_PATTERN.match(message)
+    if match:
+        return nueva_receta(match.group(1).strip(), user)
+
+    if RECIPE_LIST_PATTERN.match(message):
+        return list_recipes(user)
+
+    match = RECIPE_SHOW_PATTERN.match(message)
+    if match:
+        return show_recipe(match.group(1).strip(), user)
 
     match = ME_LLAMO_PATTERN.match(message)
     if match:

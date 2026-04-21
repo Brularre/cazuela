@@ -212,11 +212,41 @@ def _propose_pantry_add_batch(context: dict) -> dict:
     }
 
 
+_RECIPE_SYSTEM_PROMPT = (
+    "You are a cooking assistant. Given a dish name, return a typical "
+    "ingredient list. Respond with valid JSON only — no markdown, no "
+    "explanation outside the JSON. Use Spanish ingredient names. "
+    "Format: {\"ingredients\": [{\"item\": \"<name>\", "
+    "\"quantity\": <number or null>, \"unit\": \"<string or null>\"}]}"
+)
+
+
+def _propose_recipe_create(context: dict) -> dict:
+    payload = context.get("payload", {})
+    recipe_name = payload.get("recipe_name", "")
+    if not (settings.use_ai_agent and settings.anthropic_api_key):
+        return {"ingredients": []}
+    ai_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    response = ai_client.messages.create(
+        model=MODEL_NAME,
+        max_tokens=512,
+        temperature=0,
+        system=_RECIPE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": f"Ingredients for: {recipe_name}"}],
+    )
+    if not response.content:
+        return {"ingredients": []}
+    try:
+        return json.loads(response.content[0].text.strip())
+    except json.JSONDecodeError:
+        return {"ingredients": []}
+
+
 def get_model_for(context: dict) -> str:
     domain = context.get("domain")
     if domain in ("expense_batch", "reconciliation", "pantry_add_batch"):
         return STUB_MODEL_NAME
-    if domain == "expense" and settings.use_ai_agent and settings.anthropic_api_key:
+    if domain in ("expense", "recipe_create") and settings.use_ai_agent and settings.anthropic_api_key:
         return MODEL_NAME
     return STUB_MODEL_NAME
 
@@ -229,6 +259,8 @@ def propose(context: dict) -> dict:
         return _propose_expense_batch(context)
     if domain == "pantry_add_batch":
         return _propose_pantry_add_batch(context)
+    if domain == "recipe_create":
+        return _propose_recipe_create(context)
     if domain != "expense":
         return {"confirmed": True}
     if settings.use_ai_agent and settings.anthropic_api_key:
