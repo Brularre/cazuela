@@ -8,8 +8,9 @@ client = TestClient(app)
 
 TEST_SECRET = "test-secret"
 TEST_PHONE = "+56912345678"
+TEST_USER_ID = "user-1"
 TEST_TOKEN = jwt.encode(
-    {"phone": TEST_PHONE, "exp": datetime(2099, 1, 1)},
+    {"phone": TEST_PHONE, "user_id": TEST_USER_ID, "exp": datetime(2099, 1, 1)},
     TEST_SECRET,
     algorithm="HS256",
 )
@@ -24,16 +25,25 @@ def test_dashboard_unauthenticated():
     assert response.status_code == 401
 
 
+def test_dashboard_expired_session():
+    expired_token = jwt.encode(
+        {"phone": TEST_PHONE, "user_id": TEST_USER_ID, "exp": datetime(2000, 1, 1)},
+        TEST_SECRET,
+        algorithm="HS256",
+    )
+    with patch("app.middleware.auth.settings") as s:
+        s.session_secret = TEST_SECRET
+        response = client.get("/dashboard", cookies={"session": expired_token})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "session_expired"
+
+
 def test_dashboard_returns_all_sections():
     db = MagicMock()
 
     def table_side_effect(name):
         mock = MagicMock()
-        if name == "users":
-            mock.select.return_value.eq.return_value.execute.return_value.data = [
-                {"id": "user-1"}
-            ]
-        elif name == "expenses":
+        if name == "expenses":
             mock.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
                 {"amount": "1500", "category": "comida", "date": "2024-01-15"},
             ]
@@ -75,16 +85,7 @@ def test_dashboard_returns_all_sections():
 
 def test_complete_todo():
     db = MagicMock()
-
-    def table_side_effect(name):
-        mock = MagicMock()
-        if name == "users":
-            mock.select.return_value.eq.return_value.execute.return_value.data = [
-                {"id": "user-1"}
-            ]
-        return mock
-
-    db.table.side_effect = table_side_effect
+    db.table.side_effect = lambda name: MagicMock()
 
     with patch("app.routes.dashboard.client", db), \
          patch("app.middleware.auth.settings") as mock_settings:
@@ -107,16 +108,7 @@ def test_complete_todo():
 
 def test_resolve_waiting():
     db = MagicMock()
-
-    def table_side_effect(name):
-        mock = MagicMock()
-        if name == "users":
-            mock.select.return_value.eq.return_value.execute.return_value.data = [
-                {"id": "user-1"}
-            ]
-        return mock
-
-    db.table.side_effect = table_side_effect
+    db.table.side_effect = lambda name: MagicMock()
 
     with patch("app.routes.dashboard.client", db), \
          patch("app.middleware.auth.settings") as mock_settings:
@@ -140,12 +132,9 @@ def test_resolve_waiting():
 def _pantry_db(pantry_mock=None):
     db = MagicMock()
     def table_side_effect(name):
-        mock = MagicMock()
-        if name == "users":
-            mock.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
-        elif name == "pantry" and pantry_mock:
+        if name == "pantry" and pantry_mock:
             return pantry_mock
-        return mock
+        return MagicMock()
     db.table.side_effect = table_side_effect
     return db
 
@@ -264,12 +253,7 @@ def test_restock_all_pantry():
 
 def _authed_db():
     db = MagicMock()
-    def table_side_effect(name):
-        m = MagicMock()
-        if name == "users":
-            m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
-        return m
-    db.table.side_effect = table_side_effect
+    db.table.side_effect = lambda name: MagicMock()
     return db
 
 
@@ -310,9 +294,7 @@ class TestMealPlanRoutes:
         db = MagicMock()
         def table_side_effect(name):
             m = MagicMock()
-            if name == "users":
-                m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
-            elif name == "recipes":
+            if name == "recipes":
                 m.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
             return m
         db.table.side_effect = table_side_effect
@@ -330,9 +312,7 @@ class TestMealPlanRoutes:
         db = MagicMock()
         def table_side_effect(name):
             m = MagicMock()
-            if name == "users":
-                m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
-            elif name == "meal_plans":
+            if name == "meal_plans":
                 m.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
             return m
         db.table.side_effect = table_side_effect

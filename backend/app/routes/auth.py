@@ -74,9 +74,8 @@ def verify_otp(body: OTPVerify):
 
     result = (
         client.table("otp_codes")
-        .select("id")
+        .select("id, code, attempts")
         .eq("phone", phone)
-        .eq("code", code)
         .eq("used", False)
         .gt("expires_at", datetime.now(timezone.utc).isoformat())
         .execute()
@@ -85,11 +84,25 @@ def verify_otp(body: OTPVerify):
     if not result.data:
         raise HTTPException(status_code=401)
 
-    row_id = result.data[0]["id"]
-    client.table("otp_codes").update({"used": True}).eq("id", row_id).execute()
+    row = result.data[0]
+
+    if row["attempts"] >= 5:
+        raise HTTPException(status_code=429, detail="Demasiados intentos fallidos. Solicita un nuevo código.")
+
+    if row["code"] != code:
+        client.table("otp_codes").update({"attempts": row["attempts"] + 1}).eq("id", row["id"]).execute()
+        raise HTTPException(status_code=401)
+
+    client.table("otp_codes").update({"used": True}).eq("id", row["id"]).execute()
+
+    user_result = client.table("users").select("id").eq("phone", phone).execute()
+    if not user_result.data:
+        raise HTTPException(status_code=401)
+    user_id = user_result.data[0]["id"]
 
     payload = {
         "phone": phone,
+        "user_id": user_id,
         "exp": datetime.now(timezone.utc) + timedelta(days=30),
     }
     token = jwt.encode(payload, settings.session_secret, algorithm="HS256")

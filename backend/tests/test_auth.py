@@ -1,34 +1,12 @@
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
+import jwt
 from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
 
 TEST_PHONE = "+56912345678"
-
-
-def _make_db(user_rows=None, otp_rows=None):
-    db = MagicMock()
-
-    users_chain = (
-        db.table.return_value
-        .select.return_value
-        .eq.return_value
-    )
-    users_chain.execute.return_value.data = user_rows if user_rows is not None else []
-
-    otp_chain = (
-        db.table.return_value
-        .select.return_value
-        .eq.return_value
-        .eq.return_value
-        .eq.return_value
-        .gt.return_value
-    )
-    otp_chain.execute.return_value.data = otp_rows if otp_rows is not None else []
-
-    return db
 
 
 def test_request_otp_throttled_when_recent_exists():
@@ -90,21 +68,23 @@ def test_request_otp_known_phone():
     mock_twilio_cls.return_value.messages.create.assert_called_once()
 
 
-def test_verify_otp_valid():
-    db = MagicMock()
-    otp_row = {"id": "otp-1"}
-
-    select_chain = (
+def _otp_select_chain(db):
+    return (
         db.table.return_value
         .select.return_value
-        .eq.return_value
-        .eq.return_value
-        .eq.return_value
-        .gt.return_value
+        .eq.return_value   # phone
+        .eq.return_value   # used
+        .gt.return_value   # expires_at
     )
-    select_chain.execute.return_value.data = [otp_row]
 
-    db.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+
+def test_verify_otp_valid():
+    db = MagicMock()
+    otp_row = {"id": "otp-1", "code": "123456", "attempts": 0}
+    _otp_select_chain(db).execute.return_value.data = [otp_row]
+    db.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "user-1"}
+    ]
 
     with patch("app.routes.auth.client", db), \
          patch("app.routes.auth.settings") as mock_settings:
@@ -118,20 +98,14 @@ def test_verify_otp_valid():
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     assert "session" in response.cookies
+    decoded = jwt.decode(response.cookies["session"], "test-secret", algorithms=["HS256"])
+    assert decoded["user_id"] == "user-1"
 
 
 def test_verify_otp_invalid_code():
     db = MagicMock()
-
-    select_chain = (
-        db.table.return_value
-        .select.return_value
-        .eq.return_value
-        .eq.return_value
-        .eq.return_value
-        .gt.return_value
-    )
-    select_chain.execute.return_value.data = []
+    otp_row = {"id": "otp-1", "code": "123456", "attempts": 0}
+    _otp_select_chain(db).execute.return_value.data = [otp_row]
 
     with patch("app.routes.auth.client", db), \
          patch("app.routes.auth.settings") as mock_settings:
@@ -143,20 +117,12 @@ def test_verify_otp_invalid_code():
         )
 
     assert response.status_code == 401
+    db.table.return_value.update.assert_called()
 
 
 def test_verify_otp_expired():
     db = MagicMock()
-
-    select_chain = (
-        db.table.return_value
-        .select.return_value
-        .eq.return_value
-        .eq.return_value
-        .eq.return_value
-        .gt.return_value
-    )
-    select_chain.execute.return_value.data = []
+    _otp_select_chain(db).execute.return_value.data = []
 
     with patch("app.routes.auth.client", db), \
          patch("app.routes.auth.settings") as mock_settings:
@@ -168,3 +134,20 @@ def test_verify_otp_expired():
         )
 
     assert response.status_code == 401
+
+
+def test_verify_otp_brute_force_blocked():
+    db = MagicMock()
+    otp_row = {"id": "otp-1", "code": "123456", "attempts": 5}
+    _otp_select_chain(db).execute.return_value.data = [otp_row]
+
+    with patch("app.routes.auth.client", db), \
+         patch("app.routes.auth.settings") as mock_settings:
+        mock_settings.session_secret = "test-secret"
+
+        response = client.post(
+            "/auth/verify-otp",
+            json={"phone": TEST_PHONE, "code": "999999"},
+        )
+
+    assert response.status_code == 429

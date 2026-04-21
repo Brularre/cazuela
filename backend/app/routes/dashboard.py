@@ -14,16 +14,10 @@ router = APIRouter(prefix="/dashboard")
 DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 
-def _get_user_id(phone: str) -> str:
-    result = client.table("users").select("id").eq("phone", phone).execute()
-    if not result.data:
-        raise HTTPException(status_code=401)
-    return result.data[0]["id"]
-
 
 @router.get("")
-def get_dashboard(phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def get_dashboard(uid: str = Depends(require_auth)):
+
 
     today = date.today()
     monday = today - timedelta(days=today.weekday())
@@ -219,15 +213,15 @@ def get_dashboard(phone: str = Depends(require_auth)):
 
 
 @router.patch("/todos/{todo_id}/complete")
-def complete_todo(todo_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def complete_todo(todo_id: str, uid: str = Depends(require_auth)):
+
     client.table("todos").update({"done": True}).eq("id", todo_id).eq("user_id", uid).execute()
     return {"ok": True}
 
 
 @router.patch("/waiting_on/{item_id}/resolve")
-def resolve_waiting(item_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def resolve_waiting(item_id: str, uid: str = Depends(require_auth)):
+
     client.table("waiting_on").update({"resolved": True}).eq("id", item_id).eq("user_id", uid).execute()
     return {"ok": True}
 
@@ -244,8 +238,8 @@ class PantryItemUpdate(BaseModel):
 
 
 @router.post("/pantry")
-def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def create_pantry_item(body: PantryItemIn, uid: str = Depends(require_auth)):
+
     normalized = normalize_pantry_item(body.item)
     result = client.table("pantry").upsert({
         "user_id": uid,
@@ -265,8 +259,8 @@ class ShoppingListItemIn(BaseModel):
 
 
 @router.post("/shopping-list")
-def add_shopping_list_item(body: ShoppingListItemIn, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def add_shopping_list_item(body: ShoppingListItemIn, uid: str = Depends(require_auth)):
+
     normalized = normalize_pantry_item(body.item)
     existing = (
         client.table("shopping_list")
@@ -290,15 +284,15 @@ def add_shopping_list_item(body: ShoppingListItemIn, phone: str = Depends(requir
 
 
 @router.patch("/shopping/{item_id}/check")
-def check_shopping_item(item_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def check_shopping_item(item_id: str, uid: str = Depends(require_auth)):
+
     client.table("shopping_list").update({"checked": True}).eq("id", item_id).eq("user_id", uid).execute()
     return {"ok": True}
 
 
 @router.patch("/pantry/restock-all")
-def restock_all(phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def restock_all(uid: str = Depends(require_auth)):
+
     items = (
         client.table("pantry")
         .select("id, desired_quantity, current_quantity")
@@ -311,8 +305,8 @@ def restock_all(phone: str = Depends(require_auth)):
 
 
 @router.patch("/pantry/{item_id}")
-def update_pantry_item(item_id: str, body: PantryItemUpdate, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def update_pantry_item(item_id: str, body: PantryItemUpdate, uid: str = Depends(require_auth)):
+
     data = {k: v for k, v in body.model_dump().items() if v is not None}
     if not data:
         return {"ok": True}
@@ -321,8 +315,8 @@ def update_pantry_item(item_id: str, body: PantryItemUpdate, phone: str = Depend
 
 
 @router.delete("/pantry/{item_id}")
-def delete_pantry_item(item_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def delete_pantry_item(item_id: str, uid: str = Depends(require_auth)):
+
     client.table("pantry").delete().eq("id", item_id).eq("user_id", uid).execute()
     return {"ok": True}
 
@@ -345,8 +339,8 @@ class RecipeIngredientUpdate(BaseModel):
 
 
 @router.post("/recipes")
-def create_recipe_dashboard(body: RecipeIn, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def create_recipe_dashboard(body: RecipeIn, uid: str = Depends(require_auth)):
+
     result = client.table("recipes").insert({
         "user_id": uid,
         "name": body.name.strip(),
@@ -358,8 +352,8 @@ def create_recipe_dashboard(body: RecipeIn, phone: str = Depends(require_auth)):
 
 
 @router.delete("/recipes/{recipe_id}")
-def delete_recipe_dashboard(recipe_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def delete_recipe_dashboard(recipe_id: str, uid: str = Depends(require_auth)):
+
     result = (
         client.table("recipes")
         .select("id")
@@ -375,9 +369,9 @@ def delete_recipe_dashboard(recipe_id: str, phone: str = Depends(require_auth)):
 
 @router.post("/recipes/{recipe_id}/ingredients")
 def add_ingredient_dashboard(
-    recipe_id: str, body: RecipeIngredientIn, phone: str = Depends(require_auth)
+    recipe_id: str, body: RecipeIngredientIn, uid: str = Depends(require_auth)
 ):
-    uid = _get_user_id(phone)
+
     recipe = (
         client.table("recipes")
         .select("id")
@@ -401,9 +395,9 @@ def add_ingredient_dashboard(
 @router.patch("/recipes/{recipe_id}/ingredients/{ing_id}")
 def update_ingredient_dashboard(
     recipe_id: str, ing_id: str, body: RecipeIngredientUpdate,
-    phone: str = Depends(require_auth)
+    uid: str = Depends(require_auth)
 ):
-    uid = _get_user_id(phone)
+
     recipe = (
         client.table("recipes")
         .select("id")
@@ -423,9 +417,9 @@ def update_ingredient_dashboard(
 
 @router.delete("/recipes/{recipe_id}/ingredients/{ing_id}")
 def delete_ingredient_dashboard(
-    recipe_id: str, ing_id: str, phone: str = Depends(require_auth)
+    recipe_id: str, ing_id: str, uid: str = Depends(require_auth)
 ):
-    uid = _get_user_id(phone)
+
     recipe = (
         client.table("recipes")
         .select("id")
@@ -481,8 +475,8 @@ def _get_or_create_plan(uid: str, week_start: date) -> dict:
 
 
 @router.get("/meal-plan")
-def get_meal_plan(week: str | None = None, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def get_meal_plan(week: str | None = None, uid: str = Depends(require_auth)):
+
     try:
         week_start = date.fromisoformat(week) if week else date.today() - timedelta(days=date.today().weekday())
     except ValueError:
@@ -514,8 +508,8 @@ def get_meal_plan(week: str | None = None, phone: str = Depends(require_auth)):
 
 
 @router.post("/meal-plan/entries")
-def upsert_meal_plan_entry(body: MealPlanEntryIn, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def upsert_meal_plan_entry(body: MealPlanEntryIn, uid: str = Depends(require_auth)):
+
     if body.day_of_week not in PLAN_DAYS:
         raise HTTPException(status_code=422, detail="Invalid day_of_week")
     try:
@@ -568,8 +562,8 @@ def upsert_meal_plan_entry(body: MealPlanEntryIn, phone: str = Depends(require_a
 
 
 @router.patch("/meal-plan/{plan_id}/slots")
-def update_plan_slots(plan_id: str, body: SlotsUpdate, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def update_plan_slots(plan_id: str, body: SlotsUpdate, uid: str = Depends(require_auth)):
+
     result = (
         client.table("meal_plans")
         .select("id")
@@ -584,8 +578,8 @@ def update_plan_slots(plan_id: str, body: SlotsUpdate, phone: str = Depends(requ
 
 
 @router.post("/meal-plan/{plan_id}/shopping")
-def generate_shopping(plan_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
+
     result = (
         client.table("meal_plans")
         .select("id")
@@ -657,8 +651,8 @@ def generate_shopping(plan_id: str, phone: str = Depends(require_auth)):
 
 
 @router.patch("/pantry/{item_id}/restock")
-def restock_pantry_item(item_id: str, phone: str = Depends(require_auth)):
-    uid = _get_user_id(phone)
+def restock_pantry_item(item_id: str, uid: str = Depends(require_auth)):
+
     result = (
         client.table("pantry")
         .select("desired_quantity")
