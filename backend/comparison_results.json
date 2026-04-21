@@ -23,7 +23,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.021041021682322025,
+      "wall_clock_ms": 0.026916037313640118,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -32,7 +32,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.0076669966802001,
+      "wall_clock_ms": 0.008790986612439156,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -41,7 +41,7 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.005833106115460396,
+      "wall_clock_ms": 0.006624963134527206,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -50,7 +50,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.27366599533706903,
+      "wall_clock_ms": 0.3347080200910568,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -59,7 +59,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.03324996214359999,
+      "wall_clock_ms": 0.04000007174909115,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -68,7 +68,7 @@
       "mode": "mcp-stub",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.023290980607271194,
+      "wall_clock_ms": 0.027333036996424198,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -77,7 +77,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.48441707622259855,
+      "wall_clock_ms": 0.5258339224383235,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -86,7 +86,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.30504202004522085,
+      "wall_clock_ms": 0.286709051579237,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -95,7 +95,7 @@
       "mode": "mcp-claude-t0",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.23879192303866148,
+      "wall_clock_ms": 0.246166018769145,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -104,7 +104,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.21908397320657969,
+      "wall_clock_ms": 0.2327500842511654,
       "db_rows_written": 1,
       "run": 1,
       "scenario": "single"
@@ -113,7 +113,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "comida",
       "iteration_count": 1,
-      "wall_clock_ms": 0.20649994257837534,
+      "wall_clock_ms": 0.21912495139986277,
       "db_rows_written": 1,
       "run": 2,
       "scenario": "single"
@@ -122,7 +122,7 @@
       "mode": "mcp-claude-t07",
       "final_category": "hogar",
       "iteration_count": 1,
-      "wall_clock_ms": 0.20574999507516623,
+      "wall_clock_ms": 0.2400419907644391,
       "db_rows_written": 1,
       "run": 3,
       "scenario": "single"
@@ -131,8 +131,40 @@
       "mode": "baseline-regex",
       "final_category": "otros",
       "iteration_count": 0,
-      "wall_clock_ms": 0.01579197123646736,
+      "wall_clock_ms": 0.019291997887194157,
       "db_rows_written": 1,
+      "run": 1,
+      "scenario": "batch"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.010541989468038082,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "batch"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "otros",
+      "iteration_count": 0,
+      "wall_clock_ms": 0.008833012543618679,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "batch"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": [
+        "comida",
+        "otros",
+        "otros",
+        "otros"
+      ],
+      "iteration_count": 3,
+      "wall_clock_ms": 0.07158296648412943,
+      "db_rows_written": 4,
       "run": 1,
       "scenario": "batch"
     },
@@ -145,10 +177,105 @@
         "otros"
       ],
       "iteration_count": 3,
-      "wall_clock_ms": 0.062083941884338856,
+      "wall_clock_ms": 0.06070802919566631,
       "db_rows_written": 4,
-      "run": 1,
+      "run": 2,
       "scenario": "batch"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": [
+        "comida",
+        "otros",
+        "otros",
+        "otros"
+      ],
+      "iteration_count": 3,
+      "wall_clock_ms": 0.05566596519201994,
+      "db_rows_written": 4,
+      "run": 3,
+      "scenario": "batch"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "0 ingredientes",
+      "iteration_count": 0,
+      "wall_clock_ms": 8.300412446260452e-05,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "0 ingredientes",
+      "iteration_count": 0,
+      "wall_clock_ms": 8.405186235904694e-05,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "baseline-regex",
+      "final_category": "0 ingredientes",
+      "iteration_count": 0,
+      "wall_clock_ms": 4.202593117952347e-05,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "0 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.021792016923427582,
+      "db_rows_written": 1,
+      "run": 1,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "0 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.02104195300489664,
+      "db_rows_written": 1,
+      "run": 2,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-stub",
+      "final_category": "0 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.022292020730674267,
+      "db_rows_written": 1,
+      "run": 3,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "6 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.24041603319346905,
+      "db_rows_written": 7,
+      "run": 1,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "6 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.23208395577967167,
+      "db_rows_written": 7,
+      "run": 2,
+      "scenario": "recipe"
+    },
+    {
+      "mode": "mcp-claude-t0",
+      "final_category": "6 ingredientes",
+      "iteration_count": 1,
+      "wall_clock_ms": 0.22175000049173832,
+      "db_rows_written": 7,
+      "run": 3,
+      "scenario": "recipe"
     }
   ]
 }

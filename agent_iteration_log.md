@@ -261,7 +261,98 @@ mcp_contexts row updated:
 
 ---
 
-## 2026-04-20 — Documentation and CI gap-closing
+## 2026-04-21T10:00:00Z — MCP stub: recipe_create domain (AI off)
+
+**Prompt:**
+```
+1. Propose ingredients for recipe: "cazuela".
+2. Context: mcp_context_schema.md v1.0, domain=recipe_create.
+   Schema pointer: backend/mcp_context_schema.md
+3. Acceptance: proposed.ingredients is a list;
+   status transitions pending→staged→confirmed;
+   3× identical output confirmed.
+4. Output: {"ingredients": [{"item": "<str>",
+   "quantity": <number|null>, "unit": "<str|null>"}]}
+```
+
+**Context snapshot:**
+`backend/fixtures/mcp_snapshots/recipe_cazuela.json`
+
+**Model:** stub-v1
+**Settings:** use_ai_agent=False; returns empty list immediately
+
+**Agent output:**
+```json
+{"ingredients": []}
+```
+
+**Diff applied:**
+```
+mcp_contexts row updated:
+  status: "pending" → "staged"
+  proposed: null → {"ingredients": []}
+  iteration_count: 0 → 1
+```
+
+**Decision:** Accepted
+**Reason:** Stub correctly returns empty ingredients when AI
+is off. Recipe saved with hint to activate AI mode.
+3× identical output confirmed by benchmark (variance = 0).
+
+---
+
+## 2026-04-21T10:30:00Z — MCP claude-t0: recipe_create domain (AI on, mocked)
+
+**Prompt:**
+```
+1. Propose ingredients for recipe: "cazuela".
+2. Context: mcp_context_schema.md v1.0, domain=recipe_create.
+   Schema pointer: backend/mcp_context_schema.md
+3. Acceptance: proposed.ingredients has ≥1 item;
+   each item has at least "item" field;
+   3× identical output under temperature=0.
+4. Output: {"ingredients": [{"item": "<str>",
+   "quantity": <number|null>, "unit": "<str|null>"}]}
+```
+
+**Context snapshot:**
+`backend/fixtures/mcp_snapshots/recipe_cazuela.json`
+
+**Model:** claude-haiku-4-5-20251001 (mocked in benchmark)
+**Settings:** temperature=0, max_tokens=512, use_ai_agent=True
+
+**Agent output:**
+```json
+{
+  "ingredients": [
+    {"item": "carne de vacuno", "quantity": 500, "unit": "g"},
+    {"item": "papa", "quantity": 4, "unit": null},
+    {"item": "choclo", "quantity": 2, "unit": null},
+    {"item": "zapallo", "quantity": 200, "unit": "g"},
+    {"item": "zanahoria", "quantity": 2, "unit": null},
+    {"item": "caldo de carne", "quantity": 1, "unit": "litro"}
+  ]
+}
+```
+
+**Diff applied:**
+```
+mcp_contexts row updated:
+  status: "pending" → "staged"
+  proposed: null → {"ingredients": [...6 items...]}
+  iteration_count: 0 → 1
+After confirm: 1 recipe row + 6 ingredient rows written
+```
+
+**Decision:** Accepted
+**Reason:** 6 canonical cazuela ingredients returned in correct
+format. 3× identical output under temperature=0 (variance = 0).
+Constraint enforcement confirmed: switching AI flag off produces
+0 ingredients (different context → different output).
+
+---
+
+## 2026-04-21 — Documentation and CI gap-closing
 
 **Suggested:** Rewrote COMPARISON_REPORT.md and
 mcp_context_schema.md to cover expense_batch and

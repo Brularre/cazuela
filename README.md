@@ -1,36 +1,57 @@
 # Cazuela
 
 A personal life assistant accessible via WhatsApp.
-Send natural language messages in Spanish — Cazuela logs expenses,
-tracks todos, manages your pantry, and more.
+Send natural language messages in Spanish — Cazuela logs
+expenses, tracks todos, manages your pantry, plans meals,
+and more.
 
 No app to install. Just save the number and start messaging.
 
-## Features (current)
+## Features
 
-- **Expenses:** `gasté 5000 en almuerzo` — logs with auto-detected category
-- **Ambiguous expenses:** `pagué 3000` — AI proposes category, you confirm
+- **Expenses:** `gasté 5000 en almuerzo` — logs with
+  auto-detected category
+- **Ambiguous expenses:** `pagué 3000` — AI proposes
+  category, you confirm via MCP staging flow
+- **Batch expenses:** `gasté 18000 en supermercado: pan,
+  leche, queso` — splits and categorizes each item
 - **Weekly summary:** `resumen`
-- **Todos:** `pendiente: llamar al banco` / `mis pendientes` / `listo: banco`
-- **Shopping list:** `comprar: leche` / `compras` / `compré leche`
-- **Waiting on:** `esperando: respuesta del seguro` / `mis esperas` / `llegó: seguro`
-- **Pantry:** `despensa cocina: arroz 3` / `mi despensa` / `usé: jabón` / `compré todo`
+- **Todos:** `pendiente: llamar al banco` /
+  `mis pendientes` / `listo: banco`
+- **Waiting on:** `esperando: respuesta del seguro` /
+  `mis esperas` / `llegó: seguro`
+- **Shopping list:** `comprar: leche` / `compras` /
+  `compré leche`
+- **Pantry:** `despensa cocina: arroz 3` / `mi despensa` /
+  `usé: jabón` / `compré todo`
+- **Recipes:** `nueva receta: cazuela` (AI suggests
+  ingredients if enabled) / `mis recetas` /
+  `receta: cazuela`
 - **Help:** `ayuda` — shows all available commands
-- CSV / JSON export via REST API
-- Swagger UI at `/docs`
+
+## Dashboard
+
+A Next.js dashboard at `localhost:3000` shows expenses,
+budget bar, todos, pantry, shopping list, recipes, and
+weekly meal planner. Auth via WhatsApp OTP + session
+cookie.
 
 ## Tech Stack
 
-- **Backend:** Python + FastAPI
+- **Backend:** Python + FastAPI, deployed on Railway
+- **Frontend:** Next.js, deployed on Railway
+- **AI:** Claude Haiku (optional; requires
+  `USE_AI_AGENT=true` + `ANTHROPIC_API_KEY`)
+- **MCP:** Internal propose→confirm/rollback context
+  staging module (`backend/app/mcp/`)
 - **Database:** Supabase (managed Postgres)
 - **WhatsApp:** Twilio
-- **Deployment:** Railway
 
 ---
 
 ## Running Locally
 
-### 1. Clone and set up the environment
+### 1. Clone and set up the backend
 
 ```bash
 git clone https://github.com/Brularre/cazuela.git
@@ -54,22 +75,37 @@ SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_KEY=your-service-role-key
 TWILIO_AUTH_TOKEN=your-twilio-auth-token
 SESSION_SECRET=any-long-random-string
+
+# Optional — enables AI categorization and recipe suggestions
+USE_AI_AGENT=true
+ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
 ### 3. Set up Supabase
 
-Run the migration files in `backend/` against your Supabase project
-(SQL editor → New query), in the order listed in `backend/SCHEMA.md`.
+Run the migration files in `backend/migrations/` against
+your Supabase project (SQL editor → New query), in the
+order listed in `backend/SCHEMA.md`.
 
-### 4. Run the server
+### 4. Run the backend
 
 ```bash
 cd backend
 uvicorn main:app --reload
 ```
 
-API available at `http://localhost:8000`.
+API at `http://localhost:8000`.
 Swagger UI at `http://localhost:8000/docs`.
+
+### 5. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Dashboard at `http://localhost:3000`.
 
 ---
 
@@ -81,8 +117,6 @@ Cazuela uses Twilio's WhatsApp sandbox for development.
 2. Go to Messaging → Try it out → Send a WhatsApp message
 3. Follow the instructions to join the sandbox
 4. Set the webhook URL to your public URL + `/webhook`
-   (use Railway or a similar service — local tunneling tools
-   are unreliable on managed machines)
 
 ---
 
@@ -94,22 +128,38 @@ cd backend
 ```
 
 Tests do not require a live Supabase connection —
-DB calls are mocked in unit and integration tests.
+DB calls are mocked. To run the MCP replay benchmark:
+
+```bash
+cd backend
+python replay.py fixtures/mcp_snapshots/expense_comida.json \
+  --mode stub --runs 3 --expect-final-status confirmed
+```
 
 ---
 
-## Deployment (Railway)
+## MCP Integration
 
-The app includes a `Procfile` for Railway:
+Cazuela implements a propose→confirm/rollback staging
+pattern for agent interactions:
 
 ```
-web: uvicorn main:app --host 0.0.0.0 --port $PORT
+send_context → request_action → [user confirms] → confirm
+                                [user cancels]  → rollback
 ```
 
-1. Create a new project on [railway.app](https://railway.app)
-2. Connect your GitHub repository
-3. Add environment variables (see `.env.example`)
-4. Railway auto-deploys on every push to `main`
+Key files:
+
+| File | Purpose |
+|------|---------|
+| `backend/app/mcp/client.py` | Five-verb client API |
+| `backend/app/mcp/agent.py` | Stub + optional Haiku agent |
+| `backend/app/mcp/context.py` | Context store + redaction |
+| `backend/mcp_context_schema.md` | Schema + field docs |
+| `backend/fixtures/mcp_snapshots/` | Example context snapshots |
+| `backend/replay.py` | Reproducibility replay script |
+| `COMPARISON_REPORT.md` | Benchmark results vs baseline |
+| `agent_iteration_log.md` | Full agent decision log |
 
 ---
 
@@ -119,9 +169,10 @@ Send `ayuda` at any time to see the full command reference.
 
 | Message | Action |
 |---------|--------|
-| `gasté 5000 en almuerzo` | Log an expense with category |
+| `gasté 5000 en almuerzo` | Log expense with category |
 | `pagué 3000` | Log expense, bot proposes category |
-| `confirmar` / `cancelar` | Confirm or cancel a pending expense |
+| `gasté 18000 en super: pan, leche` | Log batch expense |
+| `confirmar` / `cancelar` | Confirm or cancel pending action |
 | `resumen` | Weekly summary by category |
 | `pendiente: llamar al banco` | Add a todo |
 | `mis pendientes` | List open todos |
@@ -129,28 +180,21 @@ Send `ayuda` at any time to see the full command reference.
 | `comprar: leche` | Add item to shopping list |
 | `compras` | View shopping list |
 | `compré leche` | Mark item as bought |
-| `esperando: respuesta del banco` | Track something waiting on someone else |
+| `esperando: respuesta del banco` | Track waiting item |
 | `mis esperas` | List open waiting items |
 | `llegó: banco` | Mark as resolved |
-| `despensa cocina: arroz 3` | Add pantry item with category |
+| `despensa cocina: arroz 3` | Add pantry item |
 | `mi despensa` | View pantry stock |
 | `usé: jabón` | Consume one unit |
-| `compré: jabón` | Restock one item |
-| `compré todo` | Restock everything that's low |
+| `compré todo` | Restock everything low |
+| `nueva receta: cazuela` | Create recipe (AI suggests ingredients) |
+| `mis recetas` | List all recipes |
+| `receta: cazuela` | Show recipe ingredients |
 | `ayuda` | Show all commands |
 
-**Expense categories (auto-detected):**
+**Expense categories:**
 comida, transporte, salud, hogar, entretenimiento,
 ropa, tecnología, educación, viajes, otros
-
----
-
-## Export
-
-```
-GET /export?phone=+56912345678&format=json
-GET /export?phone=+56912345678&format=csv
-```
 
 ---
 
@@ -160,14 +204,21 @@ GET /export?phone=+56912345678&format=csv
 cazuela/
 ├── backend/
 │   ├── app/
-│   │   ├── handlers/       # One module per feature
-│   │   ├── mcp/            # Context store for confirm/cancel flow
-│   │   ├── routes/         # Dashboard + auth REST API
-│   │   ├── db/             # Supabase client + user queries
-│   │   └── router.py       # Message routing (regex patterns)
+│   │   ├── handlers/         # One module per feature
+│   │   ├── mcp/              # MCP staging: client, agent, context
+│   │   ├── routes/           # Dashboard + auth REST API
+│   │   ├── db/               # Supabase client + queries
+│   │   └── router.py         # Message routing (regex patterns)
+│   ├── fixtures/
+│   │   └── mcp_snapshots/    # Example context JSON snapshots
+│   ├── migrations/           # Supabase SQL migrations
+│   ├── scripts/              # Benchmark + comparison scripts
 │   ├── tests/
+│   ├── replay.py             # MCP reproducibility replay
 │   └── main.py
-├── frontend/               # Next.js dashboard
+├── frontend/                 # Next.js dashboard
+├── COMPARISON_REPORT.md      # MCP vs baseline benchmark
+├── agent_iteration_log.md    # Agent decision log
 └── README.md
 ```
 
@@ -177,11 +228,12 @@ cazuela/
 
 | Phase | What | Status |
 |-------|------|--------|
-| 0 | Infrastructure | ✓ done |
-| 1 | Core agent + Expenses | ✓ done |
-| 2 | Todos + waiting on | ✓ done |
-| 3 | Weekly budget | planned |
-| 4 | Shopping list | handler only |
-| 5 | Despensa + meal planning | despensa live |
-| 6 | Dashboard (Next.js) | in progress |
+| 0 | Infrastructure | done |
+| 1 | Expenses + WhatsApp parsing | done |
+| 2 | Todos + waiting on | done |
+| 3 | Weekly budget + monthly estimate | done |
+| 4 | Shopping list | done |
+| 5 | Despensa + "necesito comprar" MCP flow | done |
+| 5b | Recipes + meal planning | done |
+| 6 | Dashboard (Next.js) | done |
 | 7 | Onboarding + multi-user polish | planned |

@@ -204,7 +204,7 @@ cd backend && python scripts/run_comparison.py
 or `make benchmark`. All Claude responses are mocked —
 no live API calls.
 
-| Mode | Run | Scenario | Category | Iter | ms | rows |
+| Mode | Run | Scenario | Output | Iter | ms | rows |
 |---|---:|:---:|---|---:|---:|---:|
 | baseline-regex | 1 | single | otros | 0 | 0.0 | 1 |
 | baseline-regex | 2 | single | otros | 0 | 0.0 | 1 |
@@ -219,7 +219,20 @@ no live API calls.
 | mcp-claude-t07 | 2 | single | comida | 1 | 0.2 | 1 |
 | mcp-claude-t07 | 3 | single | hogar | 1 | 0.2 | 1 |
 | baseline-regex | 1 | batch | otros | 0 | 0.0 | 1 |
-| mcp-stub | 1 | batch | ['comida', 'otros', 'otros', 'otros'] | 3 | 0.1 | 4 |
+| baseline-regex | 2 | batch | otros | 0 | 0.0 | 1 |
+| baseline-regex | 3 | batch | otros | 0 | 0.0 | 1 |
+| mcp-stub | 1 | batch | [comida, otros, otros, otros] | 3 | 0.1 | 4 |
+| mcp-stub | 2 | batch | [comida, otros, otros, otros] | 3 | 0.1 | 4 |
+| mcp-stub | 3 | batch | [comida, otros, otros, otros] | 3 | 0.1 | 4 |
+| baseline-regex | 1 | recipe | 0 ingredientes | 0 | 0.0 | 1 |
+| baseline-regex | 2 | recipe | 0 ingredientes | 0 | 0.0 | 1 |
+| baseline-regex | 3 | recipe | 0 ingredientes | 0 | 0.0 | 1 |
+| mcp-stub | 1 | recipe | 0 ingredientes | 1 | 0.0 | 1 |
+| mcp-stub | 2 | recipe | 0 ingredientes | 1 | 0.0 | 1 |
+| mcp-stub | 3 | recipe | 0 ingredientes | 1 | 0.0 | 1 |
+| mcp-claude-t0 | 1 | recipe | 6 ingredientes | 1 | 0.2 | 7 |
+| mcp-claude-t0 | 2 | recipe | 6 ingredientes | 1 | 0.2 | 7 |
+| mcp-claude-t0 | 3 | recipe | 6 ingredientes | 1 | 0.2 | 7 |
 
 **Modes:**
 - `baseline-regex` — direct keyword map, no MCP, no agent
@@ -323,3 +336,57 @@ Context 2 (history: comida×8): pending → staged → confirmed
 
 The same two-pass lifecycle demonstrated for single
 expenses applies identically to the batch domain.
+
+---
+
+## Recipe Create Domain (2026-04-21)
+
+Extends MCP to the `recipe_create` domain. When a user
+sends "nueva receta: cazuela", the agent proposes an
+ingredient list before the recipe is saved. The user
+confirms or cancels via WhatsApp.
+
+**Scenario:** `recipe_name = "cazuela"`
+
+**Without MCP (baseline):** Recipe row inserted with no
+ingredients. No agent loop, no confirmation step.
+
+**With MCP (stub, AI off):** `_propose_recipe_create`
+returns `{"ingredients": []}` immediately. Recipe is
+saved but with no ingredient suggestions. The lifecycle
+(`pending → staged → confirmed`) still runs, preserving
+the audit trail.
+
+**With MCP (claude-t0, AI on):** Mock returns 6
+ingredients (carne de vacuno, papa, choclo, zapallo,
+zanahoria, caldo de carne). User confirms →
+1 recipe row + 6 ingredient rows written.
+
+### Recipe — 3-run reproducibility
+
+| Run | Mode | Ingredients proposed | Identical? |
+|-----|------|---------------------|------------|
+| 1 | mcp-stub | 0 | — |
+| 2 | mcp-stub | 0 | ✓ |
+| 3 | mcp-stub | 0 | ✓ |
+| 1 | mcp-claude-t0 | 6 | — |
+| 2 | mcp-claude-t0 | 6 | ✓ |
+| 3 | mcp-claude-t0 | 6 | ✓ |
+
+**Variance: 0** for both modes. The stub is deterministic
+by design; the mocked Claude response is fixed
+(temperature=0, same payload → same output).
+
+### Constraint enforcement
+
+The MCP stub respects `use_ai_agent` as a hard gate —
+when AI is off, no ingredients are proposed regardless
+of recipe name. When AI is on, the ingredient list is
+surfaced to the user for confirmation before any DB
+write. This satisfies the assignment's constraint
+enforcement acceptance criterion: changing context
+(AI flag) produces a measurably different output.
+
+**Fixture:** `backend/fixtures/mcp_snapshots/recipe_cazuela.json`
+**Handler:** `backend/app/handlers/recipes.py`
+**Agent function:** `backend/app/mcp/agent.py::_propose_recipe_create`

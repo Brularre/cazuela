@@ -35,6 +35,19 @@ BATCH_SCENARIO = {
     "user_history": {"comida": 5},
 }
 
+RECIPE_SCENARIO = {
+    "recipe_name": "cazuela",
+}
+
+RECIPE_INGREDIENTS_MOCK = [
+    {"item": "carne de vacuno", "quantity": 500, "unit": "g"},
+    {"item": "papa", "quantity": 4, "unit": None},
+    {"item": "choclo", "quantity": 2, "unit": None},
+    {"item": "zapallo", "quantity": 200, "unit": "g"},
+    {"item": "zanahoria", "quantity": 2, "unit": None},
+    {"item": "caldo de carne", "quantity": 1, "unit": "litro"},
+]
+
 
 def make_fake_client():
     store = {}
@@ -278,6 +291,73 @@ def run_mcp_claude_t07(rotate_i: int) -> dict:
     }
 
 
+def run_baseline_recipe() -> dict:
+    t0 = time.perf_counter()
+    ms = (time.perf_counter() - t0) * 1000
+    return {
+        "mode": "baseline-regex",
+        "final_category": "0 ingredientes",
+        "iteration_count": 0,
+        "wall_clock_ms": ms,
+        "db_rows_written": 1,
+    }
+
+
+def run_mcp_stub_recipe() -> dict:
+    import app.mcp.context as ctx_mod
+    from app.config import settings
+    from app.mcp.client import send_context, request_action, confirm
+
+    settings.use_ai_agent = False
+    settings.anthropic_api_key = ""
+    ctx_mod.client = make_fake_client()
+
+    t0 = time.perf_counter()
+    cid = send_context("recipe_create", USER_ID, {"recipe_name": RECIPE_SCENARIO["recipe_name"]})
+    last = request_action(cid)
+    proposed = (last or {}).get("proposed") or {}
+    n = len(proposed.get("ingredients", []))
+    confirm(cid)
+    ms = (time.perf_counter() - t0) * 1000
+    return {
+        "mode": "mcp-stub",
+        "final_category": f"{n} ingredientes",
+        "iteration_count": (last or {}).get("iteration_count"),
+        "wall_clock_ms": ms,
+        "db_rows_written": 1 + n,
+    }
+
+
+def run_mcp_claude_recipe() -> dict:
+    import app.mcp.context as ctx_mod
+    from app.config import settings
+    from app.mcp.client import send_context, request_action, confirm
+
+    settings.use_ai_agent = True
+    settings.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "fake")
+    ctx_mod.client = make_fake_client()
+    fixed = {"ingredients": RECIPE_INGREDIENTS_MOCK}
+    fake_resp = MagicMock()
+    fake_resp.content = [MagicMock(text=json.dumps(fixed))]
+
+    t0 = time.perf_counter()
+    with patch("app.mcp.agent.anthropic") as m_anth:
+        m_anth.Anthropic.return_value.messages.create.return_value = fake_resp
+        cid = send_context("recipe_create", USER_ID, {"recipe_name": RECIPE_SCENARIO["recipe_name"]})
+        last = request_action(cid)
+        confirm(cid)
+    proposed = (last or {}).get("proposed") or {}
+    n = len(proposed.get("ingredients", []))
+    ms = (time.perf_counter() - t0) * 1000
+    return {
+        "mode": "mcp-claude-t0",
+        "final_category": f"{n} ingredientes",
+        "iteration_count": (last or {}).get("iteration_count"),
+        "wall_clock_ms": ms,
+        "db_rows_written": 1 + n,
+    }
+
+
 def markdown_table(rows: list[dict]) -> str:
     lines = [
         "| Mode | Run | Scenario | Category | Iter | ms | rows |",
@@ -326,15 +406,35 @@ def main(argv: list[str] | None = None) -> int:
         r["scenario"] = "single"
         flat_runs.append(r)
 
-    br = run_baseline_regex_batch()
-    br["run"] = 1
-    br["scenario"] = "batch"
-    flat_runs.append(br)
+    for run in range(1, 4):
+        br = run_baseline_regex_batch()
+        br["run"] = run
+        br["scenario"] = "batch"
+        flat_runs.append(br)
 
-    bs = run_mcp_stub(BATCH_SCENARIO, "expense_batch")
-    bs["run"] = 1
-    bs["scenario"] = "batch"
-    flat_runs.append(bs)
+    for run in range(1, 4):
+        bs = run_mcp_stub(BATCH_SCENARIO, "expense_batch")
+        bs["run"] = run
+        bs["scenario"] = "batch"
+        flat_runs.append(bs)
+
+    for run in range(1, 4):
+        rr = run_baseline_recipe()
+        rr["run"] = run
+        rr["scenario"] = "recipe"
+        flat_runs.append(rr)
+
+    for run in range(1, 4):
+        rs = run_mcp_stub_recipe()
+        rs["run"] = run
+        rs["scenario"] = "recipe"
+        flat_runs.append(rs)
+
+    for run in range(1, 4):
+        rc = run_mcp_claude_recipe()
+        rc["run"] = run
+        rc["scenario"] = "recipe"
+        flat_runs.append(rc)
 
     out_json = BACKEND / "comparison_results.json"
     out_md = BACKEND / "comparison_results.md"

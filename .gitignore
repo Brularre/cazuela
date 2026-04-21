@@ -26,6 +26,7 @@ out/
 
 # Claude Code
 .claude/worktrees/
+.playwright-mcp/
 
 # Project backlog (local only)
 BACKLOG.md
