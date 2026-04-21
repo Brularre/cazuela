@@ -260,3 +260,88 @@ def test_restock_all_pantry():
         res = client.patch("/dashboard/pantry/restock-all", cookies=_authed_cookies())
     assert res.status_code == 200
     assert res.json()["ok"] is True
+
+
+def _authed_db():
+    db = MagicMock()
+    def table_side_effect(name):
+        m = MagicMock()
+        if name == "users":
+            m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
+        return m
+    db.table.side_effect = table_side_effect
+    return db
+
+
+class TestMealPlanRoutes:
+    def test_get_meal_plan_invalid_week(self):
+        db = _authed_db()
+        with patch("app.routes.dashboard.client", db), \
+             patch("app.middleware.auth.settings") as s:
+            s.session_secret = TEST_SECRET
+            res = client.get("/dashboard/meal-plan?week=not-a-date", cookies=_authed_cookies())
+        assert res.status_code == 422
+
+    def test_upsert_entry_invalid_day(self):
+        db = _authed_db()
+        with patch("app.routes.dashboard.client", db), \
+             patch("app.middleware.auth.settings") as s:
+            s.session_secret = TEST_SECRET
+            res = client.post(
+                "/dashboard/meal-plan/entries",
+                json={"week_start": "2026-04-21", "day_of_week": "monday", "slot_name": "almuerzo", "recipe_id": None},
+                cookies=_authed_cookies(),
+            )
+        assert res.status_code == 422
+
+    def test_upsert_entry_invalid_week_start(self):
+        db = _authed_db()
+        with patch("app.routes.dashboard.client", db), \
+             patch("app.middleware.auth.settings") as s:
+            s.session_secret = TEST_SECRET
+            res = client.post(
+                "/dashboard/meal-plan/entries",
+                json={"week_start": "not-a-date", "day_of_week": "lunes", "slot_name": "almuerzo", "recipe_id": None},
+                cookies=_authed_cookies(),
+            )
+        assert res.status_code == 422
+
+    def test_upsert_entry_recipe_not_owned_returns_404(self):
+        db = MagicMock()
+        def table_side_effect(name):
+            m = MagicMock()
+            if name == "users":
+                m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
+            elif name == "recipes":
+                m.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+            return m
+        db.table.side_effect = table_side_effect
+        with patch("app.routes.dashboard.client", db), \
+             patch("app.middleware.auth.settings") as s:
+            s.session_secret = TEST_SECRET
+            res = client.post(
+                "/dashboard/meal-plan/entries",
+                json={"week_start": "2026-04-21", "day_of_week": "lunes", "slot_name": "almuerzo", "recipe_id": "other-recipe"},
+                cookies=_authed_cookies(),
+            )
+        assert res.status_code == 404
+
+    def test_update_slots_plan_not_owned_returns_404(self):
+        db = MagicMock()
+        def table_side_effect(name):
+            m = MagicMock()
+            if name == "users":
+                m.select.return_value.eq.return_value.execute.return_value.data = [{"id": "user-1"}]
+            elif name == "meal_plans":
+                m.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+            return m
+        db.table.side_effect = table_side_effect
+        with patch("app.routes.dashboard.client", db), \
+             patch("app.middleware.auth.settings") as s:
+            s.session_secret = TEST_SECRET
+            res = client.patch(
+                "/dashboard/meal-plan/other-plan/slots",
+                json={"slots": ["almuerzo"]},
+                cookies=_authed_cookies(),
+            )
+        assert res.status_code == 404

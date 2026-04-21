@@ -146,7 +146,7 @@ domains. RLS enabled; TTL = 1 hour.
 |--------|------|-------|
 | context_id | uuid PK | |
 | version | text | default '1.0' |
-| domain | text | expense \| expense_batch \| reconciliation \| pantry_add_batch |
+| domain | text | expense \| expense_batch \| reconciliation \| pantry_add_batch \| recipe_create |
 | user_id | uuid FK → users(id) | |
 | created_at | timestamptz | default now() |
 | expires_at | timestamptz | created_at + 3600s |
@@ -218,6 +218,7 @@ Unique constraint on (user_id, week_start).
 | id | uuid PK | gen_random_uuid() |
 | user_id | uuid FK → users(id) | on delete cascade |
 | week_start | date | Monday of the planned week |
+| slots | jsonb | ordered slot names, default '["almuerzo","cena"]' |
 | created_at | timestamptz | default now() |
 
 ---
@@ -255,3 +256,5 @@ exist with no recipe assigned yet.
 8. `budget_migration.sql` — budgets table
 9. `meal_planning` — recipes, recipe_ingredients,
    meal_plans, meal_plan_entries tables
+10. `meal_plan_slots_column` — add slots jsonb column
+    to meal_plans with default '["almuerzo","cena"]'

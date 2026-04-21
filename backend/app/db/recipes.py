@@ -19,7 +19,7 @@ def delete_recipe(user_id: str, recipe_id: str) -> None:
     client.table("recipes").delete().eq("id", recipe_id).eq("user_id", user_id).execute()
 
 
-def add_ingredient(recipe_id: str, item: str, quantity=None, unit: str = None) -> dict:
+def add_ingredient(recipe_id: str, item: str, quantity: float | None = None, unit: str | None = None) -> dict:
     result = client.table("recipe_ingredients").insert({
         "recipe_id": recipe_id,
         "item": item,

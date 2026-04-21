@@ -59,6 +59,7 @@ if not items:
 | pantry.py | Despensa | pantry | live |
 | pantry_shopping.py | "Necesito comprar" MCP flow | pantry, shopping_list | live |
 | shopping.py | Lista de compras | shopping_list | handler only* |
+| recipes.py | Recetas (WhatsApp) | recipes, recipe_ingredients | live |
 
 *Handler exists and table is live in Supabase, but router
 patterns and tests are incomplete — not production-ready.

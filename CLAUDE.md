@@ -48,8 +48,8 @@ manually applied. Run `/review-feature` before every push.
 | 3 | Weekly budget + monthly estimate | done |
 | 4 | Shopping list | live |
 | 5 | Despensa + "necesito comprar" MCP flow | despensa live; batch add live |
-| 5b | Meal planning + Google Sheets | planned |
-| 6 | Dashboard (Next.js) | live; expenses, todos, pantry, waiting_on |
+| 5b | Meal planning | live |
+| 6 | Dashboard (Next.js) | live; expenses, todos, pantry, waiting_on, recipes, meal plan |
 | 7 | Onboarding + multi-user polish | planned |
 
 ## Feature Modules
@@ -63,8 +63,11 @@ entretenimiento, ropa, tecnología, educación, viajes, otros
 **COMIDA** — despensa/pantry (live); "necesito comprar" → MCP →
 confirm to despensa or lista (live); shopping list fully live (manual
 add + check off, shown on dashboard alongside pantry-derived items);
-meal planning + Google Sheets (planned)
+recipes (WhatsApp + dashboard, AI ingredient suggestions via Haiku);
+meal planning (weekly grid, custom slots, shopping list generation
+cross-referenced against pantry)
 
 **DASHBOARD** — expenses + budget bar + monthly estimate, todos,
 waiting_on, pantry management, combined shopping list (pantry +
-manual); auth via WhatsApp OTP + session cookie
+manual), recipes editor, weekly meal planner;
+auth via WhatsApp OTP + session cookie
