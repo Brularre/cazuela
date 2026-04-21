@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from app.db import client
 from app.handlers.pantry import normalize as normalize_pantry_item
 from app.handlers.expenses import normalize as normalize_item
@@ -154,6 +154,52 @@ def get_dashboard(phone: str = Depends(require_auth)):
         for r in (recipes_result.data or [])
     ]
 
+    plan_result = (
+        client.table("meal_plans")
+        .select("id, week_start, slots")
+        .eq("user_id", uid)
+        .eq("week_start", monday.isoformat())
+        .limit(1)
+        .execute()
+    )
+    plan = None
+    try:
+        if plan_result.data:
+            plan_row = plan_result.data[0]
+        else:
+            ins = client.table("meal_plans").insert({
+                "user_id": uid,
+                "week_start": monday.isoformat(),
+                "slots": ["almuerzo", "cena"],
+            }).execute()
+            plan_row = ins.data[0]
+
+        plan_entries = (
+            client.table("meal_plan_entries")
+            .select("id, day_of_week, slot_name, recipe_id, recipes(name)")
+            .eq("meal_plan_id", plan_row["id"])
+            .execute()
+        ).data or []
+
+        plan = {
+            "plan_id": plan_row["id"],
+            "week_start": str(plan_row["week_start"]),
+            "slots": plan_row.get("slots") or ["almuerzo", "cena"],
+            "entries": [
+                {
+                    "id": e["id"],
+                    "day_of_week": e["day_of_week"],
+                    "slot_name": e["slot_name"],
+                    "recipe_id": e["recipe_id"],
+                    "recipe_name": (e.get("recipes") or {}).get("name"),
+                }
+                for e in plan_entries
+            ],
+        }
+    except Exception as exc:
+        import warnings
+        warnings.warn(f"Failed to load meal plan for user {uid}: {exc}")
+
     return {
         "gastos": {
             "weekly_total": weekly_total,
@@ -168,6 +214,7 @@ def get_dashboard(phone: str = Depends(require_auth)):
         "compras": compras,
         "despensa": despensa,
         "recetas": recetas,
+        "plan": plan,
     }
 
 
@@ -209,6 +256,36 @@ def create_pantry_item(body: PantryItemIn, phone: str = Depends(require_auth)):
     }, on_conflict="user_id,item").execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Pantry upsert returned no data")
+    return {"ok": True, "id": result.data[0]["id"]}
+
+
+class ShoppingListItemIn(BaseModel):
+    item: str = Field(min_length=1, max_length=100)
+    source: str = Field(default="manual", max_length=50)
+
+
+@router.post("/shopping-list")
+def add_shopping_list_item(body: ShoppingListItemIn, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    normalized = normalize_pantry_item(body.item)
+    existing = (
+        client.table("shopping_list")
+        .select("id")
+        .eq("user_id", uid)
+        .eq("item", normalized)
+        .eq("checked", False)
+        .execute()
+    )
+    if existing.data:
+        return {"ok": True, "id": existing.data[0]["id"]}
+    result = client.table("shopping_list").insert({
+        "user_id": uid,
+        "item": normalized,
+        "source": body.source,
+        "checked": False,
+    }).execute()
+    if not result.data:
+        raise HTTPException(status_code=500)
     return {"ok": True, "id": result.data[0]["id"]}
 
 
@@ -360,6 +437,223 @@ def delete_ingredient_dashboard(
         raise HTTPException(status_code=404)
     client.table("recipe_ingredients").delete().eq("id", ing_id).eq("recipe_id", recipe_id).execute()
     return {"ok": True}
+
+
+PLAN_DAYS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+class MealPlanEntryIn(BaseModel):
+    week_start: str
+    day_of_week: str = Field(min_length=1, max_length=20)
+    slot_name: str = Field(min_length=1, max_length=50)
+    recipe_id: str | None = None
+
+
+class SlotsUpdate(BaseModel):
+    slots: list[str] = Field(min_length=1, max_length=10)
+
+    @field_validator("slots")
+    @classmethod
+    def validate_slot_names(cls, v):
+        for s in v:
+            if len(s) < 1 or len(s) > 50:
+                raise ValueError("Each slot name must be 1–50 characters")
+        return v
+
+
+def _get_or_create_plan(uid: str, week_start: date) -> dict:
+    result = (
+        client.table("meal_plans")
+        .select("id, slots")
+        .eq("user_id", uid)
+        .eq("week_start", week_start.isoformat())
+        .limit(1)
+        .execute()
+    )
+    if result.data:
+        return result.data[0]
+    ins = client.table("meal_plans").insert({
+        "user_id": uid,
+        "week_start": week_start.isoformat(),
+        "slots": ["almuerzo", "cena"],
+    }).execute()
+    return ins.data[0]
+
+
+@router.get("/meal-plan")
+def get_meal_plan(week: str | None = None, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    try:
+        week_start = date.fromisoformat(week) if week else date.today() - timedelta(days=date.today().weekday())
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid week date")
+
+    plan_row = _get_or_create_plan(uid, week_start)
+    entries = (
+        client.table("meal_plan_entries")
+        .select("id, day_of_week, slot_name, recipe_id, recipes(name)")
+        .eq("meal_plan_id", plan_row["id"])
+        .execute()
+    ).data or []
+
+    return {
+        "plan_id": plan_row["id"],
+        "week_start": week_start.isoformat(),
+        "slots": plan_row.get("slots") or ["almuerzo", "cena"],
+        "entries": [
+            {
+                "id": e["id"],
+                "day_of_week": e["day_of_week"],
+                "slot_name": e["slot_name"],
+                "recipe_id": e["recipe_id"],
+                "recipe_name": (e.get("recipes") or {}).get("name"),
+            }
+            for e in entries
+        ],
+    }
+
+
+@router.post("/meal-plan/entries")
+def upsert_meal_plan_entry(body: MealPlanEntryIn, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    if body.day_of_week not in PLAN_DAYS:
+        raise HTTPException(status_code=422, detail="Invalid day_of_week")
+    try:
+        week_start = date.fromisoformat(body.week_start)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid week_start")
+
+    if body.recipe_id:
+        recipe_check = (
+            client.table("recipes")
+            .select("id")
+            .eq("id", body.recipe_id)
+            .eq("user_id", uid)
+            .execute()
+        )
+        if not recipe_check.data:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+
+    plan_row = _get_or_create_plan(uid, week_start)
+    plan_id = plan_row["id"]
+
+    existing = (
+        client.table("meal_plan_entries")
+        .select("id")
+        .eq("meal_plan_id", plan_id)
+        .eq("day_of_week", body.day_of_week)
+        .eq("slot_name", body.slot_name)
+        .limit(1)
+        .execute()
+    )
+
+    if body.recipe_id is None:
+        if existing.data:
+            client.table("meal_plan_entries").delete().eq("id", existing.data[0]["id"]).execute()
+        return {"ok": True, "entry_id": None}
+
+    if existing.data:
+        client.table("meal_plan_entries").update({"recipe_id": body.recipe_id}).eq("id", existing.data[0]["id"]).execute()
+        entry_id = existing.data[0]["id"]
+    else:
+        result = client.table("meal_plan_entries").insert({
+            "meal_plan_id": plan_id,
+            "day_of_week": body.day_of_week,
+            "slot_name": body.slot_name,
+            "recipe_id": body.recipe_id,
+        }).execute()
+        entry_id = result.data[0]["id"]
+
+    return {"ok": True, "entry_id": entry_id}
+
+
+@router.patch("/meal-plan/{plan_id}/slots")
+def update_plan_slots(plan_id: str, body: SlotsUpdate, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = (
+        client.table("meal_plans")
+        .select("id")
+        .eq("id", plan_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404)
+    client.table("meal_plans").update({"slots": body.slots}).eq("id", plan_id).execute()
+    return {"ok": True}
+
+
+@router.post("/meal-plan/{plan_id}/shopping")
+def generate_shopping(plan_id: str, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = (
+        client.table("meal_plans")
+        .select("id")
+        .eq("id", plan_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404)
+
+    entries = (
+        client.table("meal_plan_entries")
+        .select("recipe_id")
+        .eq("meal_plan_id", plan_id)
+        .not_.is_("recipe_id", "null")
+        .execute()
+    ).data or []
+    recipe_ids = list({e["recipe_id"] for e in entries})
+
+    if not recipe_ids:
+        return {"added": [], "confirm": []}
+
+    ingredients = (
+        client.table("recipe_ingredients")
+        .select("item")
+        .in_("recipe_id", recipe_ids)
+        .execute()
+    ).data or []
+    unique_items = list({normalize_pantry_item(i["item"]) for i in ingredients})
+
+    pantry = (
+        client.table("pantry")
+        .select("id, item, current_quantity")
+        .eq("user_id", uid)
+        .execute()
+    ).data or []
+    pantry_map = {normalize_pantry_item(p["item"]): p for p in pantry}
+
+    added = []
+    confirm = []
+
+    for item in sorted(unique_items):
+        entry = pantry_map.get(item)
+        if entry is None or entry["current_quantity"] == 0:
+            existing = (
+                client.table("shopping_list")
+                .select("id")
+                .eq("user_id", uid)
+                .eq("item", item)
+                .eq("checked", False)
+                .execute()
+            )
+            if not existing.data:
+                client.table("shopping_list").insert({
+                    "user_id": uid,
+                    "item": item,
+                    "source": "meal_plan",
+                    "checked": False,
+                }).execute()
+            added.append({"item": item})
+        else:
+            confirm.append({
+                "item": item,
+                "current_quantity": entry["current_quantity"],
+                "pantry_id": entry["id"],
+            })
+
+    return {"added": added, "confirm": confirm}
 
 
 @router.patch("/pantry/{item_id}/restock")

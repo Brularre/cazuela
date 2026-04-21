@@ -6,6 +6,7 @@ import WaitingSection from "../components/WaitingSection";
 import ShoppingSection from "../components/ShoppingSection";
 import PantrySection from "../components/PantrySection";
 import RecipesSection from "../components/RecipesSection";
+import MealPlanSection from "../components/MealPlanSection";
 import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {
@@ -26,6 +27,7 @@ export default function Dashboard({ data }) {
         <WaitingSection esperando={data.esperando} />
         <PantrySection despensa={data.despensa} />
         <RecipesSection recetas={data.recetas} />
+        <MealPlanSection plan={data.plan} recetas={data.recetas} />
       </main>
     </>
   );
@@ -64,6 +66,7 @@ export async function getServerSideProps(context) {
   data.compras = data.compras ?? [];
   data.despensa = data.despensa ?? { cocina: [], baño: [], otros: [] };
   data.recetas = data.recetas ?? [];
+  data.plan = data.plan ?? null;
 
   return { props: { data } };
 }

@@ -1,0 +1,279 @@
+.weekNav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.navBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.navBtn:hover:not(:disabled) {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.navBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.weekLabel {
+  font-size: 0.9rem;
+  color: var(--cazuela-text-primary);
+  flex: 1;
+  text-align: center;
+}
+
+.loading {
+  color: var(--cazuela-text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.gridWrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 500px;
+}
+
+.grid th {
+  color: var(--cazuela-text-muted);
+  font-weight: normal;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--cazuela-border);
+  text-align: center;
+}
+
+.slotHeader {
+  width: 6rem;
+  text-align: left !important;
+}
+
+.dayHeader {
+  width: calc((100% - 6rem) / 7);
+}
+
+.grid td {
+  padding: 0.3rem 0.25rem;
+  border-bottom: 1px solid var(--cazuela-border);
+  vertical-align: middle;
+}
+
+.slotName {
+  color: var(--cazuela-text-muted);
+  font-size: 0.85rem;
+  padding-right: 0.5rem !important;
+  white-space: nowrap;
+}
+
+.cell {
+  text-align: center;
+}
+
+.recipeSelect {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--cazuela-text-primary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 0.2rem 0.25rem;
+  cursor: pointer;
+  appearance: none;
+  text-align: center;
+}
+
+.recipeSelect:hover {
+  border-color: var(--cazuela-border);
+}
+
+.recipeSelect:focus {
+  border-color: var(--cazuela-accent);
+  outline: none;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.1rem 0.4rem;
+}
+
+.deleteBtn:hover {
+  color: var(--cazuela-accent);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--cazuela-border);
+}
+
+.addSlotBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.addSlotBtn:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.addSlotForm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.slotInput {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--cazuela-accent);
+  color: var(--cazuela-text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.15rem 0.25rem;
+  outline: none;
+  width: 10rem;
+}
+
+.slotInput::placeholder {
+  color: var(--cazuela-text-muted);
+  font-style: italic;
+}
+
+.addBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.addBtn:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.cancelBtn {
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 0.25rem;
+}
+
+.cancelBtn:hover {
+  color: var(--cazuela-accent);
+}
+
+.generateBtn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--cazuela-accent);
+  color: var(--cazuela-accent);
+  border-radius: 4px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.generateBtn:hover:not(:disabled) {
+  background: var(--cazuela-accent);
+  color: var(--cazuela-text-primary);
+}
+
+.generateBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.shoppingResult {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.addedMsg {
+  color: var(--cazuela-text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.itemList {
+  color: var(--cazuela-text-muted);
+}
+
+.confirmTitle {
+  color: var(--cazuela-text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+.confirmList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--cazuela-text-primary);
+}
+
+.qty {
+  color: var(--cazuela-text-muted);
+  font-size: 0.85rem;
+}
+
+.confirmBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.confirmBtn:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
