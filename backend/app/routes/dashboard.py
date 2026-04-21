@@ -1,9 +1,10 @@
 from datetime import date, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.db import client
 from app.handlers.pantry import normalize as normalize_pantry_item
+from app.handlers.expenses import normalize as normalize_item
 from app.handlers.summary import aggregate_by_category
 from app.middleware.auth import require_auth
 
@@ -141,6 +142,18 @@ def get_dashboard(phone: str = Depends(require_auth)):
             "desired_quantity": i["desired_quantity"],
         })
 
+    recipes_result = (
+        client.table("recipes")
+        .select("id, name, servings, recipe_ingredients(id, item, quantity, unit)")
+        .eq("user_id", uid)
+        .order("name")
+        .execute()
+    )
+    recetas = [
+        {**r, "ingredients": r.pop("recipe_ingredients", []) or []}
+        for r in (recipes_result.data or [])
+    ]
+
     return {
         "gastos": {
             "weekly_total": weekly_total,
@@ -154,6 +167,7 @@ def get_dashboard(phone: str = Depends(require_auth)):
         "esperando": esperando,
         "compras": compras,
         "despensa": despensa,
+        "recetas": recetas,
     }
 
 
@@ -233,6 +247,118 @@ def update_pantry_item(item_id: str, body: PantryItemUpdate, phone: str = Depend
 def delete_pantry_item(item_id: str, phone: str = Depends(require_auth)):
     uid = _get_user_id(phone)
     client.table("pantry").delete().eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+class RecipeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    servings: int = Field(default=2, ge=1, le=100)
+
+
+class RecipeIngredientIn(BaseModel):
+    item: str = Field(min_length=1, max_length=100)
+    quantity: float | None = Field(default=None, ge=0, le=10000)
+    unit: str | None = Field(default=None, max_length=50)
+
+
+class RecipeIngredientUpdate(BaseModel):
+    item: str | None = Field(default=None, min_length=1, max_length=100)
+    quantity: float | None = Field(default=None, ge=0, le=10000)
+    unit: str | None = Field(default=None, max_length=50)
+
+
+@router.post("/recipes")
+def create_recipe_dashboard(body: RecipeIn, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = client.table("recipes").insert({
+        "user_id": uid,
+        "name": body.name.strip(),
+        "servings": body.servings,
+    }).execute()
+    if not result.data:
+        raise HTTPException(status_code=500)
+    return {"ok": True, "id": result.data[0]["id"]}
+
+
+@router.delete("/recipes/{recipe_id}")
+def delete_recipe_dashboard(recipe_id: str, phone: str = Depends(require_auth)):
+    uid = _get_user_id(phone)
+    result = (
+        client.table("recipes")
+        .select("id")
+        .eq("id", recipe_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404)
+    client.table("recipes").delete().eq("id", recipe_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+@router.post("/recipes/{recipe_id}/ingredients")
+def add_ingredient_dashboard(
+    recipe_id: str, body: RecipeIngredientIn, phone: str = Depends(require_auth)
+):
+    uid = _get_user_id(phone)
+    recipe = (
+        client.table("recipes")
+        .select("id")
+        .eq("id", recipe_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not recipe.data:
+        raise HTTPException(status_code=404)
+    result = client.table("recipe_ingredients").insert({
+        "recipe_id": recipe_id,
+        "item": normalize_item(body.item),
+        "quantity": body.quantity,
+        "unit": body.unit,
+    }).execute()
+    if not result.data:
+        raise HTTPException(status_code=500)
+    return {"ok": True, "id": result.data[0]["id"]}
+
+
+@router.patch("/recipes/{recipe_id}/ingredients/{ing_id}")
+def update_ingredient_dashboard(
+    recipe_id: str, ing_id: str, body: RecipeIngredientUpdate,
+    phone: str = Depends(require_auth)
+):
+    uid = _get_user_id(phone)
+    recipe = (
+        client.table("recipes")
+        .select("id")
+        .eq("id", recipe_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not recipe.data:
+        raise HTTPException(status_code=404)
+    data = body.model_dump(exclude_unset=True)
+    if "item" in data and data["item"]:
+        data["item"] = normalize_item(data["item"])
+    if data:
+        client.table("recipe_ingredients").update(data).eq("id", ing_id).eq("recipe_id", recipe_id).execute()
+    return {"ok": True}
+
+
+@router.delete("/recipes/{recipe_id}/ingredients/{ing_id}")
+def delete_ingredient_dashboard(
+    recipe_id: str, ing_id: str, phone: str = Depends(require_auth)
+):
+    uid = _get_user_id(phone)
+    recipe = (
+        client.table("recipes")
+        .select("id")
+        .eq("id", recipe_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not recipe.data:
+        raise HTTPException(status_code=404)
+    client.table("recipe_ingredients").delete().eq("id", ing_id).eq("recipe_id", recipe_id).execute()
     return {"ok": True}
 
 

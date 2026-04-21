@@ -1,0 +1,200 @@
+.empty {
+  color: var(--cazuela-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0 0 1rem;
+}
+
+.recipeCard {
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.recipeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0.25rem 0.1rem 0;
+}
+
+.expandBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-primary);
+  cursor: pointer;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+}
+
+.expandBtn:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.recipeName {
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.servings {
+  font-size: 0.8rem;
+  color: var(--cazuela-text-muted);
+}
+
+.chevron {
+  font-size: 0.65rem;
+  color: var(--cazuela-text-muted);
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.deleteBtn:hover {
+  color: var(--cazuela-accent);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--cazuela-border);
+}
+
+.table th {
+  text-align: left;
+  color: var(--cazuela-text-muted);
+  font-weight: normal;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--cazuela-border);
+}
+
+.table td {
+  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-primary);
+}
+
+.numCol {
+  width: 5rem;
+  text-align: center;
+}
+
+.unitCol {
+  width: 6rem;
+}
+
+.cellEditable {
+  cursor: pointer;
+  border-bottom: 1px dashed var(--cazuela-text-muted);
+  display: inline-block;
+  min-width: 1rem;
+}
+
+.cellEditable:hover {
+  color: var(--cazuela-text-primary);
+  border-bottom-color: var(--cazuela-text-primary);
+}
+
+.cellEmpty {
+  color: var(--cazuela-text-muted);
+  font-style: italic;
+}
+
+.cellInput {
+  background: var(--cazuela-bg);
+  border: 1px solid var(--cazuela-accent);
+  border-radius: 3px;
+  color: var(--cazuela-text-primary);
+  padding: 0.15rem 0.35rem;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.addRow td {
+  padding-top: 0.6rem;
+  border-bottom: none;
+}
+
+.addInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 0.15rem 0;
+  outline: none;
+}
+
+.addInput::placeholder {
+  color: var(--cazuela-text-muted);
+  font-style: italic;
+}
+
+.addInput:focus {
+  border-bottom-color: var(--cazuela-accent);
+}
+
+.addBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.addBtn:hover {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.addRecipeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--cazuela-border);
+}
+
+.addRecipeRow .addInput {
+  flex: 1;
+}
+
+.servingsInput {
+  width: 3.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 0.15rem 0.25rem;
+  outline: none;
+  text-align: center;
+}
+
+.servingsInput:focus {
+  border-bottom-color: var(--cazuela-accent);
+}
+
+.servingsLabel {
+  font-size: 0.85rem;
+  color: var(--cazuela-text-muted);
+  white-space: nowrap;
+}
