@@ -60,7 +60,7 @@ def get_dashboard(phone: str = Depends(require_auth)):
         float(r["amount"]) for r in (month_result.data or [])
     )
     days_in_month = ((month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - month_start).days
-    monthly_estimate = (monthly_total / today.day) * days_in_month
+    monthly_estimate = round((monthly_total / today.day) * days_in_month)
 
     budget_result = (
         client.table("budgets")
