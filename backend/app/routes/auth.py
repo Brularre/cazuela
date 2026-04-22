@@ -72,6 +72,9 @@ def verify_otp(body: OTPVerify):
     phone = body.phone
     code = body.code
 
+    if not _PHONE_RE.match(phone):
+        raise HTTPException(status_code=401)
+
     result = (
         client.table("otp_codes")
         .select("id, code, attempts")

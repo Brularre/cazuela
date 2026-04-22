@@ -1,3 +1,4 @@
+import warnings
 from datetime import date, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,8 +18,6 @@ DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 @router.get("")
 def get_dashboard(uid: str = Depends(require_auth)):
-
-
     today = date.today()
     monday = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
@@ -129,7 +128,8 @@ def get_dashboard(uid: str = Depends(require_auth)):
 
     despensa = {"cocina": [], "baño": [], "otros": []}
     for i in pantry_items:
-        despensa[i["category"]].append({
+        bucket = i["category"] if i["category"] in despensa else "otros"
+        despensa[bucket].append({
             "id": i["id"],
             "item": i["item"],
             "current_quantity": i["current_quantity"],
@@ -191,7 +191,6 @@ def get_dashboard(uid: str = Depends(require_auth)):
             ],
         }
     except Exception as exc:
-        import warnings
         warnings.warn(f"Failed to load meal plan for user {uid}: {exc}")
 
     return {
