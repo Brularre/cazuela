@@ -236,9 +236,13 @@ def _propose_recipe_create(context: dict) -> dict:
     )
     if not response.content:
         return {"ingredients": []}
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
     try:
-        return json.loads(response.content[0].text.strip())
+        return json.loads(raw)
     except json.JSONDecodeError:
+        warnings.warn(f"Recipe AI returned unparseable JSON: {raw[:200]}")
         return {"ingredients": []}
 
 
