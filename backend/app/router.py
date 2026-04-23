@@ -31,6 +31,7 @@ from app.handlers.recipes import (
     list_recipes,
     show_recipe,
 )
+from app.config import settings
 from app.mcp import client as mcp
 
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
@@ -85,6 +86,7 @@ PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
 HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
+TABLERO_PATTERN = re.compile(r'^(?:mi\s+)?tablero$', re.IGNORECASE)
 ME_LLAMO_PATTERN = re.compile(r'^me llamo\s+(.+)$', re.IGNORECASE)
 
 RECIPE_NEW_PATTERN = re.compile(
@@ -129,7 +131,9 @@ HELP_TEXT = (
     "• _receta cazuela_ — ver ingredientes\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto.\n\n"
     "*Tu perfil*\n"
-    "• _me llamo Bruno_ — guardar tu nombre"
+    "• _me llamo Bruno_ — guardar tu nombre\n\n"
+    "*Tablero*\n"
+    "• _tablero_ — link al dashboard web"
 )
 
 WELCOME_TEXT = (
@@ -487,6 +491,10 @@ def route(message: str, user: dict) -> str:
     match = ME_LLAMO_PATTERN.match(message)
     if match:
         return _handle_set_name(match.group(1), user)
+
+    if TABLERO_PATTERN.match(message):
+        url = settings.dashboard_url or "Tu tablero no tiene URL configurada aún."
+        return f"🔗 {url}" if settings.dashboard_url else url
 
     if HELP_PATTERN.match(message):
         return HELP_TEXT

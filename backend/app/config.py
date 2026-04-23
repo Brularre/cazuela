@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     twilio_from_number: str = ""
     anthropic_api_key: str = ""
     use_ai_agent: bool = False
+    dashboard_url: str = ""
 
 
 settings = Settings()

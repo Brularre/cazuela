@@ -43,7 +43,8 @@ def nueva_receta(name: str, user: dict) -> str:
     lines = [f"*Ingredientes sugeridos para {name}:*"]
     for ing in ingredients:
         lines.append(f"• {_format_ingredient(ing)}")
-    lines.append("\n¿Los guardamos? Responde *confirmar* o *cancelar*.")
+    lines.append("\n_Estos ingredientes son aproximados, puedes editarlos a gusto en tu tablero._")
+    lines.append("¿Los guardamos? Responde *confirmar* o *cancelar*.")
     return "\n".join(lines)
 
 
