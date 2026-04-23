@@ -47,6 +47,11 @@ export default function ShoppingSection({ compras: initial }) {
                 {i.source === "pantry" && (
                   <span className={styles.qty}>{i.current_quantity}/{i.desired_quantity}</span>
                 )}
+                {i.source === "lista" && (i.quantity || i.unit) && (
+                  <span className={styles.qty}>
+                    {[i.quantity, i.unit].filter(Boolean).join(" ")}
+                  </span>
+                )}
                 <button
                   className={i.source === "lista" ? styles.btnGhost : styles.btn}
                   onClick={() => i.source === "lista" ? handleCheck(i.id) : handleRestock(i.id)}

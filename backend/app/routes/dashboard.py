@@ -115,14 +115,14 @@ def get_dashboard(uid: str = Depends(require_auth)):
 
     lista_result = (
         client.table("shopping_list")
-        .select("id, item")
+        .select("id, item, quantity, unit")
         .eq("user_id", uid)
         .eq("checked", False)
         .order("id")
         .execute()
     )
     compras += [
-        {"id": r["id"], "item": r["item"], "source": "lista"}
+        {"id": r["id"], "item": r["item"], "quantity": r.get("quantity"), "unit": r.get("unit"), "source": "lista"}
         for r in (lista_result.data or [])
     ]
 
@@ -603,11 +603,24 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
 
     ingredients = (
         client.table("recipe_ingredients")
-        .select("item")
+        .select("item, quantity, unit")
         .in_("recipe_id", recipe_ids)
         .execute()
     ).data or []
-    unique_items = list({normalize_pantry_item(i["item"]) for i in ingredients})
+
+    grouped: dict[str, dict] = {}
+    for ing in ingredients:
+        key = normalize_pantry_item(ing["item"])
+        if key not in grouped:
+            grouped[key] = {"quantity": ing.get("quantity"), "unit": ing.get("unit")}
+        else:
+            existing = grouped[key]
+            if existing["unit"] == ing.get("unit") and existing["quantity"] is not None and ing.get("quantity") is not None:
+                existing["quantity"] = float(existing["quantity"]) + float(ing["quantity"])
+            else:
+                existing["quantity"] = None
+                existing["unit"] = None
+    unique_items = grouped
 
     pantry = (
         client.table("pantry")
@@ -621,6 +634,9 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
     confirm = []
 
     for item in sorted(unique_items):
+        info = unique_items[item]
+        qty = info["quantity"]
+        unit = info["unit"]
         entry = pantry_map.get(item)
         if entry is None or entry["current_quantity"] == 0:
             existing = (
@@ -632,13 +648,13 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
                 .execute()
             )
             if not existing.data:
-                client.table("shopping_list").insert({
-                    "user_id": uid,
-                    "item": item,
-                    "source": "meal_plan",
-                    "checked": False,
-                }).execute()
-            added.append({"item": item})
+                row = {"user_id": uid, "item": item, "source": "meal_plan", "checked": False}
+                if qty is not None:
+                    row["quantity"] = int(round(float(qty)))
+                if unit:
+                    row["unit"] = unit
+                client.table("shopping_list").insert(row).execute()
+            added.append({"item": item, "quantity": qty, "unit": unit})
         else:
             confirm.append({
                 "item": item,
