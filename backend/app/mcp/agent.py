@@ -224,7 +224,7 @@ _RECIPE_SYSTEM_PROMPT = (
 def _propose_recipe_create(context: dict) -> dict:
     payload = context.get("payload", {})
     recipe_name = payload.get("recipe_name", "")
-    if not (settings.use_ai_agent and settings.anthropic_api_key):
+    if not (payload.get("ai_mode") and settings.anthropic_api_key):
         return {"ingredients": []}
     ai_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     response = ai_client.messages.create(

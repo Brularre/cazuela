@@ -24,6 +24,7 @@ def nueva_receta(name: str, user: dict) -> str:
 
     context_id = mcp.send_context("recipe_create", user["id"], {
         "recipe_name": name.strip(),
+        "ai_mode": bool(user.get("ai_mode")),
     })
     result = mcp.request_action(context_id)
     proposed = result.get("proposed", {})
