@@ -20,14 +20,14 @@
   width: 5rem;
   height: 5rem;
   object-fit: contain;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .title {
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--cazuela-text-primary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
