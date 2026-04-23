@@ -1,5 +1,6 @@
 import re
 import secrets
+import warnings
 import requests
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -57,7 +58,7 @@ def request_otp(body: OTPRequest):
     }).execute()
 
     if settings.meta_access_token and settings.meta_phone_number_id:
-        requests.post(
+        res = requests.post(
             f"https://graph.facebook.com/v19.0/{settings.meta_phone_number_id}/messages",
             headers={"Authorization": f"Bearer {settings.meta_access_token}"},
             json={
@@ -68,6 +69,10 @@ def request_otp(body: OTPRequest):
             },
             timeout=10,
         )
+        if not res.ok:
+            warnings.warn(f"OTP send failed {res.status_code}: {res.text[:200]}")
+    else:
+        warnings.warn("Meta credentials not set — OTP not sent")
 
     return {"ok": True}
 
