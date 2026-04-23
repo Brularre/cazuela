@@ -17,7 +17,9 @@
 }
 
 .logo {
-  font-size: 3rem;
+  width: 5rem;
+  height: 5rem;
+  object-fit: contain;
   margin-bottom: 0.5rem;
 }
 

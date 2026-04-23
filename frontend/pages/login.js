@@ -60,7 +60,7 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.logo}>🍲</div>
+        <img src="/logo.webp" alt="Cazuela" className={styles.logo} />
         <h1 className={styles.title}>Cazuela</h1>
         {step === 1 ? (
           <form onSubmit={handleRequestOtp}>

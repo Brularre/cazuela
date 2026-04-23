@@ -16,8 +16,10 @@
   gap: 0.5rem;
 }
 
-.emoji {
-  font-size: 1.5rem;
+.logo {
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
 }
 
 .name {
