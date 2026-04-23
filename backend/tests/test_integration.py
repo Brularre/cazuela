@@ -2,18 +2,10 @@ from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 from main import app
+from tests.conftest import meta_payload, FAKE_USER
 
 client = TestClient(app)
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
-
-
-def make_mock_client(rows=None):
-    mock = MagicMock()
-    mock.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = rows or []
-    mock.table.return_value.insert.return_value.execute.return_value = None
-    mock.table.return_value.select.return_value.eq.return_value.maybeSingle.return_value.execute.return_value.data = FAKE_USER
-    return mock
 
 
 @patch("app.db.users.client")
@@ -22,14 +14,13 @@ def test_expense_saved_and_confirmed(mock_expense_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_expense_client.table.return_value.insert.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "gasté 5000 en almuerzo", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("gasté 5000 en almuerzo"))
 
     assert response.status_code == 200
-    assert "5.000" in response.text
-    assert "comida" in response.text
+    text = mock_send.call_args[0][1]
+    assert "5.000" in text
+    assert "comida" in text
 
 
 @patch("app.db.users.client")
@@ -42,42 +33,39 @@ def test_summary_returns_weekly_totals(mock_summary_client, mock_users_client):
         {"amount": "2000", "category": "comida"},
     ]
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "resumen", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("resumen"))
 
     assert response.status_code == 200
-    assert "comida" in response.text
-    assert "7.000" in response.text
-    assert "transporte" in response.text
+    text = mock_send.call_args[0][1]
+    assert "comida" in text
+    assert "7.000" in text
+    assert "transporte" in text
 
 
 @patch("app.db.users.client")
 def test_unrecognized_message_returns_help(mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "hola qué tal", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("hola qué tal"))
 
     assert response.status_code == 200
-    assert "No entendí" in response.text
+    text = mock_send.call_args[0][1]
+    assert "No entendí" in text
 
 
 @patch("main.get_or_create_user")
 def test_new_user_receives_welcome(mock_get_user):
     mock_get_user.return_value = (FAKE_USER, True)
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "hola", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("hola"))
 
     assert response.status_code == 200
-    assert "Cazuela" in response.text
-    assert "me llamo" in response.text
+    text = mock_send.call_args[0][1]
+    assert "Cazuela" in text
+    assert "me llamo" in text
 
 
 @patch("app.db.users.client")
@@ -85,26 +73,24 @@ def test_me_llamo_saves_name(mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_users_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "me llamo Bruno", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("me llamo Bruno"))
 
     assert response.status_code == 200
-    assert "Bruno" in response.text
+    text = mock_send.call_args[0][1]
+    assert "Bruno" in text
 
 
 @patch("app.db.users.client")
 def test_me_llamo_empty_name_rejected(mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "me llamo   ", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("me llamo   "))
 
     assert response.status_code == 200
-    assert "No entendí ese mensaje" in response.text
+    text = mock_send.call_args[0][1]
+    assert "No entendí ese mensaje" in text
 
 
 @patch("app.db.users.client")
@@ -113,14 +99,13 @@ def test_todos_add(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_handler_client.table.return_value.insert.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "pendiente: llamar al banco", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("pendiente: llamar al banco"))
 
     assert response.status_code == 200
-    assert "llamar al banco" in response.text
-    assert "✓" in response.text
+    text = mock_send.call_args[0][1]
+    assert "llamar al banco" in text
+    assert "✓" in text
 
 
 @patch("app.db.users.client")
@@ -129,13 +114,12 @@ def test_todos_list_empty(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_handler_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "mis pendientes", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("mis pendientes"))
 
     assert response.status_code == 200
-    assert "No tienes pendientes." in response.text
+    text = mock_send.call_args[0][1]
+    assert "No tienes pendientes." in text
 
 
 @patch("app.db.users.client")
@@ -147,14 +131,13 @@ def test_todos_list_with_items(mock_handler_client, mock_users_client):
         {"task": "pagar arriendo", "priority": "semana"},
     ]
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "mis pendientes", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("mis pendientes"))
 
     assert response.status_code == 200
-    assert "llamar al banco" in response.text
-    assert "pagar arriendo" in response.text
+    text = mock_send.call_args[0][1]
+    assert "llamar al banco" in text
+    assert "pagar arriendo" in text
 
 
 @patch("app.db.users.client")
@@ -166,13 +149,12 @@ def test_todos_complete(mock_handler_client, mock_users_client):
     ]
     mock_handler_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "listo: llamar al banco", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("listo: llamar al banco"))
 
     assert response.status_code == 200
-    assert "✓ Listo: llamar al banco" in response.text
+    text = mock_send.call_args[0][1]
+    assert "✓ Listo: llamar al banco" in text
 
 
 @patch("app.db.users.client")
@@ -181,13 +163,12 @@ def test_shopping_add(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_handler_client.table.return_value.insert.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "comprar: leche", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("comprar: leche"))
 
     assert response.status_code == 200
-    assert "✓ Agregado a la lista: leche" in response.text
+    text = mock_send.call_args[0][1]
+    assert "✓ Agregado a la lista: leche" in text
 
 
 @patch("app.db.users.client")
@@ -196,13 +177,12 @@ def test_shopping_list_empty(mock_handler_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
     mock_handler_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "compras", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("compras"))
 
     assert response.status_code == 200
-    assert "La lista de compras está vacía." in response.text
+    text = mock_send.call_args[0][1]
+    assert "La lista de compras está vacía." in text
 
 
 @patch("app.db.users.client")
@@ -214,15 +194,14 @@ def test_shopping_list_with_items(mock_handler_client, mock_users_client):
         {"item": "pan", "quantity": 2, "unit": "unidades", "checked": False},
     ]
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "compras", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("compras"))
 
     assert response.status_code == 200
-    assert "Lista de compras:" in response.text
-    assert "leche" in response.text
-    assert "pan" in response.text
+    text = mock_send.call_args[0][1]
+    assert "Lista de compras:" in text
+    assert "leche" in text
+    assert "pan" in text
 
 
 @patch("app.db.users.client")
@@ -234,14 +213,13 @@ def test_shopping_check_item(mock_handler_client, mock_users_client):
     ]
     mock_handler_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
 
-    response = client.post(
-        "/webhook",
-        data={"Body": "compré leche", "From": "whatsapp:+56912345678"},
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post("/webhook", json=meta_payload("compré leche"))
 
     assert response.status_code == 200
-    assert "Repuesto" in response.text
-    assert "leche" in response.text
+    text = mock_send.call_args[0][1]
+    assert "Repuesto" in text
+    assert "leche" in text
 
 
 def _make_mcp_expense_fake_client(ctx_store, expense_rows):
@@ -292,9 +270,7 @@ def _make_mcp_expense_fake_client(ctx_store, expense_rows):
                     row = dict(self._pending_insert)
                     self._expense_bucket.append(row)
                     return FakeExecute([row])
-                self._store[self._pending_insert["context_id"]] = dict(
-                    self._pending_insert
-                )
+                self._store[self._pending_insert["context_id"]] = dict(self._pending_insert)
                 return FakeExecute([self._store[self._pending_insert["context_id"]]])
 
             if self._pending_update is not None:
@@ -343,18 +319,14 @@ def test_supermercado_batch_webhook_reply(mock_get_user, monkeypatch):
     monkeypatch.setattr("app.mcp.context.client", fc)
     monkeypatch.setattr("app.handlers.expense_batch.client", fc)
 
-    response = client.post(
-        "/webhook",
-        data={
-            "Body": "gasté 18000 en supermercado: pan, leche, jabón",
-            "From": "whatsapp:+56912345678",
-        },
-    )
+    with patch("main._send_whatsapp") as mock_send:
+        response = client.post(
+            "/webhook",
+            json=meta_payload("gasté 18000 en supermercado: pan, leche, jabón"),
+        )
 
     assert response.status_code == 200
-    t = response.text
-    assert "confirmar" in t.lower() or "Confirmar" in t
-    assert "pan" in t
-    assert "comida" in t
-
-
+    text = mock_send.call_args[0][1]
+    assert "confirmar" in text.lower() or "Confirmar" in text
+    assert "pan" in text
+    assert "comida" in text

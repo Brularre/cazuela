@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import styles from "../styles/login.module.css";
 
+const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER;
+const waLink = waNumber ? `https://wa.me/${waNumber}?text=hola` : null;
+
 export default function Login() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -74,6 +77,15 @@ export default function Login() {
             <button className={styles.button} type="submit" disabled={loading}>
               {loading ? "Enviando..." : "Enviar código"}
             </button>
+            {waLink && (
+              <p className={styles.hint}>
+                ¿Primera vez?{" "}
+                <a href={waLink} target="_blank" rel="noreferrer" className={styles.waLink}>
+                  Escríbele a Cazuela en WhatsApp
+                </a>{" "}
+                primero.
+              </p>
+            )}
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp}>
@@ -98,6 +110,14 @@ export default function Login() {
             >
               Volver
             </button>
+            {waLink && (
+              <p className={styles.hint}>
+                ¿No llegó el código?{" "}
+                <a href={waLink} target="_blank" rel="noreferrer" className={styles.waLink}>
+                  Primero envía un mensaje a Cazuela
+                </a>.
+              </p>
+            )}
           </form>
         )}
       </div>

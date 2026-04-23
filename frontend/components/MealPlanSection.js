@@ -252,10 +252,14 @@ export default function MealPlanSection({ plan: initial, recetas }) {
       {shopping && !shopping.loading && (
         <div className={styles.shoppingResult}>
           {shopping.added?.length > 0 && (
-            <p className={styles.addedMsg}>
-              ✓ {shopping.added.length} ingrediente{shopping.added.length !== 1 ? "s" : ""} agregado{shopping.added.length !== 1 ? "s" : ""} a tu lista:{" "}
-              <span className={styles.itemList}>{shopping.added.map(i => i.item).join(", ")}</span>
-            </p>
+            <div className={styles.addedMsg}>
+              <p>✓ {shopping.added.length} ingrediente{shopping.added.length !== 1 ? "s" : ""} agregado{shopping.added.length !== 1 ? "s" : ""} a tu lista:</p>
+              <ol className={styles.addedList}>
+                {shopping.added.map((i, idx) => (
+                  <li key={idx}>{i.item}</li>
+                ))}
+              </ol>
+            </div>
           )}
           {shopping.confirm?.length > 0 && (
             <div className={styles.confirmList}>

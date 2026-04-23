@@ -4,6 +4,7 @@ from app.db import client
 _PHONE_RE = re.compile(r'^\+\d{7,15}$')
 
 
+
 def get_or_create_user(raw_phone: str) -> tuple[dict, bool]:
     phone = raw_phone.replace("whatsapp:", "")
     if not _PHONE_RE.match(phone):

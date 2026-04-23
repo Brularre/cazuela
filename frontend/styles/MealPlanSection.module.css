@@ -233,8 +233,12 @@
   margin: 0 0 0.5rem;
 }
 
-.itemList {
+.addedList {
+  margin: 0.35rem 0 0 1.1rem;
+  padding: 0;
   color: var(--cazuela-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
 }
 
 .confirmTitle {

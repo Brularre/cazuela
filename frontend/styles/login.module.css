@@ -84,3 +84,18 @@
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
 }
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--cazuela-text-muted);
+  margin-top: 1rem;
+}
+
+.waLink {
+  color: var(--cazuela-accent);
+  text-decoration: none;
+}
+
+.waLink:hover {
+  text-decoration: underline;
+}

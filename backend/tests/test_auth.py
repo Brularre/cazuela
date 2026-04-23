@@ -17,16 +17,15 @@ def test_request_otp_throttled_when_recent_exists():
     db.table.return_value.select.return_value.eq.return_value.eq.return_value.gt.return_value.execute.return_value.data = [
         {"id": "otp-recent"}
     ]
-    mock_twilio_cls = MagicMock()
 
     with patch("app.routes.auth.client", db), \
-         patch("app.routes.auth.TwilioClient", mock_twilio_cls):
+         patch("app.routes.auth.requests") as mock_requests:
         response = client.post("/auth/request-otp", json={"phone": TEST_PHONE})
 
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     db.table.return_value.insert.assert_not_called()
-    mock_twilio_cls.assert_not_called()
+    mock_requests.post.assert_not_called()
 
 
 def test_request_otp_unknown_phone():
@@ -49,14 +48,11 @@ def test_request_otp_known_phone():
     db.table.return_value.select.return_value.eq.return_value.eq.return_value.gt.return_value.execute.return_value.data = []
     db.table.return_value.insert.return_value.execute.return_value.data = [{}]
 
-    mock_twilio_cls = MagicMock()
-
     with patch("app.routes.auth.client", db), \
-         patch("app.routes.auth.TwilioClient", mock_twilio_cls), \
+         patch("app.routes.auth.requests") as mock_requests, \
          patch("app.routes.auth.settings") as mock_settings:
-        mock_settings.twilio_account_sid = "ACfake"
-        mock_settings.twilio_from_number = "whatsapp:+14155238886"
-        mock_settings.twilio_auth_token = "fake-token"
+        mock_settings.meta_access_token = "fake-token"
+        mock_settings.meta_phone_number_id = "12345"
         mock_settings.session_secret = "test-secret"
 
         response = client.post("/auth/request-otp", json={"phone": TEST_PHONE})
@@ -64,8 +60,7 @@ def test_request_otp_known_phone():
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     db.table.return_value.insert.assert_called_once()
-    mock_twilio_cls.assert_called_once_with("ACfake", "fake-token")
-    mock_twilio_cls.return_value.messages.create.assert_called_once()
+    mock_requests.post.assert_called_once()
 
 
 def _otp_select_chain(db):

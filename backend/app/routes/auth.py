@@ -1,11 +1,11 @@
 import re
 import secrets
+import requests
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from twilio.rest import Client as TwilioClient
 from app.config import settings
 from app.db import client
 
@@ -56,12 +56,17 @@ def request_otp(body: OTPRequest):
         "expires_at": expires_at,
     }).execute()
 
-    if settings.twilio_account_sid and settings.twilio_from_number and settings.twilio_auth_token:
-        twilio = TwilioClient(settings.twilio_account_sid, settings.twilio_auth_token)
-        twilio.messages.create(
-            from_=settings.twilio_from_number,
-            to=f"whatsapp:{phone}",
-            body=f"Tu código de acceso a Cazuela: {code}",
+    if settings.meta_access_token and settings.meta_phone_number_id:
+        requests.post(
+            f"https://graph.facebook.com/v19.0/{settings.meta_phone_number_id}/messages",
+            headers={"Authorization": f"Bearer {settings.meta_access_token}"},
+            json={
+                "messaging_product": "whatsapp",
+                "to": phone.lstrip("+"),
+                "type": "text",
+                "text": {"body": f"Tu código de acceso a Cazuela: {code}"},
+            },
+            timeout=10,
         )
 
     return {"ok": True}
