@@ -7,6 +7,8 @@ and more.
 
 No app to install. Just save the number and start messaging.
 
+Includes MCP benchmark results and full agent iteration log.
+
 ## Features
 
 - **Expenses:** `gasté 5000 en almuerzo` — logs with
@@ -34,14 +36,18 @@ No app to install. Just save the number and start messaging.
 A Next.js dashboard at `localhost:3000` shows expenses,
 budget bar, todos, pantry, shopping list, recipes, and
 weekly meal planner. Auth via WhatsApp OTP + session
-cookie.
+cookie. Pantry, recipe, ingredient, and meal-plan labels
+use capitalized words in the UI for readability.
 
 ## Tech Stack
 
 - **Backend:** Python + FastAPI, deployed on Railway
 - **Frontend:** Next.js, deployed on Railway
 - **AI:** Claude Haiku (optional; requires
-  `USE_AI_AGENT=true` + `ANTHROPIC_API_KEY`)
+  `USE_AI_AGENT=true` + `ANTHROPIC_API_KEY`). Intent
+  classification lives in `backend/app/ai_router.py`; the
+  prompt treats `pendiente` / `tarea` as your own todos and
+  `esperando` as items you are waiting on from someone else.
 - **MCP:** Internal propose→confirm/rollback context
   staging module (`backend/app/mcp/`)
 - **Database:** Supabase (managed Postgres)
@@ -208,6 +214,7 @@ cazuela/
 │   │   ├── mcp/              # MCP staging: client, agent, context
 │   │   ├── routes/           # Dashboard + auth REST API
 │   │   ├── db/               # Supabase client + queries
+│   │   ├── ai_router.py      # Haiku intent classifier (AI mode)
 │   │   └── router.py         # Message routing (regex patterns)
 │   ├── fixtures/
 │   │   └── mcp_snapshots/    # Example context JSON snapshots
