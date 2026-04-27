@@ -99,6 +99,7 @@
   cursor: pointer;
   appearance: none;
   text-align: center;
+  text-transform: capitalize;
 }
 
 .recipeSelect:hover {

@@ -39,6 +39,7 @@
 .recipeName {
   font-size: 0.95rem;
   flex: 1;
+  text-transform: capitalize;
 }
 
 .servings {
@@ -84,6 +85,10 @@
   padding: 0.45rem 0.5rem 0.45rem 0.75rem;
   border-bottom: 1px solid var(--cazuela-border);
   color: var(--cazuela-text-primary);
+}
+
+.ingredientName {
+  text-transform: capitalize;
 }
 
 .numCol {

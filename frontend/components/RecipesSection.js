@@ -176,7 +176,7 @@ export default function RecipesSection({ recetas: initial }) {
               <tbody>
                 {recipe.ingredients.map(ing => (
                   <tr key={ing.id}>
-                    <td>{editableCell(recipe.id, ing.id, "item", ing.item, "nombre", false)}</td>
+                    <td className={styles.ingredientName}>{editableCell(recipe.id, ing.id, "item", ing.item, "nombre", false)}</td>
                     <td className={styles.numCol}>{editableCell(recipe.id, ing.id, "quantity", ing.quantity, "—", true)}</td>
                     <td className={styles.unitCol}>{editableCell(recipe.id, ing.id, "unit", ing.unit, "—", false)}</td>
                     <td>

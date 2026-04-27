@@ -51,6 +51,10 @@ Rules:
 - Decimal amounts like "1,5" or "1.5" → unknown (invalid for CLP).
 - Default todo priority is "semana" unless the message says "hoy" or "mes".
 - Default pantry category is "otros" unless message specifies cocina or baño.
+- "pendiente X" or "tarea X" → always add_todo (a task the user
+  must do themselves), never add_waiting.
+- "esperando X" → add_waiting (something the user is waiting to
+  receive from someone else).
 - "me faltan X", "se me acabo X", "quedé sin X", "no tengo X" →
   consume_pantry_item (the item ran out), NOT add_to_shopping.
 - "necesito comprar X" → necesito_comprar (NOT add_to_shopping);

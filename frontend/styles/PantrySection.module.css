@@ -48,6 +48,7 @@
 
 .itemName {
   flex: 1;
+  text-transform: capitalize;
 }
 
 .qty {
