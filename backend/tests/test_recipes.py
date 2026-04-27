@@ -85,6 +85,24 @@ class TestConfirmRecipeCreate:
         assert "expiró" in result
 
 
+class TestCancelRecipeCreate:
+    def test_cancel_success(self):
+        mock_mcp = MagicMock()
+        with patch("app.handlers.recipes.mcp", mock_mcp):
+            from app.handlers.recipes import cancel_recipe_create
+            result = cancel_recipe_create("ctx-1", FAKE_USER)
+        mock_mcp.rollback.assert_called_once_with("ctx-1")
+        assert "cancelada" in result
+
+    def test_cancel_already_done(self):
+        mock_mcp = MagicMock()
+        mock_mcp.rollback.side_effect = ValueError()
+        with patch("app.handlers.recipes.mcp", mock_mcp):
+            from app.handlers.recipes import cancel_recipe_create
+            result = cancel_recipe_create("ctx-1", FAKE_USER)
+        assert "expiró" in result
+
+
 class TestListRecipes:
     def test_empty_returns_create_hint(self):
         with patch("app.handlers.recipes.get_recipes", return_value=[]):

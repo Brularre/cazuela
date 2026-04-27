@@ -412,6 +412,26 @@ def test_week_summary_no_budget_line_when_unset(mock_client):
     assert "Presupuesto" not in result
 
 
+@patch("app.handlers.summary.client")
+def test_week_summary_no_expenses_this_week(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = []
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(FAKE_USER)
+    assert "No hay gastos registrados esta semana." in result
+
+
+@patch("app.handlers.summary.client")
+def test_week_summary_shows_user_name(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"amount": "5000", "category": "comida"}
+    ]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    user = {**FAKE_USER, "name": "Ana"}
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(user)
+    assert "¡Hola Ana!" in result
+
+
 @patch("app.handlers.budget.client")
 def test_set_budget(mock_client):
     mock_client.table.return_value.upsert.return_value.execute.return_value = None

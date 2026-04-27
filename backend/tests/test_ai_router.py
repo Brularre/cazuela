@@ -119,10 +119,15 @@ def test_route_falls_back_to_regex_when_ai_returns_none():
 def test_route_falls_back_to_regex_when_dispatch_raises():
     with patch("app.router.classify", return_value={
         "intent": "add_expense", "amount": 5000, "description": "almuerzo"
-    }), patch("app.router.save_expense", side_effect=Exception("db error")), \
-         patch("app.router.save_expense") as mock_regex_save:
+    }), patch(
+        "app.router.save_expense",
+        side_effect=[Exception("db error"), "✓ Gasto guardado\n$5.000 · comida · almuerzo"],
+    ) as mock_save:
         from app.router import route
-        route("gasté 5000 en almuerzo", FAKE_USER)
+        result = route("gasté 5000 en almuerzo", FAKE_USER)
+    assert isinstance(result, str)
+    assert len(result) > 0
+    assert mock_save.call_count == 2
 
 
 def test_dispatch_returns_none_on_missing_required_fields():

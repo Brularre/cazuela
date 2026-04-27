@@ -236,18 +236,6 @@ def test_confirm_already_confirmed_raises():
         confirm(context_id)
 
 
-def test_confirm_is_idempotent_on_status_check():
-    """
-    Calling confirm more than once on a staged context must not apply twice;
-    the second call raises so the DB write path cannot run twice.
-    """
-    context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
-    request_action(context_id)
-    confirm(context_id)
-    with pytest.raises(ValueError, match="already confirmed"):
-        confirm(context_id)
-
-
 def test_two_concurrent_confirms_raises_on_second(monkeypatch):
     """
     Confirms that only one caller can move status staged→confirmed.

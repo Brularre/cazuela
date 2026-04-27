@@ -519,7 +519,7 @@ def route(message: str, user: dict) -> str:
 
     match = WAITING_RESOLVE_PATTERN.match(message)
     if match:
-        fragment = re.sub(r'^(?:el?|la|los|las)\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
+        fragment = re.sub(r'^(?:el|la|los|las)\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
         return resolve_waiting(fragment, user)
 
     match = RECIPE_NEW_PATTERN.match(message)

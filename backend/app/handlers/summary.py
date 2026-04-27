@@ -51,6 +51,13 @@ def get_week_summary(user: dict) -> str:
     grand_total = sum(totals.values())
     lines.append(f"\n*Total: {format_amount(grand_total)}*")
 
+    days_in_month = ((month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - month_start).days
+    monthly_estimate = (monthly_total / today.day) * days_in_month
+    lines.append(
+        f"_Este mes llevas {format_amount(monthly_total)}"
+        f" (estimado mensual: {format_amount(monthly_estimate)})_"
+    )
+
     budget_result = (
         client.table("budgets")
         .select("amount")
@@ -71,12 +78,5 @@ def get_week_summary(user: dict) -> str:
                 f"⚠ Presupuesto mes: {format_amount(limit)}"
                 f" — excedido por {format_amount(-remaining)}"
             )
-
-    days_in_month = ((month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - month_start).days
-    monthly_estimate = (monthly_total / today.day) * days_in_month
-    lines.append(
-        f"_Este mes llevas {format_amount(monthly_total)}"
-        f" (estimado mensual: {format_amount(monthly_estimate)})_"
-    )
 
     return "\n".join(lines)

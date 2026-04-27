@@ -1,5 +1,9 @@
 import pytest
+from unittest.mock import patch
+
 from app.handlers.expenses import map_category, normalize
+
+FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
 
 
 @pytest.mark.parametrize("description,expected", [
@@ -32,3 +36,17 @@ def test_normalize_strips_accents():
 def test_normalize_lowercases():
     assert normalize("UBER") == "uber"
     assert normalize("Netflix") == "netflix"
+
+
+@patch("app.handlers.expenses.client")
+def test_save_expense_inserts_and_replies(mock_client):
+    mock_client.table.return_value.insert.return_value.execute.return_value = None
+    from app.handlers.expenses import save_expense
+    result = save_expense(5000, "almuerzo en restaurante", FAKE_USER)
+    assert "5.000" in result
+    assert "comida" in result
+    inserted = mock_client.table.return_value.insert.call_args[0][0]
+    assert inserted["user_id"] == FAKE_USER["id"]
+    assert inserted["amount"] == 5000
+    assert inserted["category"] == "comida"
+    assert "date" in inserted
