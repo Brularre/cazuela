@@ -224,8 +224,8 @@ def test_waiting_list_routes_to_list_waiting(message):
 
 @pytest.mark.parametrize("message,expected_fragment", [
     ("llegó: seguro", "seguro"),
-    ("llego el banco", "el banco"),
-    ("llegó la respuesta", "la respuesta"),
+    ("llego el banco", "banco"),
+    ("llegó la respuesta", "respuesta"),
 ])
 def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
     with patch("app.router.resolve_waiting", return_value="ok") as mock:
@@ -287,8 +287,8 @@ def test_pantry_restock_routes_to_restock_pantry_item(message, expected_fragment
 
 
 @pytest.mark.parametrize("message,expected_amount", [
-    ("presupuesto semana 150.000", 150000.0),
-    ("presupuesto semana 80000", 80000.0),
+    ("presupuesto 600.000", 600000.0),
+    ("presupuesto 80000", 80000.0),
 ])
 def test_budget_set_routes_to_set_budget(message, expected_amount):
     with patch("app.router.set_budget", return_value="ok") as mock:

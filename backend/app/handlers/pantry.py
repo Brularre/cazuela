@@ -42,10 +42,11 @@ def list_pantry(user: dict) -> str:
     )
     items = result.data or []
     if not items:
-        return "Tu despensa está vacía. Agrega ítems con _despensa: jabón 2_."
+        return "Tu despensa está vacía. Ejemplo: _despensa cocina arroz 3_ o _despensa jabón 2_."
     grouped = {"cocina": [], "baño": [], "otros": []}
     for i in items:
-        grouped[i["category"]].append(i)
+        bucket = i["category"] if i["category"] in grouped else "otros"
+        grouped[bucket].append(i)
     labels = {"cocina": "Cocina", "baño": "Baño", "otros": "Otros"}
     lines = ["*Mi despensa:*"]
     for cat in ("cocina", "baño", "otros"):

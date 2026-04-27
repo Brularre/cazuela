@@ -413,11 +413,9 @@ def test_week_summary_no_budget_line_when_unset(mock_client):
 
 
 @patch("app.handlers.budget.client")
-def test_set_budget_semana(mock_client):
+def test_set_budget(mock_client):
     mock_client.table.return_value.upsert.return_value.execute.return_value = None
     from app.handlers.budget import set_budget
-    result = set_budget(150000, FAKE_USER)
-    assert "semanal" in result
-    assert "150.000" in result
-    assert "estimado mensual" in result
+    result = set_budget(600000, FAKE_USER)
+    assert "mensual" in result
     assert "600.000" in result

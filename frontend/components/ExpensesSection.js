@@ -9,20 +9,22 @@ function formatAmount(n) {
 export default function ExpensesSection({ gastos }) {
   if (!gastos) return null;
 
-  const total = gastos.weekly_total || 0;
-  const budget = gastos.weekly_budget || null;
-  const pct = budget ? Math.min((total / budget) * 100, 100) : 0;
+  const weeklyTotal = gastos.weekly_total || 0;
+  const monthlyTotal = gastos.monthly_total || 0;
+  const monthlyEstimate = gastos.monthly_estimate || 0;
+  const budget = gastos.budget || null;
+  const total = weeklyTotal;
+
+  const pct = budget ? Math.min((monthlyTotal / budget) * 100, 100) : 0;
   const fillColor = !budget
     ? null
-    : total > budget
+    : monthlyTotal > budget
     ? "#E74C3C"
     : pct >= 80
     ? "#E67E22"
     : "var(--cazuela-accent)";
   const byDay = gastos.by_day || [];
   const byCategory = gastos.by_category || [];
-  const monthlyTotal = gastos.monthly_total || 0;
-  const monthlyEstimate = gastos.monthly_estimate || 0;
   const maxAmount = Math.max(...byDay.map((d) => d.amount), 1);
 
   return (
@@ -41,9 +43,9 @@ export default function ExpensesSection({ gastos }) {
             />
           </div>
           <p className={styles.budgetLabel}>
-            {total > budget
-              ? `⚠ Excedido por ${formatAmount(total - budget)}`
-              : `Te quedan ${formatAmount(budget - total)} de ${formatAmount(budget)}`}
+            {monthlyTotal > budget
+              ? `⚠ Excedido por ${formatAmount(monthlyTotal - budget)}`
+              : `Te quedan ${formatAmount(budget - monthlyTotal)} de ${formatAmount(budget)}`}
           </p>
         </>
       )}
@@ -103,8 +105,8 @@ export default function ExpensesSection({ gastos }) {
       )}
       {!budget && (
         <p className={styles.tip}>
-          Envía <em>presupuesto semana 150.000</em> por WhatsApp para
-          activar el seguimiento de presupuesto.
+          Envía <em>presupuesto 600.000</em> por WhatsApp para
+          activar el seguimiento de presupuesto mensual.
         </p>
       )}
     </CollapsibleSection>

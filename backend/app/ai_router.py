@@ -12,6 +12,8 @@ _INTENTS = [
     "add_pantry_item", "list_pantry", "consume_pantry_item",
     "restock_pantry_item", "restock_all_pantry",
     "add_waiting", "list_waiting", "resolve_waiting",
+    "recipe_new", "recipe_list", "recipe_show",
+    "tablero", "set_name",
     "confirm", "cancel", "help", "unknown",
 ]
 
@@ -25,7 +27,7 @@ Intents and their JSON shapes:
 - ambiguous_batch: {"intent": "ambiguous_batch", "amount": <int>, "items_csv": "<str>"}
   (supermercado line-items batch; same semantics as regex batch gasto)
 - get_summary: {"intent": "get_summary"}
-- set_budget: {"intent": "set_budget", "period": "semana", "amount": <int>}
+- set_budget: {"intent": "set_budget", "amount": <int>}
 - add_todo: {"intent": "add_todo", "task": "<str>", "priority": "hoy"|"semana"|"mes"}
 - list_todos: {"intent": "list_todos"}
 - complete_todo: {"intent": "complete_todo", "task_fragment": "<str>"}
@@ -41,6 +43,11 @@ Intents and their JSON shapes:
 - add_waiting: {"intent": "add_waiting", "description": "<str>"}
 - list_waiting: {"intent": "list_waiting"}
 - resolve_waiting: {"intent": "resolve_waiting", "fragment": "<str>"}
+- recipe_new: {"intent": "recipe_new", "name": "<str>"}
+- recipe_list: {"intent": "recipe_list"}
+- recipe_show: {"intent": "recipe_show", "name_fragment": "<str>"}
+- tablero: {"intent": "tablero"}
+- set_name: {"intent": "set_name", "name": "<str>"}
 - confirm: {"intent": "confirm"}
 - cancel: {"intent": "cancel"}
 - help: {"intent": "help"}
@@ -59,6 +66,9 @@ Rules:
   consume_pantry_item (the item ran out), NOT add_to_shopping.
 - "necesito comprar X" → necesito_comprar (NOT add_to_shopping);
   extract items as comma-separated list, splitting on "y" and ",".
+- "sí", "si", "ok", "dale", "va", "listo" (standalone, likely responding to a pending action) → confirm.
+- "no", "nope", "olvídalo", "olvidalo" (standalone) → cancel.
+- "despensa" or "lista" (standalone) → unknown (handled before AI routing).
 - Return unknown if unsure."""
 
 
@@ -71,7 +81,7 @@ def classify(message: str) -> dict | None:
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=128,
+            max_tokens=512,
             temperature=0,
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": message}],

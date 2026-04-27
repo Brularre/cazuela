@@ -81,9 +81,8 @@ export default function Login() {
               <p className={styles.hint}>
                 ¿Primera vez?{" "}
                 <a href={waLink} target="_blank" rel="noreferrer" className={styles.waLink}>
-                  Escríbele a Cazuela en WhatsApp
-                </a>{" "}
-                primero.
+                  Tu cuenta se crea cuando envías tu primer mensaje a Cazuela en WhatsApp
+                </a>.
               </p>
             )}
           </form>

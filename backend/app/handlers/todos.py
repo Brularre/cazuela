@@ -42,3 +42,13 @@ def complete_todo(task_fragment: str, user: dict) -> str:
         return f"No encontré un pendiente con '{task_fragment}'."
     client.table("todos").update({"done": True}).eq("id", match["id"]).execute()
     return f"✓ Listo: {match['task']}"
+
+
+def delete_todo(task_fragment: str, user: dict) -> str:
+    result = client.table("todos").select("id, task").eq("user_id", user["id"]).eq("done", False).execute()
+    items = result.data or []
+    match = next((i for i in items if task_fragment.lower() in i["task"].lower()), None)
+    if not match:
+        return f"No encontré un pendiente con '{task_fragment}'."
+    client.table("todos").delete().eq("id", match["id"]).execute()
+    return f"✓ Borrado: {match['task']}"

@@ -59,10 +59,10 @@ def get_dashboard(uid: str = Depends(require_auth)):
         client.table("budgets")
         .select("amount")
         .eq("user_id", uid)
-        .eq("period", "semana")
+        .eq("period", "mes")
         .execute()
     )
-    weekly_budget = float(budget_result.data[0]["amount"]) if budget_result.data else None
+    budget = float(budget_result.data[0]["amount"]) if budget_result.data else None
 
     todo_result = (
         client.table("todos")
@@ -196,9 +196,9 @@ def get_dashboard(uid: str = Depends(require_auth)):
     return {
         "gastos": {
             "weekly_total": weekly_total,
-            "weekly_budget": weekly_budget,
             "monthly_total": monthly_total,
             "monthly_estimate": monthly_estimate,
+            "budget": budget,
             "by_day": by_day_list,
             "by_category": by_category_list,
         },

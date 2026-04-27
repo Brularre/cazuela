@@ -10,7 +10,7 @@ from app.handlers.expense_batch import (
     handle_batch_cancel,
 )
 from app.handlers.summary import get_week_summary
-from app.handlers.todos import add_todo, list_todos, complete_todo
+from app.handlers.todos import add_todo, list_todos, complete_todo, delete_todo
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.budget import set_budget
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
@@ -37,7 +37,7 @@ from app.mcp import client as mcp
 _DECIMAL_RE = re.compile(r'[.,]\d{1,2}$')
 
 BATCH_EXPENSE_PATTERN = re.compile(
-    r"^(?:gast[eé]?|pagu[eé])\s+([\d.,]+)\s+en\s+(?:el\s+)?s[uú]per(?:mercado)?[:\s]+(.+)$",
+    r"^(?:gast[eé]|pagu[eé])\s+([\d.,]+)\s+en\s+(?:el\s+)?s[uú]per(?:mercado)?[:\s]+(.+)$",
     re.IGNORECASE,
 )
 
@@ -49,18 +49,19 @@ def _parse_clp_amount(raw: str) -> float | None:
 
 
 EXPENSE_PATTERN = re.compile(
-    r'^gast[eé]?\s+([\d.,]+)\s+(?:en\s+)?(.+)$',
+    r'^gast[eé]\s+([\d.,]+)\s+(?:en\s+)?(.+)$',
     re.IGNORECASE
 )
 AMBIGUOUS_EXPENSE_PATTERN = re.compile(
     r'^pagu[eé]\s+([\d.,]+)(?:\s+(?:en\s+)?(.+))?$',
     re.IGNORECASE
 )
-SUMMARY_PATTERN = re.compile(r'^resumen', re.IGNORECASE)
+SUMMARY_PATTERN = re.compile(r'^resumen(?:\s+.*)?$', re.IGNORECASE)
 
 TODO_ADD_PATTERN = re.compile(r'^(?:pendiente|tarea)[:\s]+(.+)$', re.IGNORECASE)
 TODO_LIST_PATTERN = re.compile(r'^mis?\s+pendientes?$', re.IGNORECASE)
 TODO_DONE_PATTERN = re.compile(r'^(?:listo|hice|complet[eé])[:\s]+(.+)$', re.IGNORECASE)
+TODO_DELETE_PATTERN = re.compile(r'^borrar\s+pendiente[:\s]+(.+)$', re.IGNORECASE)
 
 NECESITO_COMPRAR_PATTERN = re.compile(r'^necesito\s+comprar\s+(.+)$', re.IGNORECASE)
 SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORECASE)
@@ -68,11 +69,11 @@ SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECAS
 PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
 
 BUDGET_SET_PATTERN = re.compile(
-    r'^presupuesto\s+semana[:\s]+([\d.,]+)$', re.IGNORECASE
+    r'^presupuesto[:\s]+([\d.,]+)$', re.IGNORECASE
 )
 
 WAITING_ADD_PATTERN = re.compile(r'^esperando[:\s]+(.+)$', re.IGNORECASE)
-WAITING_LIST_PATTERN = re.compile(r'^mis?\s+esperas?$', re.IGNORECASE)
+WAITING_LIST_PATTERN = re.compile(r'^(?:mis?\s+esperas?|qué\s+espero|que\s+espero|ver\s+esperas?)$', re.IGNORECASE)
 WAITING_RESOLVE_PATTERN = re.compile(r'^lleg[oó][:\s]+(.+)$', re.IGNORECASE)
 
 PANTRY_ADD_PATTERN = re.compile(
@@ -85,9 +86,11 @@ PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 
 CONFIRM_PATTERN = re.compile(r'^confirmar$', re.IGNORECASE)
 CANCEL_PATTERN = re.compile(r'^cancelar$', re.IGNORECASE)
-HELP_PATTERN = re.compile(r'^ayuda$', re.IGNORECASE)
+CONFIRM_SHORTCUT_PATTERN = re.compile(r'^(?:s[ií]|ok|dale|va|listo)$', re.IGNORECASE)
+CANCEL_SHORTCUT_PATTERN = re.compile(r'^(?:no|nope|olvídalo|olvidalo)$', re.IGNORECASE)
+HELP_PATTERN = re.compile(r'^ayuda\b', re.IGNORECASE)
 TABLERO_PATTERN = re.compile(r'^(?:mi\s+)?tablero$', re.IGNORECASE)
-ME_LLAMO_PATTERN = re.compile(r'^me llamo\s+(.+)$', re.IGNORECASE)
+ME_LLAMO_PATTERN = re.compile(r'^me\s+llamo\s+(.+)$', re.IGNORECASE)
 
 RECIPE_NEW_PATTERN = re.compile(
     r'^nueva\s+receta[:\s]+(.+)$', re.IGNORECASE
@@ -104,11 +107,12 @@ HELP_TEXT = (
     "• _confirmar_ / _cancelar_ — responde cuando te pregunte\n"
     "• _resumen_ — resumen semanal\n\n"
     "*Presupuesto*\n"
-    "• _presupuesto semana 150.000_\n\n"
+    "• _presupuesto 600.000_\n\n"
     "*Pendientes*\n"
     "• _pendiente llamar al banco_\n"
     "• _mis pendientes_\n"
-    "• _listo llamar al banco_\n\n"
+    "• _listo: llamar al banco_\n"
+    "• _borrar pendiente llamar al banco_\n\n"
     "*Compras*\n"
     "• _necesito comprar shampoo y balsamo_ — te pregunto dónde guardarlo\n"
     "• _comprar leche_\n"
@@ -140,13 +144,15 @@ WELCOME_TEXT = (
     "¡Hola! Soy Cazuela, tu asistente personal por WhatsApp.\n\n"
     "*Lo que puedo hacer:*\n"
     "• *Gastos* — _gasté 5000 en almuerzo_ · _resumen_\n"
-    "• *Presupuesto* — _presupuesto semana 150.000_\n"
+    "• *Presupuesto* — _presupuesto 600.000_\n"
     "• *Pendientes* — _pendiente llamar al banco_\n"
     "• *Lista de compras* — _comprar leche_\n"
     "• *Esperando* — _esperando respuesta del seguro_\n"
-    "• *Despensa* — _despensa cocina arroz 3_\n\n"
+    "• *Despensa* — _despensa cocina arroz 3_\n"
+    "• *Recetas* — _nueva receta: cazuela_\n"
+    "• *Tablero web* — _tablero_\n\n"
     "Escribe *ayuda* para ver todos los comandos.\n\n"
-    "_Para que te llame por tu nombre, escribe_ *me llamo [tu nombre]*."
+    "¿Cómo te llamo? Escribe *me llamo [tu nombre]* para que te recuerde."
 )
 
 
@@ -156,6 +162,15 @@ def _handle_set_name(name: str, user: dict) -> str:
         return "No entendí el nombre."
     db.table("users").update({"name": clean}).eq("id", user["id"]).execute()
     return f"¡Listo, {clean}!"
+
+
+def _hint_for_message(message: str) -> str:
+    first = message.strip().split()[0].lower() if message.strip().split() else ""
+    if first and first[0].isdigit():
+        return "No entendí ese mensaje. ¿Querías registrar un gasto? Prueba _gasté [monto] en [descripción]_."
+    if first in ("quiero", "tengo", "necesito", "hay"):
+        return "No entendí ese mensaje. ¿Querías agregar un pendiente? Prueba _pendiente [tarea]_."
+    return "No entendí ese mensaje. Escribe *ayuda* para ver los comandos disponibles."
 
 
 def _handle_bought(fragment: str, user: dict) -> str:
@@ -348,6 +363,26 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
         return _handle_cancel(user)
     if name == "help":
         return HELP_TEXT
+    if name == "recipe_new":
+        recipe_name = intent.get("name")
+        if not recipe_name:
+            return None
+        return nueva_receta(str(recipe_name), user)
+    if name == "recipe_list":
+        return list_recipes(user)
+    if name == "recipe_show":
+        fragment = intent.get("name_fragment")
+        if not fragment:
+            return None
+        return show_recipe(str(fragment), user)
+    if name == "tablero":
+        url = settings.dashboard_url or "Tu tablero no tiene URL configurada aún."
+        return f"🔗 {url}" if settings.dashboard_url else url
+    if name == "set_name":
+        name_val = intent.get("name")
+        if not name_val:
+            return None
+        return _handle_set_name(str(name_val), user)
     return None
 
 
@@ -376,6 +411,12 @@ def route(message: str, user: dict) -> str:
             except (ValueError, KeyError):
                 pass
 
+    if CONFIRM_SHORTCUT_PATTERN.match(message) and mcp.find_pending_for_user(user["id"]):
+        return _handle_confirm(user)
+
+    if CANCEL_SHORTCUT_PATTERN.match(message) and mcp.find_pending_for_user(user["id"]):
+        return _handle_cancel(user)
+
     intent = classify(message)
     if intent:
         try:
@@ -383,7 +424,6 @@ def route(message: str, user: dict) -> str:
             if result is not None:
                 return result
         except Exception as e:
-            import warnings
             warnings.warn(f"AI dispatch failed, falling back to regex: {e}")
 
     match = EXPENSE_PATTERN.match(message)
@@ -412,7 +452,7 @@ def route(message: str, user: dict) -> str:
     if match:
         amount = _parse_clp_amount(match.group(1))
         if amount is None:
-            return "Los montos van en pesos enteros. Ejemplo: _presupuesto semana 150.000_"
+            return "Los montos van en pesos enteros. Ejemplo: _presupuesto 600.000_"
         return set_budget(amount, user)
 
     match = TODO_ADD_PATTERN.match(message)
@@ -433,6 +473,10 @@ def route(message: str, user: dict) -> str:
     match = TODO_DONE_PATTERN.match(message)
     if match:
         return complete_todo(match.group(1).strip(), user)
+
+    match = TODO_DELETE_PATTERN.match(message)
+    if match:
+        return delete_todo(match.group(1).strip(), user)
 
     match = NECESITO_COMPRAR_PATTERN.match(message)
     if match:
@@ -475,7 +519,8 @@ def route(message: str, user: dict) -> str:
 
     match = WAITING_RESOLVE_PATTERN.match(message)
     if match:
-        return resolve_waiting(match.group(1).strip(), user)
+        fragment = re.sub(r'^(?:el?|la|los|las)\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
+        return resolve_waiting(fragment, user)
 
     match = RECIPE_NEW_PATTERN.match(message)
     if match:
@@ -486,7 +531,8 @@ def route(message: str, user: dict) -> str:
 
     match = RECIPE_SHOW_PATTERN.match(message)
     if match:
-        return show_recipe(match.group(1).strip(), user)
+        fragment = re.sub(r'^de\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
+        return show_recipe(fragment, user)
 
     match = ME_LLAMO_PATTERN.match(message)
     if match:
@@ -505,4 +551,4 @@ def route(message: str, user: dict) -> str:
     if CANCEL_PATTERN.match(message):
         return _handle_cancel(user)
 
-    return "No entendí ese mensaje. Escribe *ayuda* para ver los comandos disponibles."
+    return _hint_for_message(message)
