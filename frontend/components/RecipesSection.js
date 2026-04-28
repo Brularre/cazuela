@@ -39,6 +39,9 @@ export default function RecipesSection({ recetas: initial }) {
   }
 
   async function handleDeleteRecipe(id) {
+    const recipe = recipes.find(r => r.id === id);
+    const name = recipe?.name ?? "esta receta";
+    if (!window.confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
     const snapshot = recipes;
     setRecipes(prev => prev.filter(r => r.id !== id));
     if (expandedId === id) setExpandedId(null);
