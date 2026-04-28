@@ -145,7 +145,7 @@ HELP_TEXT = (
     "• _usé jabón_ — consumir uno\n"
     "• _compré jabón_ — reponer uno\n"
     "• _compré jabón 3_ — reponer sumando 3\n"
-    "• _stock 2 jabón_ — fijar stock exacto\n"
+    "• _stock 2 jabón_ o _stock jabón 2_ — fijar stock exacto\n"
     "• _compré todo_ — reponer todo lo que falta\n\n"
     "*Recetas*\n"
     "• _nueva receta: cazuela_ — crear receta (con IA si está activa)\n"

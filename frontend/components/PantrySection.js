@@ -98,8 +98,8 @@ export default function PantrySection({ despensa: initial }) {
         <thead>
           <tr>
             <th>Ítem</th>
-            <th>Actual</th>
-            <th>Meta</th>
+            <th>Stock</th>
+            <th>Mín.</th>
             <th></th>
           </tr>
         </thead>
