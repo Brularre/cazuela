@@ -44,3 +44,11 @@ def check_item(item_fragment: str, user: dict) -> str:
         return f"No encontré '{item_fragment}' en la lista."
     client.table("shopping_list").update({"checked": True}).eq("id", match["id"]).execute()
     return f"✓ Marcado: {match['item']}"
+
+
+def add_many_to_shopping(items: list[str], user: dict, source: str = "manual") -> int:
+    if not items:
+        return 0
+    rows = [{"user_id": user["id"], "item": item, "source": source} for item in items]
+    client.table("shopping_list").insert(rows).execute()
+    return len(rows)

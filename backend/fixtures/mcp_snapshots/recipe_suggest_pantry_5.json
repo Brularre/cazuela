@@ -1,0 +1,81 @@
+{
+    "context_id": "recipe-suggest-0000-0000-0000-000000000001",
+    "version": "1.0",
+    "domain": "recipe_suggest",
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "created_at": "2026-04-27T10:00:00+00:00",
+    "expires_at": "2099-12-31T23:59:59+00:00",
+    "status": "staged",
+    "payload": {
+        "pantry": [
+            {"item": "arroz",    "current": 3, "desired": 3},
+            {"item": "cebolla",  "current": 2, "desired": 2},
+            {"item": "huevo",    "current": 6, "desired": 6},
+            {"item": "aceite",   "current": 1, "desired": 1},
+            {"item": "sal",      "current": 1, "desired": 1},
+            {"item": "pollo",    "current": 0, "desired": 1}
+        ],
+        "existing_recipe_names": ["cazuela", "tortilla de cebolla"],
+        "n": 5
+    },
+    "proposed": {
+        "suggestions": [
+            {
+                "name": "arroz con leche",
+                "ingredients": [
+                    {"item": "arroz",   "quantity": 1,    "unit": "taza"},
+                    {"item": "leche",   "quantity": 500,  "unit": "ml"},
+                    {"item": "azucar",  "quantity": 3,    "unit": "cucharadas"},
+                    {"item": "canela",  "quantity": null,  "unit": null}
+                ],
+                "uses_pantry": ["arroz"],
+                "missing": ["leche", "azucar", "canela"]
+            },
+            {
+                "name": "revuelto de huevo con cebolla",
+                "ingredients": [
+                    {"item": "huevo",   "quantity": 3,    "unit": null},
+                    {"item": "cebolla", "quantity": 1,    "unit": null},
+                    {"item": "aceite",  "quantity": null, "unit": null},
+                    {"item": "sal",     "quantity": null, "unit": "al gusto"}
+                ],
+                "uses_pantry": ["huevo", "cebolla", "aceite", "sal"],
+                "missing": []
+            },
+            {
+                "name": "arroz con pollo al horno",
+                "ingredients": [
+                    {"item": "arroz",   "quantity": 2,   "unit": "tazas"},
+                    {"item": "pollo",   "quantity": 500, "unit": "g"},
+                    {"item": "cebolla", "quantity": 1,   "unit": null},
+                    {"item": "aceite",  "quantity": null, "unit": null}
+                ],
+                "uses_pantry": ["arroz", "cebolla", "aceite"],
+                "missing": ["pollo"]
+            },
+            {
+                "name": "sopa de cebolla",
+                "ingredients": [
+                    {"item": "cebolla", "quantity": 3,   "unit": null},
+                    {"item": "aceite",  "quantity": null, "unit": null},
+                    {"item": "sal",     "quantity": null, "unit": "al gusto"},
+                    {"item": "caldo",   "quantity": 1,   "unit": "litro"}
+                ],
+                "uses_pantry": ["cebolla", "aceite", "sal"],
+                "missing": ["caldo"]
+            },
+            {
+                "name": "huevos a la plancha",
+                "ingredients": [
+                    {"item": "huevo",  "quantity": 2,    "unit": null},
+                    {"item": "aceite", "quantity": null, "unit": null},
+                    {"item": "sal",    "quantity": null, "unit": "al gusto"}
+                ],
+                "uses_pantry": ["huevo", "aceite", "sal"],
+                "missing": []
+            }
+        ]
+    },
+    "agent_model": "claude-haiku-4-5-20251001",
+    "iteration_count": 1
+}

@@ -1,0 +1,19 @@
+{
+    "context_id": "shopping-add-0000-0000-0000-000000000001",
+    "version": "1.0",
+    "domain": "shopping_add_pending",
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "created_at": "2026-04-27T10:00:00+00:00",
+    "expires_at": "2099-12-31T23:59:59+00:00",
+    "status": "staged",
+    "payload": {
+        "items": ["pollo", "romero"],
+        "source": "recipe"
+    },
+    "proposed": {
+        "items": ["pollo", "romero"],
+        "source": "recipe"
+    },
+    "agent_model": "stub-v1",
+    "iteration_count": 1
+}

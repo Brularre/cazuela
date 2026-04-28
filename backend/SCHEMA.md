@@ -146,7 +146,7 @@ domains. RLS enabled; TTL = 1 hour.
 |--------|------|-------|
 | context_id | uuid PK | |
 | version | text | default '1.0' |
-| domain | text | expense \| expense_batch \| reconciliation \| pantry_add_batch \| recipe_create |
+| domain | text | expense \| expense_batch \| reconciliation \| pantry_add_batch \| recipe_create \| recipe_match \| recipe_suggest \| shopping_add_pending |
 | user_id | uuid FK → users(id) | |
 | created_at | timestamptz | default now() |
 | expires_at | timestamptz | created_at + 3600s |

@@ -30,6 +30,11 @@ from app.handlers.recipes import (
     cancel_recipe_create,
     list_recipes,
     show_recipe,
+    que_puedo_hacer,
+    sugerir_recetas,
+    elegir_receta,
+    confirm_shopping_add,
+    cancel_shopping_add,
 )
 from app.config import settings
 from app.mcp import client as mcp
@@ -97,6 +102,14 @@ RECIPE_NEW_PATTERN = re.compile(
 )
 RECIPE_LIST_PATTERN = re.compile(r'^mis?\s+recetas?$', re.IGNORECASE)
 RECIPE_SHOW_PATTERN = re.compile(r'^receta[:\s]+(.+)$', re.IGNORECASE)
+RECIPE_MATCH_PATTERN = re.compile(
+    r'^(?:qué|que)\s+puedo\s+hacer\??$', re.IGNORECASE
+)
+RECIPE_SUGGEST_PATTERN = re.compile(
+    r'^(?:(?:qué|que)\s+cocino|sugiéreme\s+recetas?|sugierme\s+recetas?)\??$',
+    re.IGNORECASE,
+)
+RECIPE_CHOOSE_PATTERN = re.compile(r'^elegir\s+(\d+)$', re.IGNORECASE)
 
 HELP_TEXT = (
     "*Comandos disponibles:*\n\n"
@@ -132,7 +145,10 @@ HELP_TEXT = (
     "*Recetas*\n"
     "• _nueva receta: cazuela_ — crear receta (con IA si está activa)\n"
     "• _mis recetas_ — ver todas\n"
-    "• _receta cazuela_ — ver ingredientes\n\n"
+    "• _receta cazuela_ — ver ingredientes\n"
+    "• _qué puedo hacer_ — recetas con lo que tienes en tu despensa\n"
+    "• _qué cocino_ — sugerencias de nuevas recetas con IA\n"
+    "• _elegir 2_ — elegir una sugerencia después de pedirlas\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto.\n\n"
     "*Tu perfil*\n"
     "• _me llamo Bruno_ — guardar tu nombre\n\n"
@@ -195,6 +211,11 @@ def _handle_confirm(user: dict) -> str:
         return confirm_recipe_create(context_id, user, ctx)
     if ctx.get("domain") == "expense_batch":
         return handle_batch_confirm(context_id, user)
+    if ctx.get("domain") == "shopping_add_pending":
+        return confirm_shopping_add(context_id, user, ctx)
+    if ctx.get("domain") in ("recipe_match", "recipe_suggest"):
+        n = len((ctx.get("proposed") or {}).get("suggestions", []))
+        return f"Elige una opción del 1 al {n} con *elegir N*, o *cancelar*."
     payload = ctx.get("payload", {})
     proposed = ctx.get("proposed", {})
     amount = payload.get("amount", 0)
@@ -233,6 +254,14 @@ def _handle_cancel(user: dict) -> str:
         return handle_pantry_add_cancel(context_id, user)
     if peek.get("domain") == "recipe_create":
         return cancel_recipe_create(context_id, user)
+    if peek.get("domain") == "shopping_add_pending":
+        return cancel_shopping_add(context_id, user)
+    if peek.get("domain") in ("recipe_match", "recipe_suggest"):
+        try:
+            mcp.rollback(context_id)
+        except ValueError:
+            return "Esta operación ya fue confirmada, cancelada, o expiró."
+        return "Sugerencias canceladas."
     try:
         mcp.rollback(context_id)
     except ValueError:
@@ -533,6 +562,16 @@ def route(message: str, user: dict) -> str:
     if match:
         fragment = re.sub(r'^de\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
         return show_recipe(fragment, user)
+
+    if RECIPE_MATCH_PATTERN.match(message):
+        return que_puedo_hacer(user)
+
+    if RECIPE_SUGGEST_PATTERN.match(message):
+        return sugerir_recetas(user)
+
+    match = RECIPE_CHOOSE_PATTERN.match(message)
+    if match:
+        return elegir_receta(int(match.group(1)), user)
 
     match = ME_LLAMO_PATTERN.match(message)
     if match:

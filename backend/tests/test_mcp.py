@@ -670,3 +670,164 @@ def test_category_map_pruned_to_max_keys():
     context_id = send_context("expense", FAKE_USER_ID, {**EXPENSE_PAYLOAD, "category_map": cmap})
     stored = ctx.get_context(context_id)["payload"]["category_map"]
     assert len(stored) <= ctx.MAX_CATEGORY_MAP_KEYS
+
+
+class TestProposeRecipeMatch:
+    def _base_context(self, recipes, pantry_in_stock):
+        return {
+            "domain": "recipe_match",
+            "payload": {
+                "recipes": recipes,
+                "pantry_in_stock": pantry_in_stock,
+            },
+        }
+
+    def test_empty_pantry_all_missing(self):
+        from app.mcp.agent import _propose_recipe_match
+        context = self._base_context(
+            [{"recipe_id": "r-1", "name": "cazuela", "ingredients": ["pollo", "arroz"]}],
+            [],
+        )
+        result = _propose_recipe_match(context)
+        s = result["suggestions"][0]
+        assert s["have"] == 0
+        assert s["total"] == 2
+        assert set(s["missing"]) == {"pollo", "arroz"}
+        assert s["score"] == 0.0
+
+    def test_full_overlap(self):
+        from app.mcp.agent import _propose_recipe_match
+        context = self._base_context(
+            [{"recipe_id": "r-1", "name": "tortilla", "ingredients": ["huevo", "aceite"]}],
+            ["huevo", "aceite", "sal"],
+        )
+        result = _propose_recipe_match(context)
+        s = result["suggestions"][0]
+        assert s["have"] == 2
+        assert s["total"] == 2
+        assert s["missing"] == []
+        assert s["score"] == 1.0
+
+    def test_partial_overlap(self):
+        from app.mcp.agent import _propose_recipe_match
+        context = self._base_context(
+            [{"recipe_id": "r-1", "name": "cazuela", "ingredients": ["pollo", "arroz", "zapallo", "cebolla"]}],
+            ["arroz", "cebolla"],
+        )
+        result = _propose_recipe_match(context)
+        s = result["suggestions"][0]
+        assert s["have"] == 2
+        assert s["total"] == 4
+        assert set(s["missing"]) == {"pollo", "zapallo"}
+        assert s["score"] == 0.5
+
+    def test_sorted_by_score_descending(self):
+        from app.mcp.agent import _propose_recipe_match
+        context = self._base_context(
+            [
+                {"recipe_id": "r-1", "name": "cazuela", "ingredients": ["pollo", "arroz", "zapallo"]},
+                {"recipe_id": "r-2", "name": "tortilla", "ingredients": ["huevo", "aceite"]},
+                {"recipe_id": "r-3", "name": "sopa", "ingredients": ["verdura"]},
+            ],
+            ["huevo", "aceite", "arroz"],
+        )
+        result = _propose_recipe_match(context)
+        names = [s["name"] for s in result["suggestions"]]
+        assert names[0] == "tortilla"
+        assert names[1] == "cazuela"
+        assert names[2] == "sopa"
+
+    def test_recipe_no_ingredients_scores_zero(self):
+        from app.mcp.agent import _propose_recipe_match
+        context = self._base_context(
+            [{"recipe_id": "r-1", "name": "misterio", "ingredients": []}],
+            ["arroz", "cebolla"],
+        )
+        result = _propose_recipe_match(context)
+        s = result["suggestions"][0]
+        assert s["score"] == 0.0
+        assert s["have"] == 0
+        assert s["total"] == 0
+
+    def test_uses_stub_model(self):
+        from app.mcp.agent import get_model_for
+        assert get_model_for({"domain": "recipe_match"}) == "stub-v1"
+
+
+class TestProposeRecipeSuggest:
+    def test_no_api_key_returns_empty(self):
+        from app.mcp.agent import _propose_recipe_suggest
+        context = {"domain": "recipe_suggest", "payload": {"pantry": [{"item": "arroz"}], "n": 5}}
+        with patch("app.mcp.agent.settings") as mock_settings:
+            mock_settings.use_ai_agent = True
+            mock_settings.anthropic_api_key = None
+            result = _propose_recipe_suggest(context)
+        assert result == {"suggestions": []}
+
+    def test_mocked_ai_returns_suggestions(self):
+        from app.mcp.agent import _propose_recipe_suggest
+        suggestions = [{"name": "tortilla", "ingredients": [], "uses_pantry": [], "missing": []}]
+        fake_response = MagicMock()
+        fake_response.content = [MagicMock(text=json.dumps({"suggestions": suggestions}))]
+        fake_client = MagicMock()
+        fake_client.messages.create.return_value = fake_response
+        context = {
+            "domain": "recipe_suggest",
+            "payload": {
+                "pantry": [{"item": "huevo", "current": 6, "desired": 6}],
+                "existing_recipe_names": [],
+                "n": 5,
+            },
+        }
+        with patch("app.mcp.agent.settings") as mock_settings, \
+             patch("app.mcp.agent.anthropic") as mock_anthropic:
+            mock_settings.use_ai_agent = True
+            mock_settings.anthropic_api_key = "sk-ant-fake"
+            mock_anthropic.Anthropic.return_value = fake_client
+            result = _propose_recipe_suggest(context)
+        assert result["suggestions"][0]["name"] == "tortilla"
+
+    def test_malformed_json_returns_empty(self):
+        from app.mcp.agent import _propose_recipe_suggest
+        fake_response = MagicMock()
+        fake_response.content = [MagicMock(text="not valid json {{{")]
+        fake_client = MagicMock()
+        fake_client.messages.create.return_value = fake_response
+        context = {
+            "domain": "recipe_suggest",
+            "payload": {"pantry": [{"item": "arroz"}], "n": 3},
+        }
+        with patch("app.mcp.agent.settings") as mock_settings, \
+             patch("app.mcp.agent.anthropic") as mock_anthropic:
+            mock_settings.use_ai_agent = True
+            mock_settings.anthropic_api_key = "sk-ant-fake"
+            mock_anthropic.Anthropic.return_value = fake_client
+            result = _propose_recipe_suggest(context)
+        assert result == {"suggestions": []}
+
+    def test_uses_ai_model(self):
+        from app.mcp.agent import get_model_for
+        with patch("app.mcp.agent.settings") as mock_settings:
+            mock_settings.use_ai_agent = True
+            mock_settings.anthropic_api_key = "sk-ant-fake"
+            assert get_model_for({"domain": "recipe_suggest"}) == "claude-haiku-4-5-20251001"
+
+    def test_uses_stub_model_when_no_key(self):
+        from app.mcp.agent import get_model_for
+        with patch("app.mcp.agent.settings") as mock_settings:
+            mock_settings.use_ai_agent = True
+            mock_settings.anthropic_api_key = None
+            assert get_model_for({"domain": "recipe_suggest"}) == "stub-v1"
+
+
+class TestProposeShoppingAddPending:
+    def test_returns_payload(self):
+        from app.mcp.agent import _propose_shopping_add_pending
+        payload = {"items": ["pollo", "romero"], "source": "recipe"}
+        context = {"domain": "shopping_add_pending", "payload": payload}
+        result = _propose_shopping_add_pending(context)
+        assert result == payload
+
+    def test_uses_stub_model(self):
+        from app.mcp.agent import get_model_for
+        assert get_model_for({"domain": "shopping_add_pending"}) == "stub-v1"

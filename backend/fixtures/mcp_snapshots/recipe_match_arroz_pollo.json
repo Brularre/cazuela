@@ -1,0 +1,59 @@
+{
+    "context_id": "recipe-match-0000-0000-0000-000000000001",
+    "version": "1.0",
+    "domain": "recipe_match",
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "created_at": "2026-04-27T10:00:00+00:00",
+    "expires_at": "2099-12-31T23:59:59+00:00",
+    "status": "staged",
+    "payload": {
+        "recipes": [
+            {
+                "recipe_id": "r-00000001",
+                "name": "cazuela",
+                "ingredients": ["pollo", "arroz", "zapallo", "cebolla", "choclo", "papa"]
+            },
+            {
+                "recipe_id": "r-00000002",
+                "name": "tortilla de cebolla",
+                "ingredients": ["huevo", "cebolla", "aceite"]
+            },
+            {
+                "recipe_id": "r-00000003",
+                "name": "arroz con leche",
+                "ingredients": ["arroz", "leche", "azucar", "canela"]
+            }
+        ],
+        "pantry_in_stock": ["arroz", "cebolla", "aceite", "huevo", "leche"]
+    },
+    "proposed": {
+        "suggestions": [
+            {
+                "recipe_id": "r-00000002",
+                "name": "tortilla de cebolla",
+                "have": 3,
+                "total": 3,
+                "missing": [],
+                "score": 1.0
+            },
+            {
+                "recipe_id": "r-00000003",
+                "name": "arroz con leche",
+                "have": 2,
+                "total": 4,
+                "missing": ["azucar", "canela"],
+                "score": 0.5
+            },
+            {
+                "recipe_id": "r-00000001",
+                "name": "cazuela",
+                "have": 2,
+                "total": 6,
+                "missing": ["pollo", "zapallo", "choclo", "papa"],
+                "score": 0.333
+            }
+        ]
+    },
+    "agent_model": "stub-v1",
+    "iteration_count": 1
+}

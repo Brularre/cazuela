@@ -220,6 +220,20 @@ _RECIPE_SYSTEM_PROMPT = (
     "\"quantity\": <number or null>, \"unit\": \"<string or null>\"}]}"
 )
 
+_RECIPE_SUGGEST_SYSTEM_PROMPT = (
+    "Eres un asistente de cocina. Se te da una lista de ingredientes de la despensa "
+    "del usuario con su cantidad actual (current) y deseada (desired). "
+    "Sugiere exactamente N recetas que el usuario pueda cocinar, prefiriendo las que "
+    "usen ingredientes con current > 0. Usa los nombres exactos de los ingredientes "
+    "de la despensa cuando sea posible. Evita sugerir recetas cuyos nombres estén en "
+    "la lista de recetas existentes del usuario. "
+    "Responde solo con JSON válido — sin markdown, sin texto fuera del JSON. "
+    "Formato: {\"suggestions\": [{\"name\": \"<nombre>\", "
+    "\"ingredients\": [{\"item\": \"<nombre>\", \"quantity\": <número o null>, "
+    "\"unit\": \"<string o null>\"}], "
+    "\"uses_pantry\": [\"<item en stock>\"], \"missing\": [\"<item no en stock>\"]}]}"
+)
+
 
 def _propose_recipe_create(context: dict) -> dict:
     payload = context.get("payload", {})
@@ -246,11 +260,73 @@ def _propose_recipe_create(context: dict) -> dict:
         return {"ingredients": []}
 
 
+def _propose_recipe_match(context: dict) -> dict:
+    payload = context.get("payload", {})
+    recipes = payload.get("recipes", [])
+    in_stock = set(payload.get("pantry_in_stock", []))
+    suggestions = []
+    for r in recipes:
+        ingredients = r.get("ingredients", [])
+        total = len(ingredients)
+        missing = [ing for ing in ingredients if ing not in in_stock]
+        have = total - len(missing)
+        score = have / total if total > 0 else 0.0
+        suggestions.append({
+            "recipe_id": r.get("recipe_id", ""),
+            "name": r.get("name", ""),
+            "have": have,
+            "total": total,
+            "missing": missing,
+            "score": round(score, 3),
+        })
+    suggestions.sort(key=lambda s: s["score"], reverse=True)
+    return {"suggestions": suggestions}
+
+
+def _propose_recipe_suggest(context: dict) -> dict:
+    payload = context.get("payload", {})
+    if not (settings.use_ai_agent and settings.anthropic_api_key):
+        return {"suggestions": []}
+    n = payload.get("n", 5)
+    pantry = payload.get("pantry", [])
+    existing = payload.get("existing_recipe_names", [])
+    user_message = (
+        f"Ingredientes de la despensa:\n{json.dumps(pantry, ensure_ascii=False)}\n\n"
+        f"Recetas ya guardadas (no sugerir): {json.dumps(existing, ensure_ascii=False)}\n\n"
+        f"Sugiere exactamente {n} recetas."
+    )
+    ai_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    response = ai_client.messages.create(
+        model=MODEL_NAME,
+        max_tokens=1024,
+        temperature=0,
+        system=_RECIPE_SUGGEST_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    if not response.content:
+        return {"suggestions": []}
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        warnings.warn(f"Recipe suggest AI returned unparseable JSON: {raw[:200]}")
+        return {"suggestions": []}
+
+
+def _propose_shopping_add_pending(context: dict) -> dict:
+    return context.get("payload", {})
+
+
 def get_model_for(context: dict) -> str:
     domain = context.get("domain")
-    if domain in ("expense_batch", "reconciliation", "pantry_add_batch"):
+    if domain in (
+        "expense_batch", "reconciliation", "pantry_add_batch",
+        "recipe_match", "shopping_add_pending",
+    ):
         return STUB_MODEL_NAME
-    if domain in ("expense", "recipe_create") and settings.use_ai_agent and settings.anthropic_api_key:
+    if domain in ("expense", "recipe_create", "recipe_suggest") and settings.use_ai_agent and settings.anthropic_api_key:
         return MODEL_NAME
     return STUB_MODEL_NAME
 
@@ -265,6 +341,12 @@ def propose(context: dict) -> dict:
         return _propose_pantry_add_batch(context)
     if domain == "recipe_create":
         return _propose_recipe_create(context)
+    if domain == "recipe_match":
+        return _propose_recipe_match(context)
+    if domain == "recipe_suggest":
+        return _propose_recipe_suggest(context)
+    if domain == "shopping_add_pending":
+        return _propose_shopping_add_pending(context)
     if domain != "expense":
         return {"confirmed": True}
     if settings.use_ai_agent and settings.anthropic_api_key:
