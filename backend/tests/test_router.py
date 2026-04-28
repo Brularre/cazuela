@@ -115,6 +115,19 @@ def test_compre_routes_to_handle_bought(message, expected_item):
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item
+        assert mock.call_args[0][2] is None
+
+
+@pytest.mark.parametrize("message,expected_item,expected_qty", [
+    ("compré leche 3", "leche", 3),
+    ("compré botellas agua 1.6 12", "botellas agua 1.6", 12),
+])
+def test_compre_with_qty_routes_to_handle_bought(message, expected_item, expected_qty):
+    with patch("app.router._handle_bought", return_value="ok") as mock:
+        route(message, FAKE_USER)
+        mock.assert_called_once()
+        assert mock.call_args[0][0] == expected_item
+        assert mock.call_args[0][2] == expected_qty
 
 
 def test_handle_bought_both_match():
@@ -150,6 +163,16 @@ def test_handle_bought_neither_match():
         from app.router import _handle_bought
         result = _handle_bought("leche", FAKE_USER)
         assert "en tu lista ni en tu despensa" in result
+
+
+def test_handle_bought_pantry_suggestion_passes_through():
+    suggestion = "No encontré 'leches' en tu despensa. ¿Quisiste decir _leche_?"
+    with patch("app.router.check_item", return_value="No encontré 'leches' en la lista."), \
+         patch("app.router.restock_pantry_item", return_value=suggestion):
+        from app.router import _handle_bought
+        result = _handle_bought("leches", FAKE_USER)
+        assert "Quisiste decir" in result
+        assert "leche" in result
 
 
 def test_ambiguous_expense_routes_to_handle_ambiguous():

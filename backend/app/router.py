@@ -71,7 +71,7 @@ TODO_DELETE_PATTERN = re.compile(r'^borrar\s+pendiente[:\s]+(.+)$', re.IGNORECAS
 NECESITO_COMPRAR_PATTERN = re.compile(r'^necesito\s+comprar\s+(.+)$', re.IGNORECASE)
 SHOPPING_ADD_PATTERN = re.compile(r'^(?:comprar|necesito)[:\s]+(.+)$', re.IGNORECASE)
 SHOPPING_LIST_PATTERN = re.compile(r'^(?:lista\s+de\s+)?compras?$', re.IGNORECASE)
-PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+)$', re.IGNORECASE)
+PANTRY_RESTOCK_PATTERN = re.compile(r'^compr[eé][:\s]+(.+?)(?:\s+(\d+))?$', re.IGNORECASE)
 
 BUDGET_SET_PATTERN = re.compile(
     r'^presupuesto[:\s]+([\d.,]+)$', re.IGNORECASE
@@ -189,10 +189,10 @@ def _hint_for_message(message: str) -> str:
     return "No entendí ese mensaje. Escribe *ayuda* para ver los comandos disponibles."
 
 
-def _handle_bought(fragment: str, user: dict) -> str:
+def _handle_bought(fragment: str, user: dict, qty: int | None = None) -> str:
     results = []
-    for result in (check_item(fragment, user), restock_pantry_item(fragment, user)):
-        if result and not result.startswith("No encontré"):
+    for result in (check_item(fragment, user), restock_pantry_item(fragment, user, qty)):
+        if result and (not result.startswith("No encontré") or "Quisiste decir" in result):
             results.append(result)
     if results:
         return "\n".join(results)
@@ -537,7 +537,9 @@ def route(message: str, user: dict) -> str:
 
     match = PANTRY_RESTOCK_PATTERN.match(message)
     if match:
-        return _handle_bought(match.group(1).strip(), user)
+        fragment = match.group(1).strip()
+        qty_str = match.group(2)
+        return _handle_bought(fragment, user, int(qty_str) if qty_str else None)
 
     match = WAITING_ADD_PATTERN.match(message)
     if match:

@@ -320,19 +320,44 @@ def test_consume_pantry_item_no_match(mock_client):
 @patch("app.handlers.pantry.client")
 def test_restock_pantry_item(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "1", "item": "jabón", "desired_quantity": 3}
+        {"id": "1", "item": "jabón", "current_quantity": 0, "desired_quantity": 3}
     ]
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.pantry import restock_pantry_item
     result = restock_pantry_item("jabón", FAKE_USER)
     assert "Repuesto" in result
     assert "jabón" in result
+    assert "3 disponibles" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_pantry_item_with_qty(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "botella agua 1.6", "current_quantity": 0, "desired_quantity": 12}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import restock_pantry_item
+    result = restock_pantry_item("botella agua 1.6", FAKE_USER, qty=6)
+    assert "Repuesto" in result
+    assert "6 disponibles" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_restock_pantry_item_plural_suggests_stored_name(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "botella agua 1.6", "current_quantity": 0, "desired_quantity": 12}
+    ]
+    from app.handlers.pantry import restock_pantry_item
+    result = restock_pantry_item("botellas agua 1.6", FAKE_USER)
+    assert "No encontré" in result
+    assert "botella agua 1.6" in result
+    assert "Quisiste decir" in result
 
 
 @patch("app.handlers.pantry.client")
 def test_restock_pantry_item_no_match(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "1", "item": "jabón", "desired_quantity": 3}
+        {"id": "1", "item": "jabón", "current_quantity": 1, "desired_quantity": 3}
     ]
     from app.handlers.pantry import restock_pantry_item
     result = restock_pantry_item("detergente", FAKE_USER)

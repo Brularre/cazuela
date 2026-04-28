@@ -83,25 +83,37 @@ def consume_pantry_item(item_fragment: str, user: dict) -> str:
     return f"✓ Usaste {match['item']} (quedan {new_qty})"
 
 
-def restock_pantry_item(item_fragment: str, user: dict) -> str:
+def restock_pantry_item(item_fragment: str, user: dict, qty: int | None = None) -> str:
     result = (
         client.table("pantry")
-        .select("id, item, desired_quantity")
+        .select("id, item, current_quantity, desired_quantity")
         .eq("user_id", user["id"])
         .execute()
     )
     items = result.data or []
     needle = normalize(item_fragment)
+
     match = next(
-        (i for i in items if needle in normalize(i["item"])),
+        (i for i in items if needle in normalize(i["item"]) or normalize(i["item"]) in needle),
         None,
     )
     if not match:
+        needle_words = set(needle.split())
+        suggestion = next(
+            (i for i in items if needle_words & set(normalize(i["item"]).split())),
+            None,
+        )
+        if suggestion:
+            return (
+                f"No encontré '{item_fragment}' en tu despensa. "
+                f"¿Quisiste decir _{suggestion['item']}_?"
+            )
         return f"No encontré '{item_fragment}' en tu despensa."
+    new_qty = (match["current_quantity"] or 0) + qty if qty is not None else match["desired_quantity"]
     client.table("pantry").update({
-        "current_quantity": match["desired_quantity"]
+        "current_quantity": new_qty
     }).eq("id", match["id"]).execute()
-    return f"✓ Repuesto: {match['item']} ({match['desired_quantity']} disponibles)"
+    return f"✓ Repuesto: {match['item']} ({new_qty} disponibles)"
 
 
 def restock_all_pantry(user: dict) -> str:
