@@ -228,6 +228,7 @@ def resolve_waiting(item_id: str, uid: str = Depends(require_auth)):
 class PantryItemIn(BaseModel):
     item: str
     desired_quantity: int
+    current_quantity: int | None = None
     category: Literal["cocina", "baño", "otros"] = "otros"
 
 
@@ -244,7 +245,7 @@ def create_pantry_item(body: PantryItemIn, uid: str = Depends(require_auth)):
         "user_id": uid,
         "item": normalized,
         "desired_quantity": body.desired_quantity,
-        "current_quantity": body.desired_quantity,
+        "current_quantity": body.current_quantity if body.current_quantity is not None else body.desired_quantity,
         "category": body.category,
     }, on_conflict="user_id,item").execute()
     if not result.data:

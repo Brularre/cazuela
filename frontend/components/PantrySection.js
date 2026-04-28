@@ -13,7 +13,7 @@ const DESCRIPTIONS = {
 export default function PantrySection({ despensa: initial }) {
   const [items, setItems] = useState(initial || { cocina: [], baño: [], otros: [] });
   const [activeTab, setActiveTab] = useState("cocina");
-  const [newItem, setNewItem] = useState({ item: "", desired_quantity: 1 });
+  const [newItem, setNewItem] = useState({ item: "", current_quantity: 1, desired_quantity: 1 });
   const [editingId, setEditingId] = useState(null);
   const [editQty, setEditQty] = useState("");
 
@@ -36,10 +36,10 @@ export default function PantrySection({ despensa: initial }) {
         id,
         item: newItem.item,
         desired_quantity: newItem.desired_quantity,
-        current_quantity: newItem.desired_quantity,
+        current_quantity: newItem.current_quantity,
       }],
     }));
-    setNewItem({ item: "", desired_quantity: 1 });
+    setNewItem({ item: "", current_quantity: 1, desired_quantity: 1 });
   }
 
   async function handleDelete(id) {
@@ -146,7 +146,15 @@ export default function PantrySection({ despensa: initial }) {
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAdd(e); } }}
               />
             </td>
-            <td className={styles.qty}>—</td>
+            <td className={styles.qty}>
+              <input
+                className={styles.qtyInput}
+                type="number"
+                min="0"
+                value={newItem.current_quantity}
+                onChange={e => setNewItem(p => ({ ...p, current_quantity: parseInt(e.target.value, 10) || 0 }))}
+              />
+            </td>
             <td className={styles.qty}>
               <input
                 className={styles.qtyInput}
