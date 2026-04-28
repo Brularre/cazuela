@@ -398,6 +398,42 @@ def test_restock_all_pantry_already_stocked(mock_client):
     assert "al día" in result
 
 
+@patch("app.handlers.pantry.client")
+def test_set_pantry_stock(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "desired_quantity": 3}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import set_pantry_stock
+    result = set_pantry_stock("jabón", 2, FAKE_USER)
+    assert "Stock actualizado" in result
+    assert "2 disponibles" in result
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["current_quantity"] == 2
+
+
+@patch("app.handlers.pantry.client")
+def test_set_pantry_stock_no_match(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "desired_quantity": 3}
+    ]
+    from app.handlers.pantry import set_pantry_stock
+    result = set_pantry_stock("detergente", 2, FAKE_USER)
+    assert "No encontré" in result
+
+
+@patch("app.handlers.pantry.client")
+def test_set_pantry_stock_caps_at_9999(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"id": "1", "item": "jabón", "desired_quantity": 3}
+    ]
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    from app.handlers.pantry import set_pantry_stock
+    result = set_pantry_stock("jabón", 99999, FAKE_USER)
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["current_quantity"] == 9999
+
+
 @patch("app.handlers.summary.client")
 def test_week_summary_shows_budget_remaining(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [

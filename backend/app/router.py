@@ -17,6 +17,7 @@ from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.handlers.pantry import (
     add_pantry_item, list_pantry,
     consume_pantry_item, restock_pantry_item, restock_all_pantry,
+    set_pantry_stock,
 )
 from app.handlers.pantry_shopping import (
     handle_pantry_add_create,
@@ -86,6 +87,7 @@ PANTRY_ADD_PATTERN = re.compile(
     re.IGNORECASE
 )
 PANTRY_LIST_PATTERN = re.compile(r'^mi\s+despensa$', re.IGNORECASE)
+PANTRY_SET_STOCK_PATTERN = re.compile(r'^stock\s+(\d+)\s+(.+)$', re.IGNORECASE)
 PANTRY_CONSUME_PATTERN = re.compile(r'^us[eé][:\s]+(.+)$', re.IGNORECASE)
 PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 
@@ -141,6 +143,8 @@ HELP_TEXT = (
     "• _mi despensa_ — ver stock\n"
     "• _usé jabón_ — consumir uno\n"
     "• _compré jabón_ — reponer uno\n"
+    "• _compré jabón 3_ — reponer sumando 3\n"
+    "• _stock 2 jabón_ — fijar stock exacto\n"
     "• _compré todo_ — reponer todo lo que falta\n\n"
     "*Recetas*\n"
     "• _nueva receta: cazuela_ — crear receta (con IA si está activa)\n"
@@ -531,6 +535,10 @@ def route(message: str, user: dict) -> str:
     match = PANTRY_CONSUME_PATTERN.match(message)
     if match:
         return consume_pantry_item(match.group(1).strip(), user)
+
+    match = PANTRY_SET_STOCK_PATTERN.match(message)
+    if match:
+        return set_pantry_stock(match.group(2).strip(), int(match.group(1)), user)
 
     if PANTRY_RESTOCK_ALL_PATTERN.match(message):
         return restock_all_pantry(user)

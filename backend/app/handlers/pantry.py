@@ -116,6 +116,39 @@ def restock_pantry_item(item_fragment: str, user: dict, qty: int | None = None) 
     return f"✓ Repuesto: {match['item']} ({new_qty} disponibles)"
 
 
+def set_pantry_stock(item_fragment: str, qty: int, user: dict) -> str:
+    result = (
+        client.table("pantry")
+        .select("id, item, desired_quantity")
+        .eq("user_id", user["id"])
+        .execute()
+    )
+    items = result.data or []
+    needle = normalize(item_fragment)
+
+    match = next(
+        (i for i in items if needle in normalize(i["item"]) or normalize(i["item"]) in needle),
+        None,
+    )
+    if not match:
+        needle_words = set(needle.split())
+        suggestion = next(
+            (i for i in items if needle_words & set(normalize(i["item"]).split())),
+            None,
+        )
+        if suggestion:
+            return (
+                f"No encontré '{item_fragment}' en tu despensa. "
+                f"¿Quisiste decir _{suggestion['item']}_?"
+            )
+        return f"No encontré '{item_fragment}' en tu despensa."
+    new_qty = min(qty, 9999)
+    client.table("pantry").update({
+        "current_quantity": new_qty
+    }).eq("id", match["id"]).execute()
+    return f"✓ Stock actualizado: {match['item']} ({new_qty} disponibles)"
+
+
 def restock_all_pantry(user: dict) -> str:
     items = (
         client.table("pantry")
