@@ -214,6 +214,21 @@ def test_update_pantry_item():
     assert res.json()["ok"] is True
 
 
+def test_update_pantry_item_current_quantity():
+    pantry = MagicMock()
+    db = _pantry_db(pantry)
+    with patch("app.routes.dashboard.client", db), \
+         patch("app.middleware.auth.settings") as s:
+        s.session_secret = TEST_SECRET
+        res = client.patch(
+            "/dashboard/pantry/item-123",
+            json={"current_quantity": 2},
+            cookies=_authed_cookies(),
+        )
+    assert res.status_code == 200
+    pantry.update.assert_called_once_with({"current_quantity": 2})
+
+
 def test_delete_pantry_item():
     db = _pantry_db()
     with patch("app.routes.dashboard.client", db), \

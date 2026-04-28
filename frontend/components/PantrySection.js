@@ -52,6 +52,24 @@ export default function PantrySection({ despensa: initial }) {
     if (!res.ok) setItems(snapshot);
   }
 
+  async function handleDecrement(id, currentQty) {
+    if (currentQty <= 0) return;
+    const newQty = currentQty - 1;
+    const snapshot = items;
+    setItems(prev => ({
+      ...prev,
+      [activeTab]: prev[activeTab].map(i =>
+        i.id === id ? { ...i, current_quantity: newQty } : i
+      ),
+    }));
+    const res = await fetch(`/api/dashboard/pantry/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current_quantity: newQty }),
+    });
+    if (!res.ok) setItems(snapshot);
+  }
+
   function startEdit(id, qty) {
     setEditingId(id);
     setEditQty(String(qty));
@@ -107,7 +125,20 @@ export default function PantrySection({ despensa: initial }) {
           {tabItems.map(i => (
             <tr key={i.id}>
               <td className={styles.itemName}>{i.item}</td>
-              <td className={styles.qty}>{i.current_quantity}</td>
+              <td className={styles.qty}>
+                <span className={styles.stockRow}>
+                  {i.current_quantity}
+                  <button
+                    type="button"
+                    className={styles.decrementBtn}
+                    onClick={() => handleDecrement(i.id, i.current_quantity)}
+                    disabled={i.current_quantity <= 0}
+                    title="Reducir stock"
+                  >
+                    −
+                  </button>
+                </span>
+              </td>
               <td className={styles.qty}>
                 {editingId === i.id ? (
                   <input

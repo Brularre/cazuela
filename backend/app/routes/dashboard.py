@@ -234,6 +234,7 @@ class PantryItemIn(BaseModel):
 
 class PantryItemUpdate(BaseModel):
     desired_quantity: int | None = None
+    current_quantity: int | None = Field(default=None, ge=0)
     category: Literal["cocina", "baño", "otros"] | None = None
 
 

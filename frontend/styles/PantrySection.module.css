@@ -53,8 +53,35 @@
 
 .qty {
   text-align: center;
-  width: 4rem;
+  width: 5rem;
   color: var(--cazuela-text-muted);
+}
+
+.stockRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.decrementBtn {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.decrementBtn:hover:not(:disabled) {
+  border-color: var(--cazuela-accent);
+  color: var(--cazuela-accent);
+}
+
+.decrementBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .qtyEditable {
