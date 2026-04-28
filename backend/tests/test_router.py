@@ -272,17 +272,55 @@ def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
 
 
 @pytest.mark.parametrize("message,expected_item,expected_qty,expected_category", [
-    ("despensa: jabón 2", "jabón", 2, "otros"),
     ("despensa cocina: arroz 3", "arroz", 3, "cocina"),
     ("despensa baño jabón de manos 1", "jabón de manos", 1, "baño"),
 ])
-def test_pantry_add_routes_to_add_pantry_item(message, expected_item, expected_qty, expected_category):
+def test_pantry_add_with_category_routes_to_add_pantry_item(message, expected_item, expected_qty, expected_category):
     with patch("app.router.add_pantry_item", return_value="ok") as mock:
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item
         assert mock.call_args[0][1] == expected_qty
         assert mock.call_args[0][3] == expected_category
+
+
+def test_pantry_add_without_category_prompts_for_category():
+    with patch("app.router.mcp") as mock_mcp:
+        mock_mcp.send_context.return_value = "ctx-1"
+        mock_mcp.find_pending_for_user.return_value = None
+        result = route("despensa: jabón 2", FAKE_USER)
+        mock_mcp.send_context.assert_called_once_with(
+            "pantry_add_category", FAKE_USER["id"], {"item": "jabón", "qty": 2}
+        )
+        assert "elegir 1" in result
+        assert "elegir 2" in result
+        assert "elegir 3" in result
+
+
+def test_elegir_pantry_category_adds_item():
+    ctx_data = {
+        "domain": "pantry_add_category",
+        "payload": {"item": "jabón", "qty": 2},
+    }
+    with patch("app.router.mcp") as mock_mcp, \
+         patch("app.router.add_pantry_item", return_value="✓ Agregado") as mock_add:
+        mock_mcp.find_pending_for_user.return_value = "ctx-1"
+        mock_mcp.receive_result.return_value = ctx_data
+        result = route("elegir 1", FAKE_USER)
+        mock_add.assert_called_once_with("jabón", 2, FAKE_USER, "cocina")
+        assert "Agregado" in result
+
+
+def test_elegir_out_of_range_pantry_category_returns_hint():
+    ctx_data = {
+        "domain": "pantry_add_category",
+        "payload": {"item": "jabón", "qty": 2},
+    }
+    with patch("app.router.mcp") as mock_mcp:
+        mock_mcp.find_pending_for_user.return_value = "ctx-1"
+        mock_mcp.receive_result.return_value = ctx_data
+        result = route("elegir 5", FAKE_USER)
+        assert "elegir 1" in result
 
 
 @pytest.mark.parametrize("message", ["mi despensa", "Mi Despensa"])

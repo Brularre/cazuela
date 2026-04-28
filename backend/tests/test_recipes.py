@@ -679,7 +679,10 @@ class TestRecipeRouterPatterns:
             mock_fn.assert_called_once_with(FAKE_USER)
 
     def test_elegir_n_routes(self):
-        with patch("app.router.elegir_receta", return_value="ok") as mock_fn:
+        mock_mcp = MagicMock()
+        mock_mcp.find_pending_for_user.return_value = None
+        with patch("app.router.elegir_receta", return_value="ok") as mock_fn, \
+             patch("app.router.mcp", mock_mcp):
             from app.router import route
             route("elegir 3", FAKE_USER)
             mock_fn.assert_called_once_with(3, FAKE_USER)

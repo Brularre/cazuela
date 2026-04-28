@@ -185,6 +185,29 @@ def _handle_set_name(name: str, user: dict) -> str:
     return f"¡Listo, {clean}!"
 
 
+_PANTRY_CATEGORIES = {1: "cocina", 2: "baño", 3: "otros"}
+
+_CATEGORY_PROMPT = (
+    "¿En qué categoría?\n"
+    "_elegir 1_ Cocina · _elegir 2_ Baño · _elegir 3_ Otros\n"
+    "O _cancelar_ para no guardar."
+)
+
+
+def _handle_pantry_category_choice(n: int, context_id: str, user: dict, ctx_data: dict) -> str:
+    category = _PANTRY_CATEGORIES.get(n)
+    if not category:
+        return "Elige _elegir 1_ (Cocina), _elegir 2_ (Baño) o _elegir 3_ (Otros)."
+    payload = ctx_data.get("payload", {})
+    item = payload.get("item", "")
+    qty = payload.get("qty", 1)
+    try:
+        mcp.confirm(context_id)
+    except (ValueError, KeyError):
+        pass
+    return add_pantry_item(item, qty, user, category)
+
+
 def _hint_for_message(message: str) -> str:
     first = message.strip().split()[0].lower() if message.strip().split() else ""
     if first and first[0].isdigit():
@@ -525,10 +548,13 @@ def route(message: str, user: dict) -> str:
 
     match = PANTRY_ADD_PATTERN.match(message)
     if match:
-        category = (match.group(1) or "otros").lower()
+        category_raw = match.group(1)
         item = match.group(2).strip()
         qty = int(match.group(3))
-        return add_pantry_item(item, qty, user, category)
+        if category_raw:
+            return add_pantry_item(item, qty, user, category_raw.lower())
+        mcp.send_context("pantry_add_category", user["id"], {"item": item, "qty": qty})
+        return _CATEGORY_PROMPT
 
     if PANTRY_LIST_PATTERN.match(message):
         return list_pantry(user)
@@ -586,7 +612,16 @@ def route(message: str, user: dict) -> str:
 
     match = RECIPE_CHOOSE_PATTERN.match(message)
     if match:
-        return elegir_receta(int(match.group(1)), user)
+        n = int(match.group(1))
+        pending_id = mcp.find_pending_for_user(user["id"])
+        if pending_id:
+            try:
+                ctx_data = mcp.receive_result(pending_id)
+                if ctx_data.get("domain") == "pantry_add_category":
+                    return _handle_pantry_category_choice(n, pending_id, user, ctx_data)
+            except (ValueError, KeyError):
+                pass
+        return elegir_receta(n, user)
 
     match = ME_LLAMO_PATTERN.match(message)
     if match:
