@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
+import SettingsModal from "../components/SettingsModal";
 import ExpensesSection from "../components/ExpensesSection";
 import TodosSection from "../components/TodosSection";
 import WaitingSection from "../components/WaitingSection";
@@ -11,6 +13,7 @@ import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {
   const router = useRouter();
+  const [showSettings, setShowSettings] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -19,7 +22,8 @@ export default function Dashboard({ data }) {
 
   return (
     <>
-      <Header onLogout={handleLogout} />
+      <Header onLogout={handleLogout} onSettings={() => setShowSettings(true)} />
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       <main className={styles.main}>
         <ExpensesSection gastos={data.gastos} />
         <ShoppingSection compras={data.compras} />

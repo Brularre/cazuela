@@ -41,3 +41,24 @@
   color: var(--cazuela-text-primary);
   border-color: var(--cazuela-text-muted);
 }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  color: var(--cazuela-text-muted);
+  font-size: 1rem;
+  padding: 0.375rem 0.625rem;
+  line-height: 1;
+}
+
+.settings:hover {
+  color: var(--cazuela-text-primary);
+  border-color: var(--cazuela-text-muted);
+}

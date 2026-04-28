@@ -14,6 +14,7 @@ from app.db.users import get_or_create_user
 from app.router import route, WELCOME_TEXT
 from app.routes.auth import router as auth_router
 from app.routes.dashboard import router as dashboard_router
+from app.routes.export_import import router as export_import_router
 
 app = FastAPI(title="Cazuela")
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
@@ -29,6 +30,7 @@ if settings.meta_skip_validation:
 
 app.include_router(auth_router)
 app.include_router(dashboard_router)
+app.include_router(export_import_router)
 
 
 @app.get("/health")

@@ -1,0 +1,141 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--cazuela-card);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--cazuela-text-primary);
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--cazuela-text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.closeBtn:hover {
+  color: var(--cazuela-text-primary);
+  background: var(--cazuela-border);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cazuela-text-primary);
+}
+
+.sectionDesc {
+  font-size: 0.8125rem;
+  color: var(--cazuela-text-muted);
+  line-height: 1.5;
+}
+
+.divider {
+  height: 1px;
+  background: var(--cazuela-border);
+}
+
+.primaryBtn {
+  display: inline-block;
+  background: var(--cazuela-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+
+.primaryBtn:hover {
+  opacity: 0.85;
+}
+
+.uploadLabel {
+  display: inline-block;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.errorMsg {
+  font-size: 0.8125rem;
+  color: #e74c3c;
+}
+
+.resultBox {
+  background: var(--cazuela-bg);
+  border: 1px solid var(--cazuela-border);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+}
+
+.resultTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cazuela-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.resultList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.resultList li {
+  font-size: 0.8125rem;
+  color: var(--cazuela-text-muted);
+}
+
+.resultLabel {
+  color: var(--cazuela-text-primary);
+  font-weight: 500;
+}
