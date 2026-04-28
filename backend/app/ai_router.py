@@ -69,6 +69,7 @@ Rules:
 - "sí", "si", "ok", "dale", "va", "listo" (standalone, likely responding to a pending action) → confirm.
 - "no", "nope", "olvídalo", "olvidalo" (standalone) → cancel.
 - "despensa" or "lista" (standalone) → unknown (handled before AI routing).
+- "que puedo hacer" or "qué puedo hacer" (standalone) → unknown (handled before AI routing).
 - Return unknown if unsure."""
 
 
