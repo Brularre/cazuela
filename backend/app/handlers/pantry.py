@@ -109,7 +109,7 @@ def restock_pantry_item(item_fragment: str, user: dict, qty: int | None = None) 
                 f"¿Quisiste decir _{suggestion['item']}_?"
             )
         return f"No encontré '{item_fragment}' en tu despensa."
-    new_qty = (match["current_quantity"] or 0) + qty if qty is not None else match["desired_quantity"]
+    new_qty = min((match["current_quantity"] or 0) + qty, 9999) if qty is not None else match["desired_quantity"]
     client.table("pantry").update({
         "current_quantity": new_qty
     }).eq("id", match["id"]).execute()
