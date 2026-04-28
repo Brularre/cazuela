@@ -88,3 +88,36 @@ cross-referenced against pantry)
 waiting_on, pantry management, combined shopping list (pantry +
 manual), recipes editor, weekly meal planner;
 auth via WhatsApp OTP + session cookie
+
+## File Map (quick reference)
+
+| What you need | File |
+|---------------|------|
+| Entry point (WhatsApp message) | `backend/main.py` → `backend/app/router.py` → `route()` |
+| Add/edit a regex pattern | `backend/app/patterns.py` |
+| Edit help/welcome text | `backend/app/copy.py` |
+| Add an AI dispatch case | `backend/app/dispatch.py` → `_dispatch()` |
+| Feature handler (CRUD) | `backend/app/handlers/<feature>.py` |
+| All handler public APIs (index) | `backend/app/handlers/__init__.py` |
+| MCP confirm/cancel logic | `backend/app/dispatch.py` → `_handle_confirm()` / `_handle_cancel()` |
+| Dashboard REST API | `backend/app/routes/dashboard.py` |
+| Auth routes (OTP login) | `backend/app/routes/auth.py` |
+| Export/import routes | `backend/app/routes/export_import.py` |
+| MCP staging protocol | `backend/app/mcp/` (`client.py`, `agent.py`, `context.py`) |
+| DB client | `backend/app/db/__init__.py` |
+| Schema reference | `backend/SCHEMA.md` |
+| MCP context schema | `backend/mcp_context_schema.md` |
+
+## Code Style
+
+- **No inline comments** — do not add comments before or inside
+  functions to narrate what the code does. The code should speak
+  for itself.
+- **Module docstrings yes** — every handler module (`backend/app/handlers/*.py`)
+  has a module-level docstring listing its public API and any
+  non-obvious constraints. Keep it up to date when adding functions.
+- **Function docstrings only when needed** — add a docstring to a
+  function only if the signature + module docstring don't make the
+  behaviour obvious (e.g. a non-trivial algorithm, a gotcha with the
+  DB layer, a surprising edge case). Skip docstrings for
+  straightforward CRUD functions.

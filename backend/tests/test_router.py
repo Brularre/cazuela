@@ -91,8 +91,8 @@ def test_compre_with_qty_routes_to_handle_bought(message, expected_item, expecte
 
 
 def test_handle_bought_both_match():
-    with patch("app.router.check_item", return_value="✓ Marcado: leche"), \
-         patch("app.router.restock_pantry_item", return_value="✓ Repuesto: leche"):
+    with patch("app.dispatch.check_item", return_value="✓ Marcado: leche"), \
+         patch("app.dispatch.restock_pantry_item", return_value="✓ Repuesto: leche"):
         from app.router import _handle_bought
         result = _handle_bought("leche", FAKE_USER)
         assert "✓ Marcado: leche" in result
@@ -100,8 +100,8 @@ def test_handle_bought_both_match():
 
 
 def test_handle_bought_only_shopping():
-    with patch("app.router.check_item", return_value="✓ Marcado: leche"), \
-         patch("app.router.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
+    with patch("app.dispatch.check_item", return_value="✓ Marcado: leche"), \
+         patch("app.dispatch.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
         from app.router import _handle_bought
         result = _handle_bought("leche", FAKE_USER)
         assert "✓ Marcado: leche" in result
@@ -109,8 +109,8 @@ def test_handle_bought_only_shopping():
 
 
 def test_handle_bought_only_pantry():
-    with patch("app.router.check_item", return_value="No encontré 'leche' en la lista."), \
-         patch("app.router.restock_pantry_item", return_value="✓ Repuesto: leche"):
+    with patch("app.dispatch.check_item", return_value="No encontré 'leche' en la lista."), \
+         patch("app.dispatch.restock_pantry_item", return_value="✓ Repuesto: leche"):
         from app.router import _handle_bought
         result = _handle_bought("leche", FAKE_USER)
         assert "✓ Repuesto: leche" in result
@@ -118,8 +118,8 @@ def test_handle_bought_only_pantry():
 
 
 def test_handle_bought_neither_match():
-    with patch("app.router.check_item", return_value="No encontré 'leche' en la lista."), \
-         patch("app.router.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
+    with patch("app.dispatch.check_item", return_value="No encontré 'leche' en la lista."), \
+         patch("app.dispatch.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
         from app.router import _handle_bought
         result = _handle_bought("leche", FAKE_USER)
         assert "en tu lista ni en tu despensa" in result
@@ -127,8 +127,8 @@ def test_handle_bought_neither_match():
 
 def test_handle_bought_pantry_suggestion_passes_through():
     suggestion = "No encontré 'leches' en tu despensa. ¿Quisiste decir _leche_?"
-    with patch("app.router.check_item", return_value="No encontré 'leches' en la lista."), \
-         patch("app.router.restock_pantry_item", return_value=suggestion):
+    with patch("app.dispatch.check_item", return_value="No encontré 'leches' en la lista."), \
+         patch("app.dispatch.restock_pantry_item", return_value=suggestion):
         from app.router import _handle_bought
         result = _handle_bought("leches", FAKE_USER)
         assert "Quisiste decir" in result
@@ -220,7 +220,8 @@ def test_elegir_pantry_category_adds_item():
         "payload": {"item": "jabón", "qty": 2},
     }
     with patch("app.router.mcp") as mock_mcp, \
-         patch("app.router.add_pantry_item", return_value="✓ Agregado") as mock_add:
+         patch("app.dispatch.mcp"), \
+         patch("app.dispatch.add_pantry_item", return_value="✓ Agregado") as mock_add:
         mock_mcp.find_pending_for_user.return_value = "ctx-1"
         mock_mcp.receive_result.return_value = ctx_data
         result = route("elegir 1", FAKE_USER)

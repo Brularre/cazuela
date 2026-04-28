@@ -100,7 +100,7 @@ def test_classify_returns_none_on_malformed_json():
 def test_route_uses_ai_when_enabled():
     with patch("app.router.classify", return_value={
         "intent": "add_expense", "amount": 5000, "description": "almuerzo"
-    }), patch("app.router.save_expense", return_value="ok") as mock_save:
+    }), patch("app.dispatch.save_expense", return_value="ok") as mock_save:
         from app.router import route
         result = route("gasté 5000 en almuerzo", FAKE_USER)
     assert result == "ok"
@@ -119,15 +119,12 @@ def test_route_falls_back_to_regex_when_ai_returns_none():
 def test_route_falls_back_to_regex_when_dispatch_raises():
     with patch("app.router.classify", return_value={
         "intent": "add_expense", "amount": 5000, "description": "almuerzo"
-    }), patch(
-        "app.router.save_expense",
-        side_effect=[Exception("db error"), "✓ Gasto guardado\n$5.000 · comida · almuerzo"],
-    ) as mock_save:
+    }), patch("app.dispatch.save_expense", side_effect=Exception("db error")),          patch("app.router.save_expense", return_value="✓ Gasto guardado\n$5.000 · comida · almuerzo") as mock_save:
         from app.router import route
         result = route("gasté 5000 en almuerzo", FAKE_USER)
     assert isinstance(result, str)
     assert len(result) > 0
-    assert mock_save.call_count == 2
+    mock_save.assert_called_once()
 
 
 def test_dispatch_returns_none_on_missing_required_fields():
@@ -139,7 +136,7 @@ def test_dispatch_returns_none_on_missing_required_fields():
 
 def test_dispatch_ambiguous_expense_uses_raw_message():
     from app.router import _dispatch
-    with patch("app.router._handle_ambiguous_expense", return_value="ok") as mock:
+    with patch("app.dispatch._handle_ambiguous_expense", return_value="ok") as mock:
         _dispatch({"intent": "ambiguous_expense", "amount": 3000}, "pagué 3000", FAKE_USER)
     mock.assert_called_once_with(3000, "pagué 3000", FAKE_USER)
 

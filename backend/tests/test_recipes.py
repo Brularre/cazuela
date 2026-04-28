@@ -691,7 +691,7 @@ class TestRecipeRouterPatterns:
         mock_mcp = MagicMock()
         mock_mcp.find_pending_for_user.return_value = "ctx-1"
         mock_mcp.receive_result.return_value = {"domain": "recipe_match", "proposed": {}}
-        with patch("app.router.mcp", mock_mcp):
+        with patch("app.router.mcp", mock_mcp), patch("app.dispatch.mcp", mock_mcp):
             from app.router import route
             result = route("cancelar", FAKE_USER)
         mock_mcp.rollback.assert_called_once_with("ctx-1")
@@ -704,7 +704,7 @@ class TestRecipeRouterPatterns:
             "domain": "recipe_match",
             "proposed": {"suggestions": [{"name": "a"}, {"name": "b"}]},
         }
-        with patch("app.router.mcp", mock_mcp):
+        with patch("app.router.mcp", mock_mcp), patch("app.dispatch.mcp", mock_mcp):
             from app.router import route
             result = route("confirmar", FAKE_USER)
         assert "elegir" in result.lower()

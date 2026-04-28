@@ -36,22 +36,18 @@ Includes MCP benchmark results and full agent iteration log.
 A Next.js dashboard at `localhost:3000` shows expenses,
 budget bar, todos, pantry, shopping list, recipes, and
 weekly meal planner. Auth via WhatsApp OTP + session
-cookie. Pantry, recipe, ingredient, and meal-plan labels
-use capitalized words in the UI for readability.
+cookie.
 
 ## Tech Stack
 
 - **Backend:** Python + FastAPI, deployed on Railway
 - **Frontend:** Next.js, deployed on Railway
 - **AI:** Claude Haiku (optional; requires
-  `USE_AI_AGENT=true` + `ANTHROPIC_API_KEY`). Intent
-  classification lives in `backend/app/ai_router.py`; the
-  prompt treats `pendiente` / `tarea` as your own todos and
-  `esperando` as items you are waiting on from someone else.
+  `USE_AI_AGENT=true` + `ANTHROPIC_API_KEY`)
 - **MCP:** Internal propose→confirm/rollback context
   staging module (`backend/app/mcp/`)
 - **Database:** Supabase (managed Postgres)
-- **WhatsApp:** Twilio
+- **WhatsApp:** Meta WhatsApp Cloud API (graph.facebook.com v19.0)
 
 ---
 
@@ -79,7 +75,10 @@ Edit `.env` and fill in your values:
 ```
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_KEY=your-service-role-key
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
+META_APP_SECRET=your-meta-app-secret
+META_PHONE_NUMBER_ID=your-phone-number-id
+META_ACCESS_TOKEN=your-access-token
+META_WEBHOOK_VERIFY_TOKEN=any-random-string
 SESSION_SECRET=any-long-random-string
 
 # Optional — enables AI categorization and recipe suggestions
@@ -115,14 +114,15 @@ Dashboard at `http://localhost:3000`.
 
 ---
 
-## Connecting Twilio
+## Connecting Meta WhatsApp
 
-Cazuela uses Twilio's WhatsApp sandbox for development.
+Cazuela uses the Meta WhatsApp Cloud API.
 
-1. Create a free account at [twilio.com](https://twilio.com)
-2. Go to Messaging → Try it out → Send a WhatsApp message
-3. Follow the instructions to join the sandbox
-4. Set the webhook URL to your public URL + `/webhook`
+1. Create a Meta for Developers app at [developers.facebook.com](https://developers.facebook.com)
+2. Add the WhatsApp product and get a test phone number
+3. Set the webhook URL to your public URL + `/webhook`
+4. Set the webhook verify token to match `META_WEBHOOK_VERIFY_TOKEN` in your `.env`
+5. Subscribe to the `messages` webhook field
 
 ---
 
@@ -210,12 +210,15 @@ ropa, tecnología, educación, viajes, otros
 cazuela/
 ├── backend/
 │   ├── app/
-│   │   ├── handlers/         # One module per feature
+│   │   ├── handlers/         # One module per feature (see handlers/__init__.py for full API)
 │   │   ├── mcp/              # MCP staging: client, agent, context
 │   │   ├── routes/           # Dashboard + auth REST API
 │   │   ├── db/               # Supabase client + queries
 │   │   ├── ai_router.py      # Haiku intent classifier (AI mode)
-│   │   └── router.py         # Message routing (regex patterns)
+│   │   ├── patterns.py       # All compiled regex patterns
+│   │   ├── copy.py           # Static Spanish copy strings
+│   │   ├── dispatch.py       # AI intent dispatch + routing helpers
+│   │   └── router.py         # Message routing entry point (route())
 │   ├── fixtures/
 │   │   └── mcp_snapshots/    # Example context JSON snapshots
 │   ├── migrations/           # Supabase SQL migrations

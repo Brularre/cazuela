@@ -233,7 +233,7 @@ def test_router_pattern_matches():
 
 def test_router_necesito_comprar_triggers_mcp(db_store, monkeypatch):
     monkeypatch.setattr("app.router.classify", lambda m: None)
-    monkeypatch.setattr("app.router.db", type("DB", (), {"table": lambda self, n: type("Q", (), {
+    monkeypatch.setattr("app.dispatch.db", type("DB", (), {"table": lambda self, n: type("Q", (), {
         "select": lambda s, *a: s,
         "eq": lambda s, *a: s,
         "gte": lambda s, *a: s,
