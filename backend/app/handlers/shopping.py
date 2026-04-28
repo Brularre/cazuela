@@ -16,6 +16,10 @@ Public API:
     Fuzzy-match by substring; marks first unchecked match as checked=True.
 """
 from app.db import client
+from app.handlers.utils import find_first_substring
+
+
+def add_to_shopping(item: str, user: dict, quantity=None, unit=None) -> str:
     client.table("shopping_list").insert({
         "user_id": user["id"],
         "item": item,
@@ -53,7 +57,7 @@ def check_item(item_fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
-    match = next((i for i in items if item_fragment.lower() in i["item"].lower()), None)
+    match = find_first_substring(items, item_fragment, "item")
     if not match:
         return f"No encontré '{item_fragment}' en la lista."
     client.table("shopping_list").update({"checked": True}).eq("id", match["id"]).execute()

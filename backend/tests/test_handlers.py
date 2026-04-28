@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
@@ -194,13 +195,6 @@ def test_resolve_waiting_no_match(mock_client):
     from app.handlers.waiting_on import resolve_waiting
     result = resolve_waiting("dentista", FAKE_USER)
     assert "No encontré" in result
-
-
-def make_pantry_rows(*triples):
-    return [
-        {"id": str(i), "item": item, "current_quantity": cur, "desired_quantity": des}
-        for i, (item, cur, des) in enumerate(triples)
-    ]
 
 
 @patch("app.handlers.pantry.client")
@@ -436,8 +430,9 @@ def test_set_pantry_stock_caps_at_9999(mock_client):
 
 @patch("app.handlers.summary.client")
 def test_week_summary_shows_budget_remaining(mock_client):
+    d = date.today().isoformat()
     mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
-        {"amount": "50000", "category": "comida"}
+        {"amount": "50000", "category": "comida", "date": d}
     ]
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"amount": "150000"}
@@ -450,8 +445,9 @@ def test_week_summary_shows_budget_remaining(mock_client):
 
 @patch("app.handlers.summary.client")
 def test_week_summary_shows_budget_exceeded(mock_client):
+    d = date.today().isoformat()
     mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
-        {"amount": "200000", "category": "comida"}
+        {"amount": "200000", "category": "comida", "date": d}
     ]
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"amount": "150000"}
@@ -464,8 +460,9 @@ def test_week_summary_shows_budget_exceeded(mock_client):
 
 @patch("app.handlers.summary.client")
 def test_week_summary_no_budget_line_when_unset(mock_client):
+    d = date.today().isoformat()
     mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
-        {"amount": "50000", "category": "comida"}
+        {"amount": "50000", "category": "comida", "date": d}
     ]
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     from app.handlers.summary import get_week_summary
@@ -483,8 +480,9 @@ def test_week_summary_no_expenses_this_week(mock_client):
 
 @patch("app.handlers.summary.client")
 def test_week_summary_shows_user_name(mock_client):
+    d = date.today().isoformat()
     mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
-        {"amount": "5000", "category": "comida"}
+        {"amount": "5000", "category": "comida", "date": d}
     ]
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     user = {**FAKE_USER, "name": "Ana"}
@@ -560,12 +558,19 @@ def e2e_store(monkeypatch):
             self._ingredients = ingredients
             self._shopping = shopping
             self._eq = {}
+            self._in_field = None
+            self._in_values = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
             self._lt = None
 
         def select(self, *a):
+            return self
+
+        def in_(self, field, values):
+            self._in_field = field
+            self._in_values = list(values)
             return self
 
         def insert(self, data):
@@ -639,7 +644,12 @@ def e2e_store(monkeypatch):
                 results = [r for r in self._recipes if all(r.get(k) == v for k, v in self._eq.items())]
                 return FakeExecute(results)
             if self._table == "recipe_ingredients":
-                results = [r for r in self._ingredients if all(r.get(k) == v for k, v in self._eq.items())]
+                results = list(self._ingredients)
+                if self._in_field is not None and self._in_values is not None:
+                    allowed = set(self._in_values)
+                    results = [r for r in results if r.get(self._in_field) in allowed]
+                if self._eq:
+                    results = [r for r in results if all(r.get(k) == v for k, v in self._eq.items())]
                 return FakeExecute(results)
             if self._table == "shopping_list":
                 results = [r for r in self._shopping if all(r.get(k) == v for k, v in self._eq.items())]

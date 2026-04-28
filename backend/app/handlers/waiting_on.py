@@ -12,6 +12,10 @@ Public API:
     Fuzzy-match by substring; marks first match as resolved=True.
 """
 from app.db import client
+from app.handlers.utils import find_first_substring
+
+
+def add_waiting(description: str, user: dict) -> str:
     client.table("waiting_on").insert({
         "user_id": user["id"],
         "description": description,
@@ -44,7 +48,7 @@ def resolve_waiting(fragment: str, user: dict) -> str:
         .execute()
     )
     items = result.data or []
-    match = next((i for i in items if fragment.lower() in i["description"].lower()), None)
+    match = find_first_substring(items, fragment, "description")
     if not match:
         return f"No encontré '{fragment}' en tus esperas."
     client.table("waiting_on").update({"resolved": True}).eq("id", match["id"]).execute()

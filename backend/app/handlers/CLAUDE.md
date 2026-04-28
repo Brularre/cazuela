@@ -72,6 +72,7 @@ if not items:
 | pantry_shopping.py | "Necesito comprar" MCP flow | pantry, shopping_list | yes | live |
 | shopping.py | Lista de compras manual | shopping_list | no | live |
 | recipes.py | Recetas + sugerencias IA | recipes, recipe_ingredients, shopping_list | yes | live |
+| utils.py | Shared utilities | — | no | — |
 
 > **Budget note:** `budgets.period` is always `'mes'` (migrated from
 > `'semana'` via `budgets_semana_to_mes.sql`). Do not insert `'semana'`.

@@ -2,6 +2,10 @@
 Expense handler — DINERO feature.
 
 Public API:
+  expense_history(user_id, days=30) -> dict
+    Category occurrence counts from the expenses table for the last `days` days.
+    Used by the router and expense_batch to bias category guesses.
+
   save_expense(amount, description, user) -> str
     Persists one expense row. Category is auto-detected from the
     description via CATEGORY_KEYWORDS; falls back to 'otros'.
@@ -14,9 +18,10 @@ Public API:
     Strip accents and lowercase. Re-exported to other handlers
     (recipes, pantry) for consistent fuzzy matching.
 """
-from datetime import date
+from datetime import date, timedelta
 import unicodedata
 from app.db import client
+from app.handlers.summary import format_amount
 
 CATEGORY_KEYWORDS = {
     "comida": [
@@ -74,6 +79,22 @@ def map_category(description: str) -> str:
     return "otros"
 
 
+def expense_history(user_id: str, days: int = 30) -> dict:
+    since = str(date.today() - timedelta(days=days))
+    result = (
+        client.table("expenses")
+        .select("category")
+        .eq("user_id", user_id)
+        .gte("date", since)
+        .execute()
+    )
+    history = {}
+    for row in result.data or []:
+        cat = row["category"]
+        history[cat] = history.get(cat, 0) + 1
+    return history
+
+
 def save_expense(amount: float, description: str, user: dict) -> str:
     category = map_category(description)
 
@@ -85,5 +106,5 @@ def save_expense(amount: float, description: str, user: dict) -> str:
         "date": str(date.today()),
     }).execute()
 
-    formatted = "$" + f"{amount:,.0f}".replace(",", ".")
+    formatted = format_amount(amount)
     return f"✓ Gasto guardado\n{formatted} · {category} · {description}"

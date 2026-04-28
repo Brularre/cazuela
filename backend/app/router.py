@@ -1,15 +1,15 @@
 import re
 import warnings
-from datetime import date, timedelta
+from datetime import date
 from app.db import client as db
 from app.ai_router import classify
-from app.handlers.expenses import save_expense
+from app.handlers.expenses import expense_history, save_expense
 from app.handlers.expense_batch import (
     handle_batch_create,
     handle_batch_confirm,
     handle_batch_cancel,
 )
-from app.handlers.summary import get_week_summary
+from app.handlers.summary import format_amount, get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo, delete_todo
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.budget import set_budget
@@ -264,8 +264,7 @@ def _handle_confirm(user: dict) -> str:
         mcp.confirm(context_id)
     except (ValueError, KeyError):
         return "Este gasto ya fue confirmado, cancelado, o expiró."
-    formatted = "$" + f"{amount:,.0f}".replace(",", ".")
-    return f"✓ Gasto guardado\n{formatted} · {category}"
+    return f"✓ Gasto guardado\n{format_amount(amount)} · {category}"
 
 
 def _handle_cancel(user: dict) -> str:
@@ -297,23 +296,13 @@ def _handle_cancel(user: dict) -> str:
     return "Operación cancelada."
 
 
-def _build_user_history(user_id: str) -> dict:
-    since = str(date.today() - timedelta(days=30))
-    result = db.table("expenses").select("category").eq("user_id", user_id).gte("date", since).execute()
-    history = {}
-    for row in (result.data or []):
-        cat = row["category"]
-        history[cat] = history.get(cat, 0) + 1
-    return history
-
-
 def _handle_ambiguous_expense(amount: float, raw_message: str, user: dict) -> str:
     context_id = mcp.send_context("expense", user["id"], {
         "raw_message": raw_message,
         "amount": amount,
         "date": str(date.today()),
         "note": None,
-        "user_history": _build_user_history(user["id"]),
+        "user_history": expense_history(user["id"]),
     })
     result = mcp.request_action(context_id)
     proposed = result.get("proposed", {})
@@ -324,6 +313,11 @@ def _handle_ambiguous_expense(amount: float, raw_message: str, user: dict) -> st
         f"_{reasoning}_\n\n"
         f"Responde *confirmar* o *cancelar*."
     )
+
+
+def _dashboard_reply() -> str:
+    url = settings.dashboard_url
+    return f"🔗 {url}" if url else "Tu tablero no tiene URL configurada aún."
 
 
 def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
@@ -433,8 +427,7 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
             return None
         return show_recipe(str(fragment), user)
     if name == "tablero":
-        url = settings.dashboard_url or "Tu tablero no tiene URL configurada aún."
-        return f"🔗 {url}" if settings.dashboard_url else url
+        return _dashboard_reply()
     if name == "set_name":
         name_val = intent.get("name")
         if not name_val:
@@ -628,8 +621,7 @@ def route(message: str, user: dict) -> str:
         return _handle_set_name(match.group(1), user)
 
     if TABLERO_PATTERN.match(message):
-        url = settings.dashboard_url or "Tu tablero no tiene URL configurada aún."
-        return f"🔗 {url}" if settings.dashboard_url else url
+        return _dashboard_reply()
 
     if HELP_PATTERN.match(message):
         return HELP_TEXT

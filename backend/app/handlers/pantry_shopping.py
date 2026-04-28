@@ -19,9 +19,14 @@ Handles the "necesito comprar X, Y, Z" two-step MCP flow:
      Rolls back the pending MCP context.
 
 Valid pantry categories: cocina | baño | otros
+
+Constants:
+  _VALID_PANTRY_CATEGORIES — frozenset of allowed category strings for MCP upserts.
 """
 from app.db import client
 from app.mcp import client as mcp
+
+_VALID_PANTRY_CATEGORIES = frozenset({"cocina", "baño", "otros"})
 
 
 def handle_pantry_add_create(items_raw: str, user: dict) -> str:

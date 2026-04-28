@@ -174,7 +174,7 @@ def redact(context: dict) -> dict:
 def find_pending_for_user(user_id: str) -> str | None:
     result = (
         client.table("mcp_contexts")
-        .select("*")
+        .select("context_id, created_at")
         .eq("user_id", user_id)
         .eq("status", "staged")
         .execute()

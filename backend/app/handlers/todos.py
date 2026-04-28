@@ -15,6 +15,7 @@ Public API:
     Fuzzy-match by substring; hard-deletes first match.
 """
 from app.db import client
+from app.handlers.utils import find_first_substring
 
 
 def add_todo(task: str, user: dict, priority: str = "semana") -> str:
@@ -53,7 +54,7 @@ def list_todos(user: dict) -> str:
 def complete_todo(task_fragment: str, user: dict) -> str:
     result = client.table("todos").select("id, task").eq("user_id", user["id"]).eq("done", False).execute()
     items = result.data or []
-    match = next((i for i in items if task_fragment.lower() in i["task"].lower()), None)
+    match = find_first_substring(items, task_fragment, "task")
     if not match:
         return f"No encontré un pendiente con '{task_fragment}'."
     client.table("todos").update({"done": True}).eq("id", match["id"]).execute()
@@ -63,7 +64,7 @@ def complete_todo(task_fragment: str, user: dict) -> str:
 def delete_todo(task_fragment: str, user: dict) -> str:
     result = client.table("todos").select("id, task").eq("user_id", user["id"]).eq("done", False).execute()
     items = result.data or []
-    match = next((i for i in items if task_fragment.lower() in i["task"].lower()), None)
+    match = find_first_substring(items, task_fragment, "task")
     if not match:
         return f"No encontré un pendiente con '{task_fragment}'."
     client.table("todos").delete().eq("id", match["id"]).execute()

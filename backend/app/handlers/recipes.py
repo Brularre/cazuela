@@ -41,6 +41,8 @@ Public API — pantry-aware suggestions:
   cancel_shopping_add(context_id, user) -> str
     Cancels the pending shopping_add_pending context.
 """
+from collections import defaultdict
+
 from app.db import client as db
 from app.mcp import client as mcp
 from app.db.recipes import (
@@ -202,14 +204,24 @@ def que_puedo_hacer(user: dict) -> str:
         if i["current_quantity"] > 0
     ]
 
-    recipe_data = []
-    for r in recipes:
-        ingredients = get_ingredients(r["id"])
-        recipe_data.append({
+    recipe_ids = [r["id"] for r in recipes]
+    ing_result = (
+        db.table("recipe_ingredients")
+        .select("recipe_id, item, quantity, unit")
+        .in_("recipe_id", recipe_ids)
+        .execute()
+    )
+    ing_by_recipe = defaultdict(list)
+    for ing in (ing_result.data or []):
+        ing_by_recipe[ing["recipe_id"]].append(ing)
+    recipe_data = [
+        {
             "recipe_id": r["id"],
             "name": r["name"],
-            "ingredients": [normalize(ing["item"]) for ing in ingredients],
-        })
+            "ingredients": [normalize(ing["item"]) for ing in ing_by_recipe[r["id"]]],
+        }
+        for r in recipes
+    ]
 
     context_id = mcp.send_context("recipe_match", user["id"], {
         "recipes": recipe_data,

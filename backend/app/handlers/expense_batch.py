@@ -14,14 +14,13 @@ Handles the "gasté/pagué N en el súper: X, Y, Z" three-step MCP flow:
   3. handle_batch_cancel(context_id, user)
      Rolls back the pending context — nothing is persisted.
 
-Internal:
-  _user_history_for(user_id) -> dict
-    Returns category frequency from the past 30 days to bias the
-    agent's category guesses toward the user's spending pattern.
+Uses expense_history from app.handlers.expenses for category-frequency context.
 """
-from datetime import date, timedelta
+from datetime import date
 
 from app.db import client
+from app.handlers.expenses import expense_history
+from app.handlers.summary import format_amount
 from app.mcp import client as mcp
 
 
@@ -36,7 +35,7 @@ def handle_batch_create(
             "total_amount": total_amount,
             "items_csv": items_csv,
             "date": str(date.today()),
-            "user_history": _user_history_for(user["id"]),
+            "user_history": expense_history(user["id"]),
         },
     )
     last = None
@@ -50,11 +49,11 @@ def handle_batch_create(
     for it in items:
         lines.append(
             f"• {it.get('name', '')}: {it.get('category', 'otros')} — "
-            f"${it.get('amount', 0):,.0f}".replace(",", ".")
+            f"{format_amount(float(it.get('amount', 0)))}"
         )
     body = "\n".join(lines)
     reply = (
-        f"Supermercado (${total_amount:,.0f} total):\n".replace(",", ".")
+        f"Supermercado ({format_amount(total_amount)} total):\n"
         + f"{body}\n\n"
         "Responde *confirmar* para guardar cada ítem o *cancelar*."
     )
@@ -88,7 +87,7 @@ def handle_batch_confirm(context_id: str, user: dict) -> str:
             "date": day,
         }).execute()
     parts = [
-        f"${float(it.get('amount', 0)):,.0f} · {it.get('category', 'otros')}".replace(",", ".")
+        f"{format_amount(float(it.get('amount', 0)))} · {it.get('category', 'otros')}"
         for it in items
     ]
     return "✓ Gastos guardados (supermercado)\n" + "\n".join(parts)
@@ -100,19 +99,3 @@ def handle_batch_cancel(context_id: str, user: dict) -> str:
     except ValueError:
         return "Este gasto ya fue confirmado, cancelado, o expiró."
     return "Listado de supermercado cancelado."
-
-
-def _user_history_for(user_id: str) -> dict:
-    since = str(date.today() - timedelta(days=30))
-    result = (
-        client.table("expenses")
-        .select("category")
-        .eq("user_id", user_id)
-        .gte("date", since)
-        .execute()
-    )
-    history = {}
-    for row in result.data or []:
-        cat = row["category"]
-        history[cat] = history.get(cat, 0) + 1
-    return history

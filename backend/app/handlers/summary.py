@@ -36,28 +36,24 @@ def get_week_summary(user: dict) -> str:
     monday = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
+    window_start = min(monday, month_start)
     result = (
         client.table("expenses")
-        .select("amount, category")
+        .select("amount, category, date")
         .eq("user_id", user["id"])
-        .gte("date", monday.isoformat())
+        .gte("date", window_start.isoformat())
         .execute()
     )
+    all_rows = result.data or []
+    week_rows = [r for r in all_rows if r["date"] >= monday.isoformat()]
+    month_rows = all_rows
 
-    month_result = (
-        client.table("expenses")
-        .select("amount")
-        .eq("user_id", user["id"])
-        .gte("date", month_start.isoformat())
-        .execute()
-    )
-
-    if not result.data:
+    if not week_rows:
         return "No hay gastos registrados esta semana."
 
-    monthly_total = sum(float(r["amount"]) for r in (month_result.data or []))
+    monthly_total = sum(float(r["amount"]) for r in month_rows)
 
-    totals = aggregate_by_category(result.data)
+    totals = aggregate_by_category(week_rows)
 
     name = user.get("name")
     header = f"*Resumen semana del {monday.strftime('%d/%m')}*"

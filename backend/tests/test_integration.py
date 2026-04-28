@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -27,10 +28,11 @@ def test_expense_saved_and_confirmed(mock_expense_client, mock_users_client):
 @patch("app.handlers.summary.client")
 def test_summary_returns_weekly_totals(mock_summary_client, mock_users_client):
     mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
+    d = date.today().isoformat()
     mock_summary_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
-        {"amount": "5000", "category": "comida"},
-        {"amount": "3000", "category": "transporte"},
-        {"amount": "2000", "category": "comida"},
+        {"amount": "5000", "category": "comida", "date": d},
+        {"amount": "3000", "category": "transporte", "date": d},
+        {"amount": "2000", "category": "comida", "date": d},
     ]
 
     with patch("main._send_whatsapp") as mock_send:
