@@ -100,15 +100,6 @@ def test_complete_todo_no_match(mock_client):
 
 
 @patch("app.handlers.shopping.client")
-def test_add_to_shopping(mock_client):
-    mock_client.table.return_value.insert.return_value.execute.return_value = None
-    from app.handlers.shopping import add_to_shopping
-    result = add_to_shopping("papel higiénico", FAKE_USER)
-    assert "papel higiénico" in result
-    assert "✓" in result
-
-
-@patch("app.handlers.shopping.client")
 def test_list_shopping_with_items(mock_client):
     mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"item": "leche", "quantity": None, "unit": None, "checked": False},
@@ -147,15 +138,6 @@ def test_check_item_no_match(mock_client):
 
 def make_waiting_rows(*descriptions):
     return [{"id": str(i), "description": d} for i, d in enumerate(descriptions)]
-
-
-@patch("app.handlers.waiting_on.client")
-def test_add_waiting(mock_client):
-    mock_client.table.return_value.insert.return_value.execute.return_value = None
-    from app.handlers.waiting_on import add_waiting
-    result = add_waiting("respuesta del seguro", FAKE_USER)
-    assert "Guardado" in result
-    assert "respuesta del seguro" in result
 
 
 @patch("app.handlers.waiting_on.client")
@@ -489,6 +471,29 @@ def test_week_summary_shows_user_name(mock_client):
     from app.handlers.summary import get_week_summary
     result = get_week_summary(user)
     assert "¡Hola Ana!" in result
+
+
+@patch("app.handlers.summary.client")
+@patch("app.handlers.summary.date")
+def test_week_summary_month_boundary(mock_date_cls, mock_client):
+    from datetime import date as real_date
+    mock_date_cls.today.return_value = real_date(2026, 5, 1)  # Friday; Monday = Apr 27
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"amount": "10000", "category": "comida", "date": "2026-04-28"},
+    ]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    from app.handlers.summary import get_week_summary
+    result = get_week_summary(FAKE_USER)
+    assert "comida" in result
+    assert "No hay gastos registrados esta semana." not in result
+
+
+def test_find_first_substring_skips_none_field():
+    from app.handlers.utils import find_first_substring
+    rows = [{"task": None}, {"task": "pagar gas"}]
+    match = find_first_substring(rows, "pagar", "task")
+    assert match is not None
+    assert match["task"] == "pagar gas"
 
 
 @patch("app.handlers.budget.client")

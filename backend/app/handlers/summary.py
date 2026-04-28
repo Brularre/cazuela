@@ -46,7 +46,7 @@ def get_week_summary(user: dict) -> str:
     )
     all_rows = result.data or []
     week_rows = [r for r in all_rows if r["date"] >= monday.isoformat()]
-    month_rows = all_rows
+    month_rows = [r for r in all_rows if r["date"] >= month_start.isoformat()]
 
     if not week_rows:
         return "No hay gastos registrados esta semana."

@@ -50,3 +50,17 @@ def test_save_expense_inserts_and_replies(mock_client):
     assert inserted["amount"] == 5000
     assert inserted["category"] == "comida"
     assert "date" in inserted
+
+
+@patch("app.handlers.expenses.client")
+def test_expense_history_counts_by_category(mock_client):
+    mock_client.table.return_value.select.return_value.eq.return_value.gte.return_value.execute.return_value.data = [
+        {"category": "comida"},
+        {"category": "comida"},
+        {"category": "transporte"},
+    ]
+    from app.handlers.expenses import expense_history
+    result = expense_history("user-1")
+    assert result == {"comida": 2, "transporte": 1}
+    gte_call = mock_client.table.return_value.select.return_value.eq.return_value.gte.call_args
+    assert gte_call[0][0] == "date"

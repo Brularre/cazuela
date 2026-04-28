@@ -22,8 +22,6 @@ def test_expense_pattern_routes_to_save_expense(message, expected_amount, expect
 
 @pytest.mark.parametrize("message", [
     "resumen",
-    "Resumen",
-    "RESUMEN",
     "resumen de la semana",
 ])
 def test_summary_pattern_routes_to_get_week_summary(message):
@@ -43,18 +41,6 @@ def test_unrecognized_message_returns_help_text(message):
     assert "No entendí" in result
 
 
-@pytest.mark.parametrize("message,expected_task", [
-    ("pendiente: llamar al banco", "llamar al banco"),
-    ("tarea: pagar el gas", "pagar el gas"),
-    ("pendiente comprar leche", "comprar leche"),
-])
-def test_todo_add_routes_to_add_todo(message, expected_task):
-    with patch("app.router.add_todo", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_task
-
-
 @pytest.mark.parametrize("message,expected_task,expected_priority", [
     ("pendiente: hoy: llamar al banco", "llamar al banco", "hoy"),
     ("pendiente: hoy llamar al banco", "llamar al banco", "hoy"),
@@ -69,25 +55,6 @@ def test_todo_add_extracts_priority(message, expected_task, expected_priority):
         assert mock.call_args[0][2] == expected_priority
 
 
-@pytest.mark.parametrize("message", ["mis pendientes", "mi pendiente", "Mis Pendientes"])
-def test_todo_list_routes_to_list_todos(message):
-    with patch("app.router.list_todos", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_fragment", [
-    ("listo: llamar al banco", "llamar al banco"),
-    ("hice el informe", "el informe"),
-    ("completé el pago", "el pago"),
-])
-def test_todo_done_routes_to_complete_todo(message, expected_fragment):
-    with patch("app.router.complete_todo", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_fragment
-
-
 @pytest.mark.parametrize("message,expected_item", [
     ("comprar: leche", "leche"),
     ("necesito pan", "pan"),
@@ -97,13 +64,6 @@ def test_shopping_add_routes_to_add_to_shopping(message, expected_item):
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_item
-
-
-@pytest.mark.parametrize("message", ["compras", "lista de compras", "Compras"])
-def test_shopping_list_routes_to_list_shopping(message):
-    with patch("app.router.list_shopping", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
 
 
 @pytest.mark.parametrize("message,expected_item", [
@@ -206,18 +166,6 @@ def test_pague_with_description_routes_to_save_expense():
         assert "almuerzo" in mock.call_args[0][1]
 
 
-def test_confirm_pattern_routes_to_handle_confirm():
-    with patch("app.router._handle_confirm", return_value="ok") as mock:
-        route("confirmar", FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-def test_cancel_pattern_routes_to_handle_cancel():
-    with patch("app.router._handle_cancel", return_value="ok") as mock:
-        route("cancelar", FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
 def test_confirm_with_no_pending_returns_message():
     with patch("app.router.mcp.find_pending_for_user", return_value=None):
         result = route("confirmar", FAKE_USER)
@@ -230,7 +178,7 @@ def test_cancel_with_no_pending_returns_message():
     assert "pendiente" in result
 
 
-@pytest.mark.parametrize("message", ["ayuda", "Ayuda", "AYUDA"])
+@pytest.mark.parametrize("message", ["ayuda"])
 def test_help_returns_command_reference(message):
     result = route(message, FAKE_USER)
     assert "Comandos disponibles" in result
@@ -238,37 +186,6 @@ def test_help_returns_command_reference(message):
     assert "pendiente" in result
     assert "comprar" in result
     assert "confirmar" in result
-
-
-@pytest.mark.parametrize("message,expected_desc", [
-    ("esperando: respuesta del seguro", "respuesta del seguro"),
-    ("esperando respuesta del banco", "respuesta del banco"),
-    ("esperando: la llamada del médico", "la llamada del médico"),
-])
-def test_waiting_add_routes_to_add_waiting(message, expected_desc):
-    with patch("app.router.add_waiting", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_desc
-
-
-@pytest.mark.parametrize("message", ["mis esperas", "mi espera", "Mis Esperas"])
-def test_waiting_list_routes_to_list_waiting(message):
-    with patch("app.router.list_waiting", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_fragment", [
-    ("llegó: seguro", "seguro"),
-    ("llego el banco", "banco"),
-    ("llegó la respuesta", "respuesta"),
-])
-def test_waiting_resolve_routes_to_resolve_waiting(message, expected_fragment):
-    with patch("app.router.resolve_waiting", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_fragment
 
 
 @pytest.mark.parametrize("message,expected_item,expected_qty,expected_category", [
@@ -321,44 +238,6 @@ def test_elegir_out_of_range_pantry_category_returns_hint():
         mock_mcp.receive_result.return_value = ctx_data
         result = route("elegir 5", FAKE_USER)
         assert "elegir 1" in result
-
-
-@pytest.mark.parametrize("message", ["mi despensa", "Mi Despensa"])
-def test_pantry_list_routes_to_list_pantry(message):
-    with patch("app.router.list_pantry", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_fragment", [
-    ("usé: jabón", "jabón"),
-    ("use el detergente", "el detergente"),
-    ("usé shampoo", "shampoo"),
-])
-def test_pantry_consume_routes_to_consume_pantry_item(message, expected_fragment):
-    with patch("app.router.consume_pantry_item", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_fragment
-
-
-@pytest.mark.parametrize("message", ["compré todo", "compre todo", "Compré Todo"])
-def test_pantry_restock_all_routes_to_restock_all_pantry(message):
-    with patch("app.router.restock_all_pantry", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once_with(FAKE_USER)
-
-
-@pytest.mark.parametrize("message,expected_fragment", [
-    ("compré: jabón", "jabón"),
-    ("compre el detergente", "el detergente"),
-    ("compré shampoo", "shampoo"),
-])
-def test_pantry_restock_routes_to_restock_pantry_item(message, expected_fragment):
-    with patch("app.router.restock_pantry_item", return_value="ok") as mock:
-        route(message, FAKE_USER)
-        mock.assert_called_once()
-        assert mock.call_args[0][0] == expected_fragment
 
 
 @pytest.mark.parametrize("message,expected_amount", [

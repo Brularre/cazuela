@@ -163,6 +163,22 @@ def test_double_confirm_is_safe(db_store):
     assert "expiró" in reply or "confirmada" in reply
 
 
+def test_confirm_despensa_invalid_category_falls_back_to_otros(db_store, monkeypatch):
+    from app.mcp.agent import _propose_pantry_add_batch as real_propose
+
+    def propose_with_bad_category(ctx):
+        result = real_propose(ctx)
+        for item in result.get("items", []):
+            item["category"] = "comida"
+        return result
+
+    monkeypatch.setattr("app.mcp.agent._propose_pantry_add_batch", propose_with_bad_category)
+    pantry_shopping.handle_pantry_add_create("jabón", FAKE_USER)
+    cid = list(db_store["ctx"].keys())[0]
+    pantry_shopping.handle_pantry_add_confirm_despensa(cid, FAKE_USER)
+    assert db_store["pantry"][0]["category"] == "otros"
+
+
 def test_infer_category_baño():
     assert _infer_pantry_category("shampoo") == "baño"
     assert _infer_pantry_category("balsamo") == "baño"
