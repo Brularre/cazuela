@@ -88,6 +88,7 @@ PANTRY_ADD_PATTERN = re.compile(
 )
 PANTRY_LIST_PATTERN = re.compile(r'^mi\s+despensa$', re.IGNORECASE)
 PANTRY_SET_STOCK_PATTERN = re.compile(r'^stock\s+(\d+)\s+(.+)$', re.IGNORECASE)
+PANTRY_SET_STOCK_QTY_LAST_PATTERN = re.compile(r'^stock\s+(.+?)\s+(\d+)$', re.IGNORECASE)
 PANTRY_CONSUME_PATTERN = re.compile(r'^us[eé][:\s]+(.+)$', re.IGNORECASE)
 PANTRY_RESTOCK_ALL_PATTERN = re.compile(r'^compr[eé]\s+todo$', re.IGNORECASE)
 
@@ -539,6 +540,10 @@ def route(message: str, user: dict) -> str:
     match = PANTRY_SET_STOCK_PATTERN.match(message)
     if match:
         return set_pantry_stock(match.group(2).strip(), int(match.group(1)), user)
+
+    match = PANTRY_SET_STOCK_QTY_LAST_PATTERN.match(message)
+    if match:
+        return set_pantry_stock(match.group(1).strip(), int(match.group(2)), user)
 
     if PANTRY_RESTOCK_ALL_PATTERN.match(message):
         return restock_all_pantry(user)

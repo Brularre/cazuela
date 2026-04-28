@@ -178,6 +178,8 @@ def test_handle_bought_pantry_suggestion_passes_through():
 @pytest.mark.parametrize("message,expected_item,expected_qty", [
     ("stock 3 jabón", "jabón", 3),
     ("stock 12 botella agua 1.6", "botella agua 1.6", 12),
+    ("stock jabón 3", "jabón", 3),
+    ("stock botella agua 1.6 3", "botella agua 1.6", 3),
 ])
 def test_stock_routes_to_set_pantry_stock(message, expected_item, expected_qty):
     with patch("app.router.set_pantry_stock", return_value="ok") as mock:
