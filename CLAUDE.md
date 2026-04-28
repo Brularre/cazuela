@@ -9,7 +9,7 @@ Multi-user, identified by phone number.
 - **Backend:** Python + FastAPI, deployed on Railway
 - **AI:** Claude Haiku (manual regex mode is the default; AI mode
   requires user's own Anthropic API key)
-- **WhatsApp:** Twilio
+- **WhatsApp:** Meta WhatsApp Cloud API (graph.facebook.com v19.0)
 - **Database:** Supabase (managed Postgres)
 - **Frontend:** Next.js (dashboard), deployed on Railway
 - **Schema:** see `backend/SCHEMA.md` for live table definitions
@@ -27,6 +27,7 @@ Multi-user, identified by phone number.
 | `review-feature` | Full code review before merging |
 | `agent-log-entry` | Appends decision entry to `agent_log.txt` |
 | `schema-sync` | Updates `backend/SCHEMA.md` after a migration |
+| `update-comparison-report` | Re-runs MCP replay experiment and updates `COMPARISON_REPORT.md` |
 
 Skills output code blocks for review — nothing is written until
 manually applied. Run `/review-feature` before every push.
@@ -38,6 +39,20 @@ manually applied. Run `/review-feature` before every push.
 - Log significant architectural decisions in `agent_log.txt`
 - Tests: `cd backend && .venv/bin/pytest`
 
+## Code Style
+
+- **No inline comments** — do not add comments before or inside
+  functions to narrate what the code does. The code should speak
+  for itself.
+- **Module docstrings yes** — every handler module (`backend/app/handlers/*.py`)
+  has a module-level docstring listing its public API and any
+  non-obvious constraints. Keep it up to date when adding functions.
+- **Function docstrings only when needed** — add a docstring to a
+  function only if the signature + module docstring don't make the
+  behaviour obvious (e.g. a non-trivial algorithm, a gotcha with the
+  DB layer, a surprising edge case). Skip docstrings for
+  straightforward CRUD functions.
+
 ## Feature Roadmap
 
 | Phase | What | Status |
@@ -45,7 +60,7 @@ manually applied. Run `/review-feature` before every push.
 | 0 | Infrastructure | done |
 | 1 | Expenses + WhatsApp parsing | done |
 | 2 | Todos + waiting_on | done |
-| 3 | Weekly budget + monthly estimate | done |
+| 3 | Monthly budget + monthly estimate | done |
 | 4 | Shopping list | live |
 | 5 | Despensa + "necesito comprar" MCP flow | despensa live; batch add live |
 | 5b | Meal planning | live |
@@ -54,9 +69,11 @@ manually applied. Run `/review-feature` before every push.
 
 ## Feature Modules
 
-**DINERO** — expenses (live), weekly budget + monthly estimate (live)
+**DINERO** — expenses (live), monthly budget + monthly estimate (live)
 Expense categories: comida, transporte, salud, hogar,
 entretenimiento, ropa, tecnología, educación, viajes, otros
+Budget is stored with `period='mes'`; the summary shows a projected
+monthly estimate (spend-to-date ÷ days elapsed × days in month).
 
 **TIEMPO** — todos (live); reminders and calendar decided against
 

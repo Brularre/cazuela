@@ -1,3 +1,24 @@
+"""
+Expense batch handler — DINERO feature (supermercado multi-item).
+
+Handles the "gasté/pagué N en el súper: X, Y, Z" three-step MCP flow:
+
+  1. handle_batch_create(raw_message, total_amount, items_csv, user)
+     Creates an expense_batch MCP context containing the raw message,
+     total amount, and items CSV. Runs 3 MCP iterations to get a final
+     proposed breakdown. Returns (context_id, preview_text).
+
+  2. handle_batch_confirm(context_id, user)
+     Reads the confirmed context; inserts one expenses row per item.
+
+  3. handle_batch_cancel(context_id, user)
+     Rolls back the pending context — nothing is persisted.
+
+Internal:
+  _user_history_for(user_id) -> dict
+    Returns category frequency from the past 30 days to bias the
+    agent's category guesses toward the user's spending pattern.
+"""
 from datetime import date, timedelta
 
 from app.db import client

@@ -1,7 +1,21 @@
+"""
+Shopping list handler — COMIDA feature (lista de compras manual).
+
+Public API:
+  add_to_shopping(item, user, quantity=None, unit=None) -> str
+    Inserts one row into shopping_list (source defaults to 'manual').
+
+  add_many_to_shopping(items, user, source='manual') -> int
+    Bulk-inserts a list of item strings. Returns the count inserted.
+    Used by the recipes handler when adding missing ingredients.
+
+  list_shopping(user) -> str
+    Returns all unchecked items with optional quantity/unit.
+
+  check_item(item_fragment, user) -> str
+    Fuzzy-match by substring; marks first unchecked match as checked=True.
+"""
 from app.db import client
-
-
-def add_to_shopping(item: str, user: dict, quantity: int = None, unit: str = None) -> str:
     client.table("shopping_list").insert({
         "user_id": user["id"],
         "item": item,

@@ -1,3 +1,19 @@
+"""
+Expense handler — DINERO feature.
+
+Public API:
+  save_expense(amount, description, user) -> str
+    Persists one expense row. Category is auto-detected from the
+    description via CATEGORY_KEYWORDS; falls back to 'otros'.
+
+  map_category(description) -> str
+    Normalize + keyword-match to one of the fixed category strings.
+    Used directly by expense_batch to categorise individual items.
+
+  normalize(text) -> str
+    Strip accents and lowercase. Re-exported to other handlers
+    (recipes, pantry) for consistent fuzzy matching.
+"""
 from datetime import date
 import unicodedata
 from app.db import client

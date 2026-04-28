@@ -52,8 +52,18 @@ per handler operation. Follow these rules exactly:
 - Always set the users mock:
   `mock_users_client.table.return_value.select.return_value`
   `.eq.return_value.execute.return_value.data = [FAKE_USER]`
-- POST to `/webhook` with
-  `data={"Body": "...", "From": "whatsapp:+56912345678"}`
+- POST to `/webhook` with a Meta-style JSON body:
+  ```python
+  client.post("/webhook", json={
+      "entry": [{"changes": [{"value": {"messages": [{
+          "type": "text",
+          "from": "56912345678",
+          "text": {"body": "..."},
+      }]}}]}]
+  })
+  ```
+  The `from` field must **not** include the leading `+` (Meta strips it).
+  The handler will prepend `+` when looking up the user.
 - Assert `response.status_code == 200`
 - Assert key Spanish strings from the handler's return value
   are in `response.text` — match exactly, including symbols

@@ -24,11 +24,13 @@ Set `NEXT_PUBLIC_API_URL` if the backend is not on the same host.
 
 | Section | Data source |
 |---------|------------|
-| Gastos | expenses table, weekly + MTD |
+| Gastos | expenses table, weekly + MTD + monthly estimate |
 | Pendientes | todos table |
 | Esperando | waiting_on table |
 | Lista de compras | pantry (below threshold) + shopping_list |
 | Despensa | pantry table, grouped by category |
+| Recetas | recipes + recipe_ingredients tables |
+| Plan de comidas | meal_plans + meal_plan_entries tables |
 
 ## Deploying
 

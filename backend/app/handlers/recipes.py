@@ -1,3 +1,46 @@
+"""
+Recipes handler — COMIDA feature.
+
+Covers recipe CRUD (WhatsApp) and AI-assisted suggestion flows.
+Uses the MCP staging pattern for operations that need AI confirmation.
+
+Public API — recipe management:
+  nueva_receta(name, user) -> str
+    Initiates a recipe_create MCP context. If AI mode is on and the
+    agent returns ingredients, prompts the user to confirm.
+    If no ingredients are proposed, saves immediately.
+
+  confirm_recipe_create(context_id, user, ctx) -> str
+    Confirms the staged recipe creation and saves ingredients.
+
+  cancel_recipe_create(context_id, user) -> str
+    Rolls back the pending recipe_create context.
+
+  list_recipes(user) -> str
+    Lists all user recipes with servings.
+
+  show_recipe(name_fragment, user) -> str
+    Shows ingredients for a fuzzy-matched recipe.
+
+Public API — pantry-aware suggestions:
+  que_puedo_hacer(user) -> str
+    recipe_match MCP flow: ranks existing recipes by pantry coverage.
+
+  sugerir_recetas(user) -> str
+    recipe_suggest MCP flow (AI mode only): proposes new recipes from
+    pantry contents. Returns numbered list; user picks with 'elegir N'.
+
+  elegir_receta(n, user) -> str
+    Confirms a pending recipe_match or recipe_suggest suggestion.
+    If missing ingredients exist, initiates a shopping_add_pending
+    context to optionally add them to the shopping list.
+
+  confirm_shopping_add(context_id, user, ctx_data) -> str
+    Confirms adding missing ingredients to the shopping list.
+
+  cancel_shopping_add(context_id, user) -> str
+    Cancels the pending shopping_add_pending context.
+"""
 from app.db import client as db
 from app.mcp import client as mcp
 from app.db.recipes import (

@@ -1,3 +1,19 @@
+"""
+Todos handler — TIEMPO feature.
+
+Public API:
+  add_todo(task, user, priority='semana') -> str
+    Creates a new todo. priority must be 'hoy', 'semana', or 'mes'.
+
+  list_todos(user) -> str
+    Returns open todos grouped by priority (hoy → semana → mes).
+
+  complete_todo(task_fragment, user) -> str
+    Fuzzy-match by substring; marks first match as done=True.
+
+  delete_todo(task_fragment, user) -> str
+    Fuzzy-match by substring; hard-deletes first match.
+"""
 from app.db import client
 
 

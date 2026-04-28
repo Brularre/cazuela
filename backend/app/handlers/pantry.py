@@ -1,3 +1,32 @@
+"""
+Pantry handler — COMIDA feature (despensa / stock tracking).
+
+Public API:
+  add_pantry_item(item, desired_qty, user, category='otros') -> str
+    Upsert by normalized item name. Sets both desired and current
+    quantity on create; updates desired/current/category on conflict.
+
+  list_pantry(user) -> str
+    Grouped by category (cocina → baño → otros). Flags low-stock items.
+
+  consume_pantry_item(item_fragment, user) -> str
+    Decrements current_quantity by 1 (floor 0). Fuzzy-match lookup.
+
+  restock_pantry_item(item_fragment, user, qty=None) -> str
+    If qty given: adds qty to current (cap 9999).
+    If qty is None: resets current to desired_quantity.
+
+  set_pantry_stock(item_fragment, qty, user) -> str
+    Hard-sets current_quantity to qty (cap 9999).
+
+  restock_all_pantry(user) -> str
+    Resets all below-threshold items to their desired_quantity.
+
+  normalize(text) -> str
+    NFKD strip + lowercase; used for fuzzy pantry lookups.
+    Note: expenses.py has its own slightly different normalize();
+    pantry uses the NFKD variant to match item names stored as ASCII.
+"""
 import unicodedata
 from app.db import client
 

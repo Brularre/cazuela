@@ -1,7 +1,17 @@
+"""
+Waiting-on handler — TIEMPO feature.
+
+Public API:
+  add_waiting(description, user) -> str
+    Creates a new waiting_on row with resolved=False.
+
+  list_waiting(user) -> str
+    Returns all unresolved items in chronological order.
+
+  resolve_waiting(fragment, user) -> str
+    Fuzzy-match by substring; marks first match as resolved=True.
+"""
 from app.db import client
-
-
-def add_waiting(description: str, user: dict) -> str:
     client.table("waiting_on").insert({
         "user_id": user["id"],
         "description": description,

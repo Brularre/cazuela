@@ -1,7 +1,27 @@
+"""
+Pantry-shopping MCP handler — COMIDA feature.
+
+Handles the "necesito comprar X, Y, Z" two-step MCP flow:
+
+  1. handle_pantry_add_create(items_raw, user)
+     Sends a pantry_add_batch MCP context. The agent parses the
+     free-text list and proposes {name, category} for each item.
+     Returns a confirmation prompt asking whether to route items
+     to despensa or lista de compras.
+
+  2a. handle_pantry_add_confirm_despensa(context_id, user)
+      Confirms context; upserts items into the pantry table.
+
+  2b. handle_pantry_add_confirm_lista(context_id, user)
+      Confirms context; inserts items into shopping_list (source='mcp').
+
+  3. handle_pantry_add_cancel(context_id, user)
+     Rolls back the pending MCP context.
+
+Valid pantry categories: cocina | baño | otros
+"""
 from app.db import client
 from app.mcp import client as mcp
-
-_VALID_PANTRY_CATEGORIES = {"cocina", "baño", "otros"}
 
 
 def handle_pantry_add_create(items_raw: str, user: dict) -> str:

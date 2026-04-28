@@ -90,16 +90,17 @@ Dashboard compras section shows both sources side by side.
 
 ## budgets ✓
 
-Weekly spending limit per user. No monthly budget limit —
-only a projected monthly estimate (weekly × 4) is shown
-in the dashboard and resumen. Period is always 'semana'.
+Monthly spending limit per user. Period is always 'mes'
+(migrated from 'semana' via `budgets_semana_to_mes.sql`).
+The summary also shows a projected monthly estimate
+(spend-to-date ÷ elapsed days × days in month).
 Upserted on conflict (user_id, period).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid PK | gen_random_uuid() |
 | user_id | uuid FK → users(id) | on delete cascade |
-| period | text | always 'semana' |
+| period | text | always 'mes' |
 | amount | numeric | spending limit |
 | created_at | timestamptz | default now() |
 
@@ -258,3 +259,5 @@ exist with no recipe assigned yet.
    meal_plans, meal_plan_entries tables
 10. `meal_plan_slots_column` — add slots jsonb column
     to meal_plans with default '["almuerzo","cena"]'
+11. `budgets_semana_to_mes.sql` — migrate period='semana'
+    to period='mes'; align code with monthly budget model

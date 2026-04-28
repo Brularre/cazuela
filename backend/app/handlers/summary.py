@@ -1,3 +1,20 @@
+"""
+Summary handler — DINERO feature.
+
+Public API:
+  get_week_summary(user) -> str
+    Returns a formatted Spanish summary covering:
+    • this-week totals by category (since last Monday)
+    • month-to-date total and a projected monthly estimate
+    • monthly budget remaining (if a budgets row exists for the user)
+
+  aggregate_by_category(expenses) -> dict
+    Helper: collapses a list of expense dicts into {category: total},
+    sorted descending by total. Used by the dashboard API too.
+
+  format_amount(amount) -> str
+    Chilean-style "$1.234.567" formatting.
+"""
 from collections import defaultdict
 from datetime import date, timedelta
 from app.db import client

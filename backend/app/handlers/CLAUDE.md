@@ -47,19 +47,31 @@ if not items:
     return "No tienes X."
 ```
 
-## What exists
+## Docstrings and comments
 
-| File | Feature | Tables | Status |
-|------|---------|--------|--------|
-| expenses.py | Gastos | expenses | live |
-| budget.py | Presupuesto semanal | budgets | live |
-| summary.py | Resumen semanal | expenses | live |
-| todos.py | Pendientes | todos | live |
-| waiting_on.py | Esperando | waiting_on | live |
-| pantry.py | Despensa | pantry | live |
-| pantry_shopping.py | "Necesito comprar" MCP flow | pantry, shopping_list | live |
-| shopping.py | Lista de compras | shopping_list | handler only* |
-| recipes.py | Recetas (WhatsApp) | recipes, recipe_ingredients | live |
+- Every handler **module** has a module-level docstring listing its
+  public API, tables touched, and any non-obvious constraints.
+  Keep it up to date when adding or removing functions.
+- Add a **function docstring** only when the signature + module
+  docstring leave something genuinely unclear (a tricky algorithm,
+  a DB edge case, a side-effect that isn't obvious).
+- **No inline comments** — don't narrate what the code does line by
+  line. Let the code and the module docstring do the talking.
 
-*Handler exists and table is live in Supabase, but router
-patterns and tests are incomplete — not production-ready.
+
+
+| File | Feature | Tables | MCP | Status |
+|------|---------|--------|-----|--------|
+| expenses.py | Gastos individuales | expenses | no | live |
+| expense_batch.py | Gastos supermercado (batch) | expenses | yes | live |
+| budget.py | Presupuesto mensual | budgets | no | live |
+| summary.py | Resumen semanal + estimado | expenses, budgets | no | live |
+| todos.py | Pendientes | todos | no | live |
+| waiting_on.py | Esperando | waiting_on | no | live |
+| pantry.py | Despensa (stock) | pantry | no | live |
+| pantry_shopping.py | "Necesito comprar" MCP flow | pantry, shopping_list | yes | live |
+| shopping.py | Lista de compras manual | shopping_list | no | live |
+| recipes.py | Recetas + sugerencias IA | recipes, recipe_ingredients, shopping_list | yes | live |
+
+> **Budget note:** `budgets.period` is always `'mes'` (migrated from
+> `'semana'` via `budgets_semana_to_mes.sql`). Do not insert `'semana'`.
