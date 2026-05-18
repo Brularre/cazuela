@@ -137,6 +137,29 @@ if your backend runs elsewhere.
 
 ---
 
+## Running with Docker
+
+The fastest way to run both services locally:
+
+```bash
+cp backend/.env.example backend/.env   # fill in your values
+cp frontend/.env.example frontend/.env.local
+docker-compose up --build
+```
+
+Backend at `http://localhost:8000`, dashboard at `http://localhost:3000`.
+
+**Note on `BACKEND_URL`:** Next.js bakes rewrite URLs into the build.
+The compose file passes `http://backend:8000` as a build arg so
+the dashboard talks to the backend container by service name. If
+your backend lives elsewhere (e.g. Railway), rebuild with:
+
+```bash
+docker-compose build --build-arg BACKEND_URL=https://your-backend.up.railway.app
+```
+
+---
+
 ## Connecting Meta WhatsApp
 
 Cazuela uses the Meta WhatsApp Cloud API.
