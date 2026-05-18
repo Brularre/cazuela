@@ -55,6 +55,8 @@ cookie.
 
 ### 1. Clone and set up the backend
 
+Requires **Python 3.10+** (the code uses `X | None` syntax).
+
 ```bash
 git clone https://github.com/Brularre/cazuela.git
 cd cazuela/backend
@@ -79,7 +81,7 @@ META_APP_SECRET=your-meta-app-secret
 META_PHONE_NUMBER_ID=your-phone-number-id
 META_ACCESS_TOKEN=your-access-token
 META_WEBHOOK_VERIFY_TOKEN=any-random-string
-SESSION_SECRET=any-long-random-string
+SESSION_SECRET=         # generate with: openssl rand -hex 32
 
 # Optional — enables AI categorization and recipe suggestions
 USE_AI_AGENT=true
@@ -88,11 +90,29 @@ ANTHROPIC_API_KEY=your-anthropic-key
 
 ### 3. Set up Supabase
 
-Run the migration files in `backend/migrations/` against
-your Supabase project (SQL editor → New query), in the
-order listed in `backend/SCHEMA.md`.
+Create a new Supabase project, open the SQL editor, and run
+`backend/migrations/00_bootstrap.sql`. That single file creates
+every table the app needs.
 
-### 4. Run the backend
+(The other `.sql` files in that folder are the historical
+per-feature migrations from this project's deploy — you do not
+need to run them on a fresh project.)
+
+### 4. Create your first user
+
+The app only sends OTPs to phone numbers that already exist in
+the `users` table. To log yourself in for the first time, insert
+a row in Supabase (SQL editor):
+
+```sql
+insert into users (phone, name) values ('+56912345678', 'Tu nombre');
+```
+
+Use the same phone number when requesting an OTP from the
+dashboard. (To onboard family later, repeat this step — and
+remember to also add their number as a tester in your Meta app.)
+
+### 5. Run the backend
 
 ```bash
 cd backend
@@ -102,15 +122,18 @@ uvicorn main:app --reload
 API at `http://localhost:8000`.
 Swagger UI at `http://localhost:8000/docs`.
 
-### 5. Run the frontend
+### 6. Run the frontend
 
 ```bash
 cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-Dashboard at `http://localhost:3000`.
+Dashboard at `http://localhost:3000`. The default `BACKEND_URL`
+in `.env.example` points to `http://localhost:8000`; change it
+if your backend runs elsewhere.
 
 ---
 
@@ -123,6 +146,9 @@ Cazuela uses the Meta WhatsApp Cloud API.
 3. Set the webhook URL to your public URL + `/webhook`
 4. Set the webhook verify token to match `META_WEBHOOK_VERIFY_TOKEN` in your `.env`
 5. Subscribe to the `messages` webhook field
+6. **Add each recipient phone as a tester** (App Dashboard → WhatsApp → API Setup → "To"). On the free tier, Meta will only deliver messages to numbers in this list — including OTPs. Skipping this step is the #1 reason "login works but no message arrives".
+
+Use a **System User access token** (Business Settings → System Users → Generate Token, no expiration) for `META_ACCESS_TOKEN`. The temporary tokens shown in the API Setup tab expire in 24 hours.
 
 ---
 
