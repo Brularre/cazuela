@@ -51,7 +51,7 @@ from app.db.recipes import (
     get_ingredients,
     replace_ingredients,
 )
-from app.handlers.expenses import normalize
+from app.handlers.utils import normalize
 from app.handlers.shopping import add_many_to_shopping
 
 

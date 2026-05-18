@@ -4,8 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from app.db import client
-from app.handlers.pantry import normalize as normalize_pantry_item
-from app.handlers.expenses import normalize as normalize_item
+from app.handlers.utils import normalize
 from app.handlers.summary import aggregate_by_category
 from app.middleware.auth import require_auth
 
@@ -241,7 +240,7 @@ class PantryItemUpdate(BaseModel):
 @router.post("/pantry")
 def create_pantry_item(body: PantryItemIn, uid: str = Depends(require_auth)):
 
-    normalized = normalize_pantry_item(body.item)
+    normalized = normalize(body.item)
     result = client.table("pantry").upsert({
         "user_id": uid,
         "item": normalized,
@@ -262,7 +261,7 @@ class ShoppingListItemIn(BaseModel):
 @router.post("/shopping-list")
 def add_shopping_list_item(body: ShoppingListItemIn, uid: str = Depends(require_auth)):
 
-    normalized = normalize_pantry_item(body.item)
+    normalized = normalize(body.item)
     existing = (
         client.table("shopping_list")
         .select("id")
@@ -384,7 +383,7 @@ def add_ingredient_dashboard(
         raise HTTPException(status_code=404)
     result = client.table("recipe_ingredients").insert({
         "recipe_id": recipe_id,
-        "item": normalize_item(body.item),
+        "item": normalize(body.item),
         "quantity": body.quantity,
         "unit": body.unit,
     }).execute()
@@ -410,7 +409,7 @@ def update_ingredient_dashboard(
         raise HTTPException(status_code=404)
     data = body.model_dump(exclude_unset=True)
     if "item" in data and data["item"]:
-        data["item"] = normalize_item(data["item"])
+        data["item"] = normalize(data["item"])
     if data:
         client.table("recipe_ingredients").update(data).eq("id", ing_id).eq("recipe_id", recipe_id).execute()
     return {"ok": True}
@@ -612,7 +611,7 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
 
     grouped: dict[str, dict] = {}
     for ing in ingredients:
-        key = normalize_pantry_item(ing["item"])
+        key = normalize(ing["item"])
         if key not in grouped:
             grouped[key] = {"quantity": ing.get("quantity"), "unit": ing.get("unit")}
         else:
@@ -630,7 +629,7 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
         .eq("user_id", uid)
         .execute()
     ).data or []
-    pantry_map = {normalize_pantry_item(p["item"]): p for p in pantry}
+    pantry_map = {normalize(p["item"]): p for p in pantry}
 
     added = []
     confirm = []

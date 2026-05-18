@@ -7,8 +7,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from app.db import client
-from app.handlers.expenses import normalize as normalize_item
-from app.handlers.pantry import normalize as normalize_pantry_item
+from app.handlers.utils import normalize
 from app.middleware.auth import require_auth
 
 router = APIRouter(prefix="/dashboard")
@@ -245,7 +244,7 @@ async def import_data(
                 client.table("pantry").upsert(
                     {
                         "user_id": uid,
-                        "item": normalize_pantry_item(item),
+                        "item": normalize(item),
                         "category": category,
                         "desired_quantity": desired,
                         "current_quantity": current,
@@ -305,7 +304,7 @@ async def import_data(
                     client.table("recipe_ingredients").insert(
                         {
                             "recipe_id": recipe_id,
-                            "item": normalize_item(ingredient),
+                            "item": normalize(ingredient),
                             "quantity": qty,
                             "unit": unit,
                         }
@@ -333,7 +332,7 @@ async def import_data(
                 item = str(_get(row, cm, "item") or "").strip()
                 if not item:
                     continue
-                normalized = normalize_pantry_item(item)
+                normalized = normalize(item)
                 qty = _get(row, cm, "cantidad")
                 unit = str(_get(row, cm, "unidad") or "").strip() or None
                 if normalized in existing_items:

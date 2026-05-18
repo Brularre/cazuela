@@ -22,17 +22,9 @@ Public API:
   restock_all_pantry(user) -> str
     Resets all below-threshold items to their desired_quantity.
 
-  normalize(text) -> str
-    NFKD strip + lowercase; used for fuzzy pantry lookups.
-    Note: expenses.py has its own slightly different normalize();
-    pantry uses the NFKD variant to match item names stored as ASCII.
 """
-import unicodedata
 from app.db import client
-
-
-def normalize(text: str) -> str:
-    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").lower()
+from app.handlers.utils import normalize
 
 
 def _find_pantry_item(items: list, item_fragment: str) -> dict | str:

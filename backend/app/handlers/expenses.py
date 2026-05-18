@@ -14,14 +14,11 @@ Public API:
     Normalize + keyword-match to one of the fixed category strings.
     Used directly by expense_batch to categorise individual items.
 
-  normalize(text) -> str
-    Strip accents and lowercase. Re-exported to other handlers
-    (recipes, pantry) for consistent fuzzy matching.
 """
 from datetime import date, timedelta
-import unicodedata
 from app.db import client
 from app.handlers.summary import format_amount
+from app.handlers.utils import normalize
 
 CATEGORY_KEYWORDS = {
     "comida": [
@@ -62,13 +59,6 @@ CATEGORY_KEYWORDS = {
         "hotel", "vuelo", "avion", "airbnb", "viaje", "turismo", "tour",
     ],
 }
-
-
-def normalize(text: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text.lower())
-        if unicodedata.category(c) != "Mn"
-    )
 
 
 def map_category(description: str) -> str:
