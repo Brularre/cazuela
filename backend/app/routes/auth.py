@@ -69,7 +69,6 @@ def request_otp(body: OTPRequest):
             },
             timeout=10,
         )
-        print(f"META OTP RESPONSE {res.status_code}: {res.text[:300]}", flush=True)
         if not res.ok:
             warnings.warn(f"OTP send failed {res.status_code}: {res.text[:200]}")
     else:

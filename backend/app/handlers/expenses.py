@@ -96,6 +96,7 @@ def expense_history(user_id: str, days: int = 30) -> dict:
 
 
 def save_expense(amount: float, description: str, user: dict) -> str:
+    description = description.strip()[:200]
     category = map_category(description)
 
     client.table("expenses").insert({

@@ -16,6 +16,7 @@ from app.handlers.utils import find_first_substring
 
 
 def add_waiting(description: str, user: dict) -> str:
+    description = description.strip()[:200]
     client.table("waiting_on").insert({
         "user_id": user["id"],
         "description": description,

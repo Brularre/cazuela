@@ -57,7 +57,7 @@ def _find_pantry_item(items: list, item_fragment: str) -> dict | str:
 
 
 def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "otros") -> str:
-    normalized = normalize(item)
+    normalized = normalize(item)[:100]
     existing = (
         client.table("pantry")
         .select("id")

@@ -19,6 +19,7 @@ from app.handlers.utils import find_first_substring
 
 
 def add_todo(task: str, user: dict, priority: str = "semana") -> str:
+    task = task.strip()[:200]
     client.table("todos").insert({
         "user_id": user["id"],
         "task": task,
