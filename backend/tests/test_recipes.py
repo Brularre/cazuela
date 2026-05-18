@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
+from tests.conftest import FAKE_USER
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678", "ai_mode": False}
-FAKE_USER_AI = {"id": "abc-123", "phone": "+56912345678", "ai_mode": True}
+FAKE_USER_AI = {**FAKE_USER, "ai_mode": True}
 
 FAKE_INGREDIENTS = [
     {"item": "pollo", "quantity": 1, "unit": None},

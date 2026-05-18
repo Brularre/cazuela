@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from app.router import route
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
+from tests.conftest import FAKE_USER
 
 
 @pytest.mark.parametrize("message,expected_amount,expected_desc", [

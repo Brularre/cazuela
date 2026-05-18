@@ -4,9 +4,7 @@ from app.mcp.client import send_context, request_action, confirm, rollback
 from app.mcp.agent import _infer_pantry_category, _propose_pantry_add_batch
 from app.handlers import pantry_shopping
 from app.router import NECESITO_COMPRAR_PATTERN, route
-
-FAKE_USER_ID = "22222222-2222-2222-2222-222222222222"
-FAKE_USER = {"id": FAKE_USER_ID, "phone": "+56900000000"}
+from tests.conftest import FAKE_USER
 
 
 @pytest.fixture(autouse=True)
@@ -127,7 +125,7 @@ def test_confirm_despensa_writes_pantry_rows(db_store):
     for row in db_store["pantry"]:
         assert row["current_quantity"] == 0
         assert row["desired_quantity"] == 1
-        assert row["user_id"] == FAKE_USER_ID
+        assert row["user_id"] == FAKE_USER["id"]
         assert row["category"] in {"cocina", "baño", "otros"}
 
 
@@ -215,7 +213,7 @@ def test_context_prunes_excess_items(db_store):
     from app.mcp.context import create_context, MAX_ITEMS
     import re
     many = ", ".join(f"item{i}" for i in range(MAX_ITEMS + 3))
-    ctx = create_context("pantry_add_batch", FAKE_USER_ID, {"items_raw": many})
+    ctx = create_context("pantry_add_batch", FAKE_USER["id"], {"items_raw": many})
     parts = [
         p.strip()
         for p in re.split(r",\s*|\s+y\s+", ctx["payload"]["items_raw"])

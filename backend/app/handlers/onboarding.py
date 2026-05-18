@@ -23,6 +23,7 @@ from app.handlers.budget import set_budget
 from app.handlers.utils import normalize, parse_clp_amount
 
 _SKIP_WORDS = {"despues", "skip", "omitir", "no", "no se"}
+_NAME_PREFIX_RE = re.compile(r'^(?:me llamo|soy)\s+', re.IGNORECASE)
 
 _GREETING = (
     "¡Hola! Soy *Cazuela*, tu asistente personal.\n\n"
@@ -46,7 +47,7 @@ _DONE = (
 
 
 def is_onboarding(user: dict) -> bool:
-    return not user.get("onboarding_complete", True)
+    return not user.get("onboarding_complete", False)
 
 
 def start_onboarding(user: dict) -> str:
@@ -61,7 +62,7 @@ def handle_onboarding(message: str, user: dict) -> str:
 
 
 def _save_name(raw: str, user: dict) -> str:
-    name = re.sub(r'^(?:me llamo|soy)\s+', '', raw, flags=re.IGNORECASE).strip()
+    name = _NAME_PREFIX_RE.sub('', raw).strip()
     name = name[:50]
     if not name:
         return "No entendí tu nombre. ¿Cómo te llamas?"

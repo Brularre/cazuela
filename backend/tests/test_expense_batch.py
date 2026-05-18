@@ -247,7 +247,7 @@ def test_router_dispatches_supermercado_to_handle_batch_create(monkeypatch):
         return "ctx-id", "reply-batch"
 
     monkeypatch.setattr("app.router.handle_batch_create", capture)
-    r = route("Gasté 18000 en supermercado: pan, leche", {"id": FAKE_USER_ID})
+    r = route("Gasté 18000 en supermercado: pan, leche", {"id": FAKE_USER_ID, "onboarding_complete": True})
     assert r == "reply-batch"
     assert len(calls) == 1
     assert calls[0][1] == 18000.0

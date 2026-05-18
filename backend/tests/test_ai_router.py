@@ -2,8 +2,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 from app.ai_router import classify
-
-FAKE_USER = {"id": "11111111-1111-1111-1111-111111111111", "phone": "+56912345678"}
+from tests.conftest import FAKE_USER
 
 
 def _make_ai_response(payload: dict):

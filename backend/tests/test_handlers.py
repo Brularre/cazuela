@@ -1,7 +1,7 @@
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
+from tests.conftest import FAKE_USER
 
 
 def make_todo_rows(*tasks):
@@ -514,7 +514,7 @@ import json
 import pytest
 from unittest.mock import patch
 
-E2E_USER = {"id": "e2e-user-1111", "phone": "+56911111111", "ai_mode": True}
+E2E_USER = {"id": "e2e-user-1111", "phone": "+56911111111", "ai_mode": True, "onboarding_complete": True}
 
 FAKE_SUGGESTIONS = [
     {
@@ -783,6 +783,10 @@ def test_is_onboarding_false_when_complete():
 def test_is_onboarding_true_when_incomplete():
     from app.handlers.onboarding import is_onboarding
     assert is_onboarding({"onboarding_complete": False})
+
+def test_is_onboarding_true_when_key_missing():
+    from app.handlers.onboarding import is_onboarding
+    assert is_onboarding({})
 
 def test_start_onboarding_returns_greeting():
     from app.handlers.onboarding import start_onboarding

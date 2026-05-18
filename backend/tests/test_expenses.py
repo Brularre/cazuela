@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from app.handlers.expenses import map_category, normalize
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
+from tests.conftest import FAKE_USER
 
 
 @pytest.mark.parametrize("description,expected", [

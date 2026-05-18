@@ -8,7 +8,7 @@ os.environ.setdefault("SESSION_SECRET", "test-secret-that-is-long-enough-for-jwt
 os.environ.setdefault("META_SKIP_VALIDATION", "true")
 
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678"}
+FAKE_USER = {"id": "abc-123", "phone": "+56912345678", "onboarding_complete": True}
 
 
 def meta_payload(body, sender="56912345678"):
