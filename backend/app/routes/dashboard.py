@@ -243,10 +243,35 @@ def delete_todo(todo_id: str, uid: str = Depends(require_auth)):
     return {"ok": True}
 
 
+class WaitingItemIn(BaseModel):
+    description: str = Field(min_length=1, max_length=500)
+
+
+@router.post("/waiting_on")
+def create_waiting(body: WaitingItemIn, uid: str = Depends(require_auth)):
+    body.description = body.description.strip()
+    if not body.description:
+        raise HTTPException(status_code=422, detail="La descripción no puede estar vacía")
+    result = (
+        client.table("waiting_on")
+        .insert({"user_id": uid, "description": body.description, "resolved": False})
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=500, detail="No se pudo guardar el ítem")
+    row = result.data[0]
+    return {"id": row["id"], "description": row["description"], "created_at": row["created_at"]}
+
+
 @router.patch("/waiting_on/{item_id}/resolve")
 def resolve_waiting(item_id: str, uid: str = Depends(require_auth)):
-
     client.table("waiting_on").update({"resolved": True}).eq("id", item_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+@router.delete("/waiting_on/{item_id}")
+def delete_waiting(item_id: str, uid: str = Depends(require_auth)):
+    client.table("waiting_on").delete().eq("id", item_id).eq("user_id", uid).execute()
     return {"ok": True}
 
 

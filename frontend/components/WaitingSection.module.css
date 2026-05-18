@@ -47,6 +47,25 @@
   color: var(--cazuela-accent);
 }
 
+.delete {
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cazuela-text-muted);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.delete:hover {
+  border-color: var(--cazuela-danger, #e53e3e);
+  color: var(--cazuela-danger, #e53e3e);
+}
+
 .empty {
   font-size: 0.875rem;
   color: var(--cazuela-text-muted);

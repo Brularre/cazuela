@@ -1,0 +1,40 @@
+.form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--cazuela-surface);
+  color: var(--cazuela-text-primary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--cazuela-accent);
+}
+
+.btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--cazuela-accent);
+  color: white;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CollapsibleSection from "./CollapsibleSection";
+import AddItemForm from "./AddItemForm";
 import styles from "./TodosSection.module.css";
 
 const BUCKET_LABELS = { hoy: "Hoy", semana: "Esta semana", mes: "Este mes" };
@@ -77,15 +78,13 @@ export default function TodosSection({ pendientes }) {
         );
       })}
 
-      <form className={styles.addForm} onSubmit={add}>
-        <input
-          className={styles.addInput}
-          type="text"
-          placeholder="Nueva tarea…"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          maxLength={500}
-        />
+      <AddItemForm
+        value={newTask}
+        onChange={(e) => setNewTask(e.target.value)}
+        onSubmit={add}
+        placeholder="Nueva tarea…"
+        submitting={adding}
+      >
         <select
           className={styles.addSelect}
           value={newPriority}
@@ -95,10 +94,7 @@ export default function TodosSection({ pendientes }) {
           <option value="semana">Semana</option>
           <option value="mes">Mes</option>
         </select>
-        <button className={styles.addBtn} type="submit" disabled={adding || !newTask.trim()}>
-          +
-        </button>
-      </form>
+      </AddItemForm>
     </CollapsibleSection>
   );
 }
