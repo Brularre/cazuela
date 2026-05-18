@@ -136,7 +136,7 @@ def _handle_confirm(user: dict) -> str:
             "date": str(date.today()),
         }).execute()
     except Exception as e:
-        warnings.warn(f"Expense insert failed for context {context_id}: {e}")
+        warnings.warn(f"Expense insert failed: {e}")
         return "Hubo un problema al guardar el gasto. Intenta _confirmar_ de nuevo."
     try:
         mcp.confirm(context_id)

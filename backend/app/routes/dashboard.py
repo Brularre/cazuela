@@ -190,7 +190,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
             ],
         }
     except Exception as exc:
-        warnings.warn(f"Failed to load meal plan for user {uid}: {exc}")
+        warnings.warn(f"Failed to load meal plan: {exc}")
 
     return {
         "gastos": {
