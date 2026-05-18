@@ -133,6 +133,7 @@ Short-lived one-time passwords for dashboard login.
 | code | text | 6-digit string |
 | expires_at | timestamptz | now() + 10 min |
 | used | boolean | default false |
+| attempts | integer | default 0, not null |
 | created_at | timestamptz | default now() |
 
 ---
@@ -175,6 +176,8 @@ current_quantity < desired_quantity flag as needing restock.
 | current_quantity | integer | starts equal to desired at creation |
 | category | text | cocina \| baño \| otros, default 'otros' |
 | created_at | timestamptz | default now() |
+
+Unique constraint: (user_id, item)
 
 ---
 
@@ -261,3 +264,6 @@ exist with no recipe assigned yet.
     to meal_plans with default '["almuerzo","cena"]'
 11. `budgets_semana_to_mes.sql` — migrate period='semana'
     to period='mes'; align code with monthly budget model
+12. `otp_attempts_migration.sql` — add attempts column to otp_codes
+13. `pantry_unique_item_migration.sql` — unique constraint
+    on pantry(user_id, item)
