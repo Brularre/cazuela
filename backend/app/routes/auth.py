@@ -91,6 +91,8 @@ def verify_otp(body: OTPVerify):
         .eq("phone", phone)
         .eq("used", False)
         .gt("expires_at", datetime.now(timezone.utc).isoformat())
+        .order("created_at", desc=True)
+        .limit(1)
         .execute()
     )
 

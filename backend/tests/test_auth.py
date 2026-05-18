@@ -67,9 +67,11 @@ def _otp_select_chain(db):
     return (
         db.table.return_value
         .select.return_value
-        .eq.return_value   # phone
-        .eq.return_value   # used
-        .gt.return_value   # expires_at
+        .eq.return_value
+        .eq.return_value
+        .gt.return_value
+        .order.return_value
+        .limit.return_value
     )
 
 
