@@ -210,10 +210,36 @@ def get_dashboard(uid: str = Depends(require_auth)):
     }
 
 
+class TodoIn(BaseModel):
+    task: str = Field(min_length=1, max_length=500)
+    priority: Literal["hoy", "semana", "mes"] = "semana"
+
+
+@router.post("/todos")
+def create_todo(body: TodoIn, uid: str = Depends(require_auth)):
+    body.task = body.task.strip()
+    if not body.task:
+        raise HTTPException(status_code=422, detail="La tarea no puede estar vacía")
+    result = (
+        client.table("todos")
+        .insert({"user_id": uid, "task": body.task, "priority": body.priority, "done": False})
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=500, detail="No se pudo guardar la tarea")
+    row = result.data[0]
+    return {"id": row["id"], "task": row["task"], "priority": row["priority"]}
+
+
 @router.patch("/todos/{todo_id}/complete")
 def complete_todo(todo_id: str, uid: str = Depends(require_auth)):
-
     client.table("todos").update({"done": True}).eq("id", todo_id).eq("user_id", uid).execute()
+    return {"ok": True}
+
+
+@router.delete("/todos/{todo_id}")
+def delete_todo(todo_id: str, uid: str = Depends(require_auth)):
+    client.table("todos").delete().eq("id", todo_id).eq("user_id", uid).execute()
     return {"ok": True}
 
 
