@@ -2,6 +2,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.scripts
+
 BACKEND = Path(__file__).resolve().parents[1]
 
 

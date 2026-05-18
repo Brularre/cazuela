@@ -1,7 +1,11 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts import run_comparison
+
+pytestmark = pytest.mark.scripts
 
 
 def test_run_comparison_writes_json_and_modes(tmp_path, monkeypatch):

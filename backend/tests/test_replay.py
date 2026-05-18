@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.scripts
+
 from app.mcp import context as ctx
 from app.mcp.agent import propose
 

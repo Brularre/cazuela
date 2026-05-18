@@ -16,18 +16,6 @@ AI dispatch:
     Maps AI-classified intent dicts to handler calls.
     Returns None if the intent is unrecognised or required fields are
     missing; router.route() then falls through to manual regex matching.
-
-Handler re-exports (used directly by router.route()):
-  save_expense, handle_batch_create, get_week_summary, set_budget,
-  add_todo, list_todos, complete_todo, delete_todo,
-  add_to_shopping, list_shopping,
-  handle_pantry_add_create, handle_pantry_add_confirm_despensa,
-  handle_pantry_add_confirm_lista, handle_pantry_add_cancel,
-  add_pantry_item, list_pantry, consume_pantry_item, set_pantry_stock,
-  restock_all_pantry,
-  add_waiting, list_waiting, resolve_waiting,
-  nueva_receta, list_recipes, show_recipe, que_puedo_hacer,
-  sugerir_recetas, elegir_receta,
 """
 import warnings
 from datetime import date

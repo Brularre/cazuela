@@ -10,7 +10,8 @@ Routing order:
   6. Fallback hint
 
 See patterns.py for all compiled regexes.
-See dispatch.py for helpers, _dispatch, and handler imports.
+See dispatch.py for helpers and _dispatch.
+See handlers/__init__.py for the full handler API surface.
 See copy.py for HELP_TEXT, WELCOME_TEXT, and static strings.
 """
 import re
@@ -66,6 +67,8 @@ from app.dispatch import (
     _hint_for_message,
     _handle_pantry_category_choice,
     _handle_ambiguous_expense,
+)
+from app.handlers import (
     save_expense,
     handle_batch_create,
     get_week_summary,

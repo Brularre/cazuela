@@ -250,3 +250,92 @@ def test_budget_set_routes_to_set_budget(message, expected_amount):
         route(message, FAKE_USER)
         mock.assert_called_once()
         assert mock.call_args[0][0] == expected_amount
+
+
+# ---------------------------------------------------------------------------
+# _parse_clp_amount
+# ---------------------------------------------------------------------------
+
+def test_parse_clp_amount_integer_with_dot_separator():
+    from app.router import _parse_clp_amount
+    assert _parse_clp_amount("1.500") == 1500.0
+    assert _parse_clp_amount("12.990") == 12990.0
+
+def test_parse_clp_amount_plain_integer():
+    from app.router import _parse_clp_amount
+    assert _parse_clp_amount("5000") == 5000.0
+
+def test_parse_clp_amount_decimal_returns_none():
+    from app.router import _parse_clp_amount
+    assert _parse_clp_amount("1500.50") is None
+    assert _parse_clp_amount("1.500,50") is None
+
+
+# ---------------------------------------------------------------------------
+# _hint_for_message
+# ---------------------------------------------------------------------------
+
+def test_hint_digit_first_suggests_gaste():
+    from app.dispatch import _hint_for_message
+    result = _hint_for_message("5000 no sé")
+    assert "gasté" in result
+
+
+# ---------------------------------------------------------------------------
+# _dashboard_reply
+# ---------------------------------------------------------------------------
+
+def test_dashboard_reply_with_url():
+    from app.dispatch import _dashboard_reply
+    with patch("app.dispatch.settings") as mock_settings:
+        mock_settings.dashboard_url = "https://cazuela.example.com"
+        result = _dashboard_reply()
+    assert "cazuela.example.com" in result
+
+def test_dashboard_reply_without_url():
+    from app.dispatch import _dashboard_reply
+    with patch("app.dispatch.settings") as mock_settings:
+        mock_settings.dashboard_url = None
+        result = _dashboard_reply()
+    assert "URL" in result
+
+
+# ---------------------------------------------------------------------------
+# _handle_confirm — domain branches
+# ---------------------------------------------------------------------------
+
+def test_handle_confirm_expired_context():
+    from app.dispatch import _handle_confirm
+    with patch("app.dispatch.mcp.find_pending_for_user", return_value="ctx-1"), \
+         patch("app.dispatch.mcp.receive_result", side_effect=ValueError("expired")):
+        result = _handle_confirm(FAKE_USER)
+    assert "expiró" in result
+
+def test_handle_confirm_default_expense_inserts_and_confirms():
+    from app.dispatch import _handle_confirm
+    ctx = {
+        "domain": "expense",
+        "payload": {"amount": 5000, "raw_message": "pagué 5000"},
+        "proposed": {"category": "comida"},
+    }
+    with patch("app.dispatch.mcp.find_pending_for_user", return_value="ctx-1"), \
+         patch("app.dispatch.mcp.receive_result", return_value=ctx), \
+         patch("app.dispatch.db") as mock_db, \
+         patch("app.dispatch.mcp.confirm"):
+        mock_db.table.return_value.insert.return_value.execute.return_value = None
+        result = _handle_confirm(FAKE_USER)
+    assert "comida" in result
+    assert "5.000" in result
+
+
+# ---------------------------------------------------------------------------
+# _handle_cancel — domain branches
+# ---------------------------------------------------------------------------
+
+def test_handle_cancel_expired_context():
+    from app.dispatch import _handle_cancel
+    with patch("app.dispatch.mcp.find_pending_for_user", return_value="ctx-1"), \
+         patch("app.dispatch.mcp.receive_result", side_effect=ValueError("expired")):
+        result = _handle_cancel(FAKE_USER)
+    assert "expiró" in result
+

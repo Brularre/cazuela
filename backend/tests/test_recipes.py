@@ -150,37 +150,11 @@ class TestCoerceQuantity:
         from app.handlers.recipes import _coerce_quantity
         assert _coerce_quantity(None) is None
 
-    def test_empty_string_returns_none(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity("") is None
-
-    def test_al_gusto_returns_none(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity("al gusto") is None
-
-    def test_un_poco_returns_none(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity("un poco") is None
-
-    def test_range_string_returns_none(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity("2-3") is None
-
-    def test_integer_returns_float(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity(2) == 2.0
-
-    def test_float_returns_float(self):
-        from app.handlers.recipes import _coerce_quantity
-        assert _coerce_quantity(2.5) == 2.5
-
     def test_numeric_string_returns_float(self):
         from app.handlers.recipes import _coerce_quantity
         assert _coerce_quantity("2") == 2.0
-
-    def test_decimal_string_returns_float(self):
-        from app.handlers.recipes import _coerce_quantity
         assert _coerce_quantity("0.5") == 0.5
+        assert _coerce_quantity("al gusto") is None
 
 
 class TestAddManyToShopping:

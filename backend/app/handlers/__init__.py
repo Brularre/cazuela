@@ -5,7 +5,7 @@ Agents working on a new handler can read this file to understand the
 full surface area without opening every module.
 
 DINERO
-  expenses.py   : save_expense, expense_history, map_category, normalize
+  expenses.py   : save_expense, expense_history, map_category
   budget.py     : set_budget
   summary.py    : get_week_summary, aggregate_by_category, format_amount
   expense_batch : handle_batch_create, handle_batch_confirm, handle_batch_cancel
@@ -26,9 +26,9 @@ COMIDA
                         confirm_shopping_add, cancel_shopping_add
 
 SHARED
-  utils.py      : find_first_substring
+  utils.py      : find_first_substring, normalize
 """
-from app.handlers.expenses import save_expense, expense_history, map_category, normalize
+from app.handlers.expenses import save_expense, expense_history, map_category
 from app.handlers.budget import set_budget
 from app.handlers.summary import get_week_summary, aggregate_by_category, format_amount
 from app.handlers.expense_batch import handle_batch_create, handle_batch_confirm, handle_batch_cancel
@@ -49,7 +49,7 @@ from app.handlers.recipes import (
     sugerir_recetas, elegir_receta,
     confirm_shopping_add, cancel_shopping_add,
 )
-from app.handlers.utils import find_first_substring
+from app.handlers.utils import find_first_substring, normalize
 
 __all__ = [
     "save_expense", "expense_history", "map_category", "normalize",
