@@ -67,7 +67,7 @@ def test_new_user_receives_welcome(mock_get_user):
     assert response.status_code == 200
     text = mock_send.call_args[0][1]
     assert "Cazuela" in text
-    assert "me llamo" in text
+    assert "cómo te llamas" in text
 
 
 @patch("app.db.users.client")

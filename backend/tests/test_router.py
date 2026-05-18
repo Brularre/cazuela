@@ -149,6 +149,14 @@ def test_stock_routes_to_set_pantry_stock(message, expected_item, expected_qty):
         assert mock.call_args[0][1] == expected_qty
 
 
+def test_route_intercepts_onboarding():
+    user = {**FAKE_USER, "onboarding_complete": False, "name": "Bruno"}
+    with patch("app.router.handle_onboarding", return_value="onboarding") as mock:
+        result = route("gasté 5000 en almuerzo", user)
+    mock.assert_called_once()
+    assert result == "onboarding"
+
+
 def test_ambiguous_expense_routes_to_handle_ambiguous():
     with patch("app.router._handle_ambiguous_expense", return_value="ok") as mock:
         route("pagué 5000", FAKE_USER)
@@ -257,16 +265,16 @@ def test_budget_set_routes_to_set_budget(message, expected_amount):
 # ---------------------------------------------------------------------------
 
 def test_parse_clp_amount_integer_with_dot_separator():
-    from app.router import _parse_clp_amount
+    from app.handlers.utils import parse_clp_amount as _parse_clp_amount
     assert _parse_clp_amount("1.500") == 1500.0
     assert _parse_clp_amount("12.990") == 12990.0
 
 def test_parse_clp_amount_plain_integer():
-    from app.router import _parse_clp_amount
+    from app.handlers.utils import parse_clp_amount as _parse_clp_amount
     assert _parse_clp_amount("5000") == 5000.0
 
 def test_parse_clp_amount_decimal_returns_none():
-    from app.router import _parse_clp_amount
+    from app.handlers.utils import parse_clp_amount as _parse_clp_amount
     assert _parse_clp_amount("1500.50") is None
     assert _parse_clp_amount("1.500,50") is None
 

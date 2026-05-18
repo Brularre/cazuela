@@ -776,6 +776,70 @@ def test_e2e_que_puedo_hacer_elegir_no_missing(e2e_store, monkeypatch):
     assert len(e2e_store["shopping"]) == 0
 
 
+def test_is_onboarding_false_when_complete():
+    from app.handlers.onboarding import is_onboarding
+    assert not is_onboarding({"onboarding_complete": True})
+
+def test_is_onboarding_true_when_incomplete():
+    from app.handlers.onboarding import is_onboarding
+    assert is_onboarding({"onboarding_complete": False})
+
+def test_start_onboarding_returns_greeting():
+    from app.handlers.onboarding import start_onboarding
+    result = start_onboarding(FAKE_USER)
+    assert "Cazuela" in result
+    assert "llamas" in result
+
+@patch("app.handlers.onboarding.client")
+def test_handle_onboarding_saves_name(mock_client):
+    from app.handlers.onboarding import handle_onboarding
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    user = {**FAKE_USER, "onboarding_complete": False, "name": None}
+    result = handle_onboarding("Bruno", user)
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["name"] == "Bruno"
+    assert "mes" in result
+
+@patch("app.handlers.onboarding.client")
+def test_handle_onboarding_strips_me_llamo(mock_client):
+    from app.handlers.onboarding import handle_onboarding
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    user = {**FAKE_USER, "onboarding_complete": False, "name": None}
+    handle_onboarding("me llamo Bruno", user)
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["name"] == "Bruno"
+
+@patch("app.handlers.onboarding.client")
+@patch("app.handlers.onboarding.set_budget")
+def test_handle_onboarding_saves_budget(mock_budget, mock_client):
+    from app.handlers.onboarding import handle_onboarding
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    user = {**FAKE_USER, "onboarding_complete": False, "name": "Bruno"}
+    result = handle_onboarding("600.000", user)
+    mock_budget.assert_called_once_with(600000.0, user)
+    assert "Listo" in result
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["onboarding_complete"] is True
+
+@patch("app.handlers.onboarding.client")
+def test_handle_onboarding_skip_budget(mock_client):
+    from app.handlers.onboarding import handle_onboarding
+    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
+    user = {**FAKE_USER, "onboarding_complete": False, "name": "Bruno"}
+    result = handle_onboarding("después", user)
+    assert "Listo" in result
+    updated = mock_client.table.return_value.update.call_args[0][0]
+    assert updated["onboarding_complete"] is True
+
+@patch("app.handlers.onboarding.client")
+def test_handle_onboarding_invalid_budget_reprompts(mock_client):
+    from app.handlers.onboarding import handle_onboarding
+    user = {**FAKE_USER, "onboarding_complete": False, "name": "Bruno"}
+    result = handle_onboarding("no sé cuánto", user)
+    assert "No entendí" in result
+    mock_client.table.return_value.update.assert_not_called()
+
+
 def test_handlers_init_exports_all_public_api():
     from app.handlers import (
         save_expense, expense_history, map_category,
@@ -793,8 +857,9 @@ def test_handlers_init_exports_all_public_api():
         list_recipes, show_recipe, que_puedo_hacer,
         sugerir_recetas, elegir_receta,
         confirm_shopping_add, cancel_shopping_add,
-        find_first_substring, normalize,
+        find_first_substring, normalize, parse_clp_amount,
     )
     assert callable(save_expense)
     assert callable(normalize)
+    assert callable(parse_clp_amount)
     assert callable(nueva_receta)

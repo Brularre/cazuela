@@ -26,7 +26,7 @@ COMIDA
                         confirm_shopping_add, cancel_shopping_add
 
 SHARED
-  utils.py      : find_first_substring, normalize
+  utils.py      : find_first_substring, normalize, parse_clp_amount
 """
 from app.handlers.expenses import save_expense, expense_history, map_category
 from app.handlers.budget import set_budget
@@ -49,7 +49,7 @@ from app.handlers.recipes import (
     sugerir_recetas, elegir_receta,
     confirm_shopping_add, cancel_shopping_add,
 )
-from app.handlers.utils import find_first_substring, normalize
+from app.handlers.utils import find_first_substring, normalize, parse_clp_amount
 
 __all__ = [
     "save_expense", "expense_history", "map_category", "normalize",
@@ -68,4 +68,5 @@ __all__ = [
     "sugerir_recetas", "elegir_receta",
     "confirm_shopping_add", "cancel_shopping_add",
     "find_first_substring",
+    "parse_clp_amount",
 ]

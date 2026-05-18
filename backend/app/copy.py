@@ -50,20 +50,6 @@ HELP_TEXT = (
     "• _tablero_ — link al dashboard web"
 )
 
-WELCOME_TEXT = (
-    "¡Hola! Soy Cazuela, tu asistente personal por WhatsApp.\n\n"
-    "*Lo que puedo hacer:*\n"
-    "• *Gastos* — _gasté 5000 en almuerzo_ · _resumen_\n"
-    "• *Presupuesto* — _presupuesto 600.000_\n"
-    "• *Pendientes* — _pendiente llamar al banco_\n"
-    "• *Lista de compras* — _comprar leche_\n"
-    "• *Esperando* — _esperando respuesta del seguro_\n"
-    "• *Despensa* — _despensa cocina arroz 3_\n"
-    "• *Recetas* — _nueva receta: cazuela_\n"
-    "• *Tablero web* — _tablero_\n\n"
-    "Escribe *ayuda* para ver todos los comandos.\n\n"
-    "¿Cómo te llamo? Escribe *me llamo [tu nombre]* para que te recuerde."
-)
 
 _PANTRY_CATEGORIES = {1: "cocina", 2: "baño", 3: "otros"}
 

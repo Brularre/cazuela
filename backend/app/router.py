@@ -12,13 +12,12 @@ Routing order:
 See patterns.py for all compiled regexes.
 See dispatch.py for helpers and _dispatch.
 See handlers/__init__.py for the full handler API surface.
-See copy.py for HELP_TEXT, WELCOME_TEXT, and static strings.
+See copy.py for HELP_TEXT and static strings.
 """
 import re
 import warnings
 
 from app.patterns import (
-    _DECIMAL_RE,
     BATCH_EXPENSE_PATTERN,
     CONFIRM_SHORTCUT_PATTERN,
     CANCEL_SHORTCUT_PATTERN,
@@ -55,8 +54,10 @@ from app.patterns import (
     CONFIRM_PATTERN,
     CANCEL_PATTERN,
 )
-from app.copy import HELP_TEXT, WELCOME_TEXT, _CATEGORY_PROMPT  # noqa: F401 (WELCOME_TEXT re-exported for main.py)
+from app.copy import HELP_TEXT, _CATEGORY_PROMPT
 from app.ai_router import classify
+from app.handlers.onboarding import is_onboarding, handle_onboarding
+from app.handlers.utils import parse_clp_amount
 from app.dispatch import (
     _dispatch,
     _handle_confirm,
@@ -100,19 +101,17 @@ from app.handlers import (
 from app.mcp import client as mcp
 
 
-def _parse_clp_amount(raw: str) -> float | None:
-    if _DECIMAL_RE.search(raw):
-        return None
-    return float(raw.replace(".", "").replace(",", ""))
-
 
 def route(message: str, user: dict) -> str:
+    if is_onboarding(user):
+        return handle_onboarding(message, user)
+
     message = message.strip()
 
     match = BATCH_EXPENSE_PATTERN.match(message)
     if match:
         raw_amount = match.group(1)
-        amount = _parse_clp_amount(raw_amount)
+        amount = parse_clp_amount(raw_amount)
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _gasté 5000 en almuerzo_"
         items_csv = match.group(2).strip()
@@ -149,7 +148,7 @@ def route(message: str, user: dict) -> str:
     match = EXPENSE_PATTERN.match(message)
     if match:
         raw_amount, description = match.group(1), match.group(2).strip()
-        amount = _parse_clp_amount(raw_amount)
+        amount = parse_clp_amount(raw_amount)
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _gasté 5000 en almuerzo_"
         return save_expense(amount, description, user)
@@ -157,7 +156,7 @@ def route(message: str, user: dict) -> str:
     match = AMBIGUOUS_EXPENSE_PATTERN.match(message)
     if match:
         raw_amount = match.group(1)
-        amount = _parse_clp_amount(raw_amount)
+        amount = parse_clp_amount(raw_amount)
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _pagué 5000_"
         description = match.group(2)
@@ -170,7 +169,7 @@ def route(message: str, user: dict) -> str:
 
     match = BUDGET_SET_PATTERN.match(message)
     if match:
-        amount = _parse_clp_amount(match.group(1))
+        amount = parse_clp_amount(match.group(1))
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _presupuesto 600.000_"
         return set_budget(amount, user)

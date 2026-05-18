@@ -19,6 +19,7 @@ Primary identity table. One row per WhatsApp number.
 | currency | text | default 'CLP' |
 | anthropic_key | text | nullable, encrypted |
 | ai_mode | boolean | default false |
+| onboarding_complete | boolean | default false, NOT NULL |
 | created_at | timestamptz | default now() |
 
 ---
@@ -267,3 +268,5 @@ exist with no recipe assigned yet.
 12. `otp_attempts_migration.sql` — add attempts column to otp_codes
 13. `pantry_unique_item_migration.sql` — unique constraint
     on pantry(user_id, item)
+14. `onboarding_migration.sql` — add onboarding_complete to users;
+    existing users set to true

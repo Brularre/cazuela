@@ -11,7 +11,8 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.config import settings
 from app.db import client
 from app.db.users import get_or_create_user
-from app.router import route, WELCOME_TEXT
+from app.router import route
+from app.handlers.onboarding import start_onboarding
 from app.routes.auth import router as auth_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.export_import import router as export_import_router
@@ -102,7 +103,7 @@ async def webhook(request: Request):
                 body = message.get("text", {}).get("body", "").strip()
                 try:
                     user, is_new = get_or_create_user(sender)
-                    text = WELCOME_TEXT if is_new else route(body, user)
+                    text = start_onboarding(user) if is_new else route(body, user)
                 except Exception as e:
                     warnings.warn(f"Webhook error for {sender}: {e}")
                     text = "Tuve un problema. Por favor intenta nuevamente."
