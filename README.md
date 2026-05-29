@@ -191,6 +191,15 @@ python replay.py fixtures/mcp_snapshots/expense_comida.json \
   --mode stub --runs 3 --expect-final-status confirmed
 ```
 
+## Reminder Deploy Checklist
+
+- Run migration: `backend/migrations/reminders_migration.sql`
+- Create Railway cron service: `python -m app.jobs.send_digest` on `0 13 * * *`
+- Create Railway cron service: `python -m app.jobs.send_reminders` on `*/15 * * * *`
+- Ensure both cron services have: `SUPABASE_URL`, `SUPABASE_KEY`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`
+- Open the 24h WhatsApp window by sending any user message
+- Verify: one digest with `Continuar`, then one due reminder arrives and flips `remind_sent=true`
+
 ---
 
 ## MCP Integration
