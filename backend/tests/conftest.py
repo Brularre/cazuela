@@ -6,12 +6,14 @@ os.environ.setdefault("SUPABASE_URL", "https://fake.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "fake-key")
 os.environ.setdefault("SESSION_SECRET", "test-secret-that-is-long-enough-for-jwt-hs256")
 os.environ.setdefault("META_SKIP_VALIDATION", "true")
+os.environ.setdefault("CLASSIFIER_PROVIDER", "stub")
+os.environ.setdefault("RESPONDER_PROVIDER", "stub")
 
 
-FAKE_USER = {"id": "abc-123", "phone": "+56912345678", "onboarding_complete": True}
+FAKE_USER = {"id": "abc-123", "phone": "+15555550100", "onboarding_complete": True}
 
 
-def meta_payload(body, sender="56912345678"):
+def meta_payload(body, sender="15555550100"):
     return {
         "object": "whatsapp_business_account",
         "entry": [{

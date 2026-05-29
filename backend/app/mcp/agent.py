@@ -1,11 +1,10 @@
 import json
 import re
 import warnings
-import anthropic
 from app.config import settings
+from app.llm import complete, responder_available
 from app.handlers.expenses import map_category, normalize
 
-MODEL_NAME = "claude-haiku-4-5-20251001"
 STUB_MODEL_NAME = "stub-v1"
 
 CATEGORIES = [
@@ -41,17 +40,10 @@ def _propose_ai(context: dict) -> dict:
         f"User's recent category counts: {json.dumps(history, ensure_ascii=False)}\n"
         "What category best fits this expense?"
     )
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    response = client.messages.create(
-        model=MODEL_NAME,
-        max_tokens=128,
-        temperature=0,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
-    if not response.content:
-        raise ValueError("Empty response from AI agent")
-    return _parse_ai_response(response.content[0].text.strip())
+    raw = complete("responder", _SYSTEM_PROMPT, user_message, max_tokens=128, temperature=0)
+    if raw is None:
+        raise ValueError("No response from AI provider")
+    return _parse_ai_response(raw)
 
 
 def _match_explicit_category_map(payload: dict, raw_message: str) -> dict | None:
@@ -238,19 +230,15 @@ _RECIPE_SUGGEST_SYSTEM_PROMPT = (
 def _propose_recipe_create(context: dict) -> dict:
     payload = context.get("payload", {})
     recipe_name = payload.get("recipe_name", "")
-    if not (payload.get("ai_mode") and settings.anthropic_api_key):
+    if not payload.get("ai_mode"):
         return {"ingredients": []}
-    ai_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    response = ai_client.messages.create(
-        model=MODEL_NAME,
-        max_tokens=512,
-        temperature=0,
-        system=_RECIPE_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": f"Ingredients for: {recipe_name}"}],
+    raw = complete(
+        "responder", _RECIPE_SYSTEM_PROMPT,
+        f"Ingredients for: {recipe_name}",
+        max_tokens=512, temperature=0,
     )
-    if not response.content:
+    if raw is None:
         return {"ingredients": []}
-    raw = response.content[0].text.strip()
     if raw.startswith("```"):
         raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
     try:
@@ -285,8 +273,6 @@ def _propose_recipe_match(context: dict) -> dict:
 
 def _propose_recipe_suggest(context: dict) -> dict:
     payload = context.get("payload", {})
-    if not (settings.use_ai_agent and settings.anthropic_api_key):
-        return {"suggestions": []}
     n = payload.get("n", 5)
     pantry = payload.get("pantry", [])
     existing = payload.get("existing_recipe_names", [])
@@ -295,17 +281,12 @@ def _propose_recipe_suggest(context: dict) -> dict:
         f"Recetas ya guardadas (no sugerir): {json.dumps(existing, ensure_ascii=False)}\n\n"
         f"Sugiere exactamente {n} recetas."
     )
-    ai_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    response = ai_client.messages.create(
-        model=MODEL_NAME,
-        max_tokens=1024,
-        temperature=0,
-        system=_RECIPE_SUGGEST_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
+    raw = complete(
+        "responder", _RECIPE_SUGGEST_SYSTEM_PROMPT, user_message,
+        max_tokens=1024, temperature=0,
     )
-    if not response.content:
+    if raw is None:
         return {"suggestions": []}
-    raw = response.content[0].text.strip()
     if raw.startswith("```"):
         raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
     try:
@@ -326,8 +307,8 @@ def get_model_for(context: dict) -> str:
         "recipe_match", "shopping_add_pending",
     ):
         return STUB_MODEL_NAME
-    if domain in ("expense", "recipe_create", "recipe_suggest") and settings.use_ai_agent and settings.anthropic_api_key:
-        return MODEL_NAME
+    if domain in ("expense", "recipe_create", "recipe_suggest") and responder_available():
+        return settings.responder_model
     return STUB_MODEL_NAME
 
 
@@ -349,7 +330,7 @@ def propose(context: dict) -> dict:
         return _propose_shopping_add_pending(context)
     if domain != "expense":
         return {"confirmed": True}
-    if settings.use_ai_agent and settings.anthropic_api_key:
+    if responder_available():
         try:
             return _propose_ai(context)
         except Exception as e:

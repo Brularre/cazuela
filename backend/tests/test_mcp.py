@@ -366,30 +366,19 @@ def test_stub_non_expense_domain_returns_confirmed():
 
 
 def test_ai_agent_propose_called_when_enabled():
-    fake_response = MagicMock()
-    fake_response.content = [MagicMock(text=json.dumps({
-        "category": "transporte",
-        "confidence": 0.9,
-        "reasoning": "parece un gasto de transporte",
-    }))]
-    fake_client = MagicMock()
-    fake_client.messages.create.return_value = fake_response
-
     context = {
         "domain": "expense",
         "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
     }
-
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value = fake_client
+    ai_response = json.dumps({
+        "category": "transporte", "confidence": 0.9, "reasoning": "parece un gasto de transporte",
+    })
+    with patch("app.mcp.agent.complete", return_value=ai_response) as mock_complete:
         result = propose(context)
 
     assert result["category"] == "transporte"
     assert result["confidence"] == 0.9
-    fake_client.messages.create.assert_called_once()
+    mock_complete.assert_called_once()
 
 
 def test_ai_agent_falls_back_to_stub_on_error():
@@ -398,11 +387,7 @@ def test_ai_agent_falls_back_to_stub_on_error():
         "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
     }
 
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value.messages.create.side_effect = Exception("API error")
+    with patch("app.mcp.agent.complete", side_effect=Exception("API error")):
         result = propose(context)
 
     assert result["category"] == "comida"
@@ -423,11 +408,9 @@ def test_ai_agent_invalid_category_falls_back_to_otros():
         "payload": {**EXPENSE_PAYLOAD, "user_history": {"comida": 8}},
     }
 
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value = fake_client
+    with patch("app.mcp.agent.complete", return_value=json.dumps({
+        "category": "pizza", "confidence": 0.7, "reasoning": "es una pizza",
+    })):
         result = propose(context)
 
     assert result["category"] == "otros"
@@ -444,11 +427,7 @@ def test_ai_agent_malformed_json_falls_back_to_stub():
         "payload": {**EXPENSE_PAYLOAD, "user_history": {"transporte": 5}},
     }
 
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value = fake_client
+    with patch("app.mcp.agent.complete", return_value="not json at all"):
         result = propose(context)
 
     assert result["category"] == "transporte"
@@ -467,9 +446,7 @@ def test_ai_agent_disabled_uses_stub():
         "domain": "expense",
         "payload": {**EXPENSE_PAYLOAD, "user_history": {"salud": 3}},
     }
-    with patch("app.mcp.agent.settings") as mock_settings:
-        mock_settings.use_ai_agent = False
-        mock_settings.anthropic_api_key = "sk-ant-fake"
+    with patch("app.mcp.agent.responder_available", return_value=False):
         result = propose(context)
     assert result["category"] == "salud"
 
@@ -571,31 +548,14 @@ def test_reconciliation_empty_transactions_raises():
 
 
 def test_agent_model_updated_to_ai_when_ai_mode_enabled():
-    fake_response = MagicMock()
-    fake_response.content = [MagicMock(text=json.dumps({
-        "category": "transporte",
-        "confidence": 0.9,
-        "reasoning": "parece un gasto de transporte",
-    }))]
-    fake_client = MagicMock()
-    fake_client.messages.create.return_value = fake_response
-
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value = fake_client
-        result = request_action(context_id)
-
+    result = request_action(context_id)
     assert result["agent_model"] == "claude-haiku-4-5-20251001"
 
 
 def test_agent_model_stays_stub_when_ai_disabled():
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
-    with patch("app.mcp.agent.settings") as mock_settings:
-        mock_settings.use_ai_agent = False
-        mock_settings.anthropic_api_key = ""
+    with patch("app.mcp.agent.responder_available", return_value=False):
         result = request_action(context_id)
     assert result["agent_model"] == "stub-v1"
 
@@ -614,11 +574,7 @@ def test_ai_reproducibility_across_3_mocked_runs():
     }
 
     results = []
-    with patch("app.mcp.agent.settings") as mock_settings, \
-         patch("app.mcp.agent.anthropic") as mock_anthropic:
-        mock_settings.use_ai_agent = True
-        mock_settings.anthropic_api_key = "sk-ant-fake"
-        mock_anthropic.Anthropic.return_value = fake_client
+    with patch("app.mcp.agent.complete", return_value=json.dumps(fixed)):
         for _ in range(3):
             results.append(propose(context))
 
@@ -759,8 +715,8 @@ class TestProposeRecipeSuggest:
         from app.mcp.agent import _propose_recipe_suggest
         context = {"domain": "recipe_suggest", "payload": {"pantry": [{"item": "arroz"}], "n": 5}}
         with patch("app.mcp.agent.settings") as mock_settings:
-            mock_settings.use_ai_agent = True
-            mock_settings.anthropic_api_key = None
+            mock_settings.responder_provider = "anthropic"
+            mock_settings.responder_api_key = None
             result = _propose_recipe_suggest(context)
         assert result == {"suggestions": []}
 
@@ -779,11 +735,7 @@ class TestProposeRecipeSuggest:
                 "n": 5,
             },
         }
-        with patch("app.mcp.agent.settings") as mock_settings, \
-             patch("app.mcp.agent.anthropic") as mock_anthropic:
-            mock_settings.use_ai_agent = True
-            mock_settings.anthropic_api_key = "sk-ant-fake"
-            mock_anthropic.Anthropic.return_value = fake_client
+        with patch("app.mcp.agent.complete", return_value=json.dumps({"suggestions": suggestions})):
             result = _propose_recipe_suggest(context)
         assert result["suggestions"][0]["name"] == "tortilla"
 
@@ -797,26 +749,21 @@ class TestProposeRecipeSuggest:
             "domain": "recipe_suggest",
             "payload": {"pantry": [{"item": "arroz"}], "n": 3},
         }
-        with patch("app.mcp.agent.settings") as mock_settings, \
-             patch("app.mcp.agent.anthropic") as mock_anthropic:
-            mock_settings.use_ai_agent = True
-            mock_settings.anthropic_api_key = "sk-ant-fake"
-            mock_anthropic.Anthropic.return_value = fake_client
+        with patch("app.mcp.agent.complete", return_value="not valid json {{{"):
             result = _propose_recipe_suggest(context)
         assert result == {"suggestions": []}
 
     def test_uses_ai_model(self):
         from app.mcp.agent import get_model_for
         with patch("app.mcp.agent.settings") as mock_settings:
-            mock_settings.use_ai_agent = True
-            mock_settings.anthropic_api_key = "sk-ant-fake"
+            mock_settings.responder_provider = "anthropic"
+            mock_settings.responder_api_key = "sk-ant-fake"
+            mock_settings.responder_model = "claude-haiku-4-5-20251001"
             assert get_model_for({"domain": "recipe_suggest"}) == "claude-haiku-4-5-20251001"
 
     def test_uses_stub_model_when_no_key(self):
         from app.mcp.agent import get_model_for
-        with patch("app.mcp.agent.settings") as mock_settings:
-            mock_settings.use_ai_agent = True
-            mock_settings.anthropic_api_key = None
+        with patch("app.mcp.agent.responder_available", return_value=False):
             assert get_model_for({"domain": "recipe_suggest"}) == "stub-v1"
 
 
