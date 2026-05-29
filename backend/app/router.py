@@ -42,6 +42,9 @@ from app.patterns import (
     WAITING_ADD_PATTERN,
     WAITING_LIST_PATTERN,
     WAITING_RESOLVE_PATTERN,
+    EVENT_ADD_PATTERN,
+    EVENT_LIST_PATTERN,
+    EVENT_DELETE_PATTERN,
     RECIPE_NEW_PATTERN,
     RECIPE_LIST_PATTERN,
     RECIPE_SHOW_PATTERN,
@@ -58,6 +61,8 @@ from app.copy import HELP_TEXT, _CATEGORY_PROMPT
 from app.llm import classify
 from app.handlers.onboarding import is_onboarding, handle_onboarding
 from app.handlers.utils import parse_clp_amount
+from app.handlers.modules import is_enabled, module_for_intent
+from app.handlers.events import add_event, list_events, delete_event, parse_event_time
 from app.dispatch import (
     _dispatch,
     _handle_confirm,
@@ -100,6 +105,14 @@ from app.handlers import (
 )
 from app.mcp import client as mcp
 
+_MODULE_DISABLED = "Ese módulo está desactivado. Actívalo en el tablero."
+
+
+def _module_guard(intent_name: str, user: dict) -> str | None:
+    module = module_for_intent(intent_name)
+    if module and not is_enabled(user, module):
+        return _MODULE_DISABLED
+    return None
 
 
 def route(message: str, user: dict) -> str:
@@ -110,6 +123,8 @@ def route(message: str, user: dict) -> str:
 
     match = BATCH_EXPENSE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_expense", user):
+            return guard
         raw_amount = match.group(1)
         amount = parse_clp_amount(raw_amount)
         if amount is None:
@@ -138,6 +153,8 @@ def route(message: str, user: dict) -> str:
 
     match = EXPENSE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_expense", user):
+            return guard
         raw_amount, description = match.group(1), match.group(2).strip()
         amount = parse_clp_amount(raw_amount)
         if amount is None:
@@ -146,6 +163,8 @@ def route(message: str, user: dict) -> str:
 
     match = AMBIGUOUS_EXPENSE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_expense", user):
+            return guard
         raw_amount = match.group(1)
         amount = parse_clp_amount(raw_amount)
         if amount is None:
@@ -156,10 +175,14 @@ def route(message: str, user: dict) -> str:
         return _handle_ambiguous_expense(amount, message, user)
 
     if SUMMARY_PATTERN.match(message):
+        if guard := _module_guard("get_summary", user):
+            return guard
         return get_week_summary(user)
 
     match = BUDGET_SET_PATTERN.match(message)
     if match:
+        if guard := _module_guard("set_budget", user):
+            return guard
         amount = parse_clp_amount(match.group(1))
         if amount is None:
             return "Los montos van en pesos enteros. Ejemplo: _presupuesto 600.000_"
@@ -167,6 +190,8 @@ def route(message: str, user: dict) -> str:
 
     match = TODO_ADD_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_todo", user):
+            return guard
         task_raw = match.group(1).strip()
         priority = "semana"
         if re.match(r'^hoy[:\s]+', task_raw, re.IGNORECASE):
@@ -178,29 +203,43 @@ def route(message: str, user: dict) -> str:
         return add_todo(task_raw, user, priority)
 
     if TODO_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_todos", user):
+            return guard
         return list_todos(user)
 
     match = TODO_DONE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("complete_todo", user):
+            return guard
         return complete_todo(match.group(1).strip(), user)
 
     match = TODO_DELETE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("delete_todo", user):
+            return guard
         return delete_todo(match.group(1).strip(), user)
 
     match = NECESITO_COMPRAR_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         return handle_pantry_add_create(match.group(1).strip(), user)
 
     match = SHOPPING_ADD_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_to_shopping", user):
+            return guard
         return add_to_shopping(match.group(1).strip(), user)
 
     if SHOPPING_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_shopping", user):
+            return guard
         return list_shopping(user)
 
     match = PANTRY_ADD_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         category_raw = match.group(1)
         item = match.group(2).strip()
         qty = int(match.group(3))
@@ -210,61 +249,112 @@ def route(message: str, user: dict) -> str:
         return _CATEGORY_PROMPT
 
     if PANTRY_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_pantry", user):
+            return guard
         return list_pantry(user)
 
     match = PANTRY_CONSUME_PATTERN.match(message)
     if match:
+        if guard := _module_guard("consume_pantry_item", user):
+            return guard
         return consume_pantry_item(match.group(1).strip(), user)
 
     match = PANTRY_SET_STOCK_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         return set_pantry_stock(match.group(2).strip(), int(match.group(1)), user)
 
     match = PANTRY_SET_STOCK_QTY_LAST_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         return set_pantry_stock(match.group(1).strip(), int(match.group(2)), user)
 
     if PANTRY_RESTOCK_ALL_PATTERN.match(message):
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         return restock_all_pantry(user)
 
     match = PANTRY_RESTOCK_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_pantry_item", user):
+            return guard
         fragment = match.group(1).strip()
         qty_str = match.group(2)
         return _handle_bought(fragment, user, int(qty_str) if qty_str else None)
 
     match = WAITING_ADD_PATTERN.match(message)
     if match:
+        if guard := _module_guard("add_waiting", user):
+            return guard
         return add_waiting(match.group(1).strip(), user)
 
     if WAITING_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_waiting", user):
+            return guard
         return list_waiting(user)
 
     match = WAITING_RESOLVE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("resolve_waiting", user):
+            return guard
         fragment = re.sub(r'^(?:el|la|los|las)\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
         return resolve_waiting(fragment, user)
 
+    match = EVENT_ADD_PATTERN.match(message)
+    if match:
+        if guard := _module_guard("add_event", user):
+            return guard
+        title = match.group(1).strip()
+        starts_at = parse_event_time(message)
+        if starts_at is None:
+            return "No entendí la hora del evento. Ejemplo: _evento: dentista mañana a las 10_"
+        return add_event(title, starts_at, user)
+
+    if EVENT_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_events", user):
+            return guard
+        return list_events(user)
+
+    match = EVENT_DELETE_PATTERN.match(message)
+    if match:
+        if guard := _module_guard("delete_event", user):
+            return guard
+        return delete_event(match.group(1).strip(), user)
+
     match = RECIPE_NEW_PATTERN.match(message)
     if match:
+        if guard := _module_guard("nueva_receta", user):
+            return guard
         return nueva_receta(match.group(1).strip(), user)
 
     if RECIPE_LIST_PATTERN.match(message):
+        if guard := _module_guard("list_recipes", user):
+            return guard
         return list_recipes(user)
 
     match = RECIPE_SHOW_PATTERN.match(message)
     if match:
+        if guard := _module_guard("show_recipe", user):
+            return guard
         fragment = re.sub(r'^de\s+', '', match.group(1).strip(), flags=re.IGNORECASE)
         return show_recipe(fragment, user)
 
     if RECIPE_MATCH_PATTERN.match(message):
+        if guard := _module_guard("que_puedo_hacer", user):
+            return guard
         return que_puedo_hacer(user)
 
     if RECIPE_SUGGEST_PATTERN.match(message):
+        if guard := _module_guard("sugerir_recetas", user):
+            return guard
         return sugerir_recetas(user)
 
     match = RECIPE_CHOOSE_PATTERN.match(message)
     if match:
+        if guard := _module_guard("elegir_receta", user):
+            return guard
         n = int(match.group(1))
         pending_id = mcp.find_pending_for_user(user["id"])
         if pending_id:

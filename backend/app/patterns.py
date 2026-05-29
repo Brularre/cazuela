@@ -60,6 +60,13 @@ HELP_PATTERN = re.compile(r'^ayuda\b', re.IGNORECASE)
 TABLERO_PATTERN = re.compile(r'^(?:mi\s+)?tablero$', re.IGNORECASE)
 ME_LLAMO_PATTERN = re.compile(r'^me\s+llamo\s+(.+)$', re.IGNORECASE)
 
+EVENT_ADD_PATTERN = re.compile(
+    r'^(?:evento|cita|reunión|reunion)[:\s]+(.+?)\s*(?:(?:hoy|mañana|manana)\s+)?a\s+las?\s+\d{1,2}.*$',
+    re.IGNORECASE,
+)
+EVENT_LIST_PATTERN = re.compile(r'^mis?\s+eventos?$', re.IGNORECASE)
+EVENT_DELETE_PATTERN = re.compile(r'^borrar\s+evento[:\s]+(.+)$', re.IGNORECASE)
+
 RECIPE_NEW_PATTERN = re.compile(r'^nueva\s+receta[:\s]+(.+)$', re.IGNORECASE)
 RECIPE_LIST_PATTERN = re.compile(r'^mis?\s+recetas?$', re.IGNORECASE)
 RECIPE_SHOW_PATTERN = re.compile(r'^receta[:\s]+(.+)$', re.IGNORECASE)

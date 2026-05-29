@@ -5,7 +5,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Added
+### Added (Track D1)
+- **Module toggles** — `user_modules` table + `modules.py` handler; each feature module (dinero, tiempo, comida, calendario, recordatorios) can be enabled/disabled per user. Router guards every regex and AI-dispatched intent. Dashboard panel to flip toggles.
+- **Calendar events** — WhatsApp CRUD (`evento: dentista mañana a las 10`, `mis eventos`, `borrar evento …`) gated behind `calendario` module. `events.py` handler with `parse_event_time` for Spanish time phrases. Events shown on dashboard.
+- **iCal feed** — `GET /calendar/{token}.ics` returns a VCALENDAR feed of upcoming events. Token generated lazily per user and surfaced in the dashboard Calendar section.
+- **Shared WhatsApp sender** — `backend/app/notify.py` with `send_text()`. OTP send now routes through it; eliminates the duplicate inline Meta call.
+
+### Added (Track C, previously unreleased)
 - Pluggable LLM adapter (`backend/app/llm.py`) with Anthropic, Groq, and stub providers
 - Two-tier model config: `CLASSIFIER_*` env vars for intent routing, `RESPONDER_*` for conversational replies
 - User profile injection (name, currency) prepended to AI prompts for personalization

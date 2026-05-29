@@ -14,6 +14,7 @@ from app.db.users import get_or_create_user
 from app.router import route
 from app.handlers.onboarding import start_onboarding
 from app.routes.auth import router as auth_router
+from app.routes.calendar import router as calendar_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.export_import import router as export_import_router
 
@@ -30,6 +31,7 @@ if settings.meta_skip_validation:
     warnings.warn("META_SKIP_VALIDATION is true — Meta signature checks are disabled")
 
 app.include_router(auth_router)
+app.include_router(calendar_router)
 app.include_router(dashboard_router)
 app.include_router(export_import_router)
 
