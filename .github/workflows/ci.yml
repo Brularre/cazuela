@@ -4,11 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: ["**"]
+  workflow_dispatch:
 
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +40,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +56,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Test
-        run: cd frontend && npm test
+        run: cd frontend && npm test -- --watchAll=false
 
       - name: Build
         env:
