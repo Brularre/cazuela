@@ -20,12 +20,10 @@ Public API:
     (caller may try events next).
 """
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
+from app.config import TZ as _TZ
 from app.db import client
 from app.handlers.utils import find_first_substring
-
-_TZ = ZoneInfo("America/Santiago")
 
 
 def add_todo(task: str, user: dict, priority: str = "semana") -> str:

@@ -1,5 +1,8 @@
+import os
+
 from pydantic import ConfigDict, model_validator
 from pydantic_settings import BaseSettings
+from zoneinfo import ZoneInfo
 
 
 class Settings(BaseSettings):
@@ -44,3 +47,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+TZ = ZoneInfo(os.environ.get("DEFAULT_TZ", "America/Santiago"))
