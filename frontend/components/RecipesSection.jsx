@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
+import CollapsibleSection from "./CollapsibleSection.jsx";
 import styles from "../styles/RecipesSection.module.css";
 
 export default function RecipesSection({ recetas: initial }) {

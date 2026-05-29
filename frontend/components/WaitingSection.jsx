@@ -1,6 +1,6 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
-import AddItemForm from "./AddItemForm";
+import CollapsibleSection from "./CollapsibleSection.jsx";
+import AddItemForm from "./AddItemForm.jsx";
 import styles from "./WaitingSection.module.css";
 
 function daysAgo(isoDate) {

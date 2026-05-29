@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import CollapsibleSection from "./CollapsibleSection";
+import CollapsibleSection from "./CollapsibleSection.jsx";
 import styles from "./ExpensesSection.module.css";
 
 function formatAmount(n) {

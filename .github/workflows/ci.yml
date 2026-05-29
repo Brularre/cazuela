@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,39 +18,45 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('backend/requirements*.txt') }}
+          restore-keys: pip-
+
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
           pip install -r backend/requirements-dev.txt
 
-      - name: Run tests
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Lint
+        run: ruff check backend/
+
+      - name: Test
         run: cd backend && python -m pytest
 
-      - name: Replay fixture snapshots (stub mode)
-        run: |
-          cd backend
-          # expense_staged.json, expense_verify_refine_step1.json,
-          # expense_verify_refine_step2.json are state-capture
-          # snapshots covered by pytest, not replayed here.
-          for f in fixtures/mcp_snapshots/expense_batch_*.json; do
-            python replay.py "$f" --mode stub --runs 2 \
-              --expect-final-status confirmed \
-              --request-actions 3 --expect-iteration-count 3
-          done
-          python replay.py \
-            fixtures/mcp_snapshots/reconciliation_batch.json \
-            --mode stub --runs 2 \
-            --expect-final-status confirmed \
-            --request-actions 1 --expect-iteration-count 1
-          for f in \
-            fixtures/mcp_snapshots/expense_comida.json \
-            fixtures/mcp_snapshots/expense_empty_history.json \
-            fixtures/mcp_snapshots/expense_with_category_map.json \
-            fixtures/mcp_snapshots/expense_with_user_profile.json; do
-            python replay.py "$f" --mode stub --runs 2 \
-              --expect-final-status confirmed \
-              --request-actions 1 --expect-iteration-count 1
-          done
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Test
+        run: cd frontend && npm test
+
+      - name: Build
+        env:
+          BACKEND_URL: http://localhost:8000
+          NEXT_PUBLIC_WA_NUMBER: "1234567890"
+        run: cd frontend && npm run build

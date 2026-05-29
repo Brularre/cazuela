@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import Header from "../components/Header";
-import SettingsModal from "../components/SettingsModal";
-import ExpensesSection from "../components/ExpensesSection";
-import TodosSection from "../components/TodosSection";
-import WaitingSection from "../components/WaitingSection";
-import ShoppingSection from "../components/ShoppingSection";
-import PantrySection from "../components/PantrySection";
-import RecipesSection from "../components/RecipesSection";
-import MealPlanSection from "../components/MealPlanSection";
+import Header from "../components/Header.jsx";
+import SettingsModal from "../components/SettingsModal.jsx";
+import ExpensesSection from "../components/ExpensesSection.jsx";
+import TodosSection from "../components/TodosSection.jsx";
+import WaitingSection from "../components/WaitingSection.jsx";
+import ShoppingSection from "../components/ShoppingSection.jsx";
+import PantrySection from "../components/PantrySection.jsx";
+import RecipesSection from "../components/RecipesSection.jsx";
+import MealPlanSection from "../components/MealPlanSection.jsx";
 import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {

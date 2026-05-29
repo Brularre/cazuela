@@ -1,6 +1,4 @@
 import pytest
-from app.mcp import context as ctx_mod
-from app.mcp.client import send_context, request_action, confirm, rollback
 from app.mcp.agent import _infer_pantry_category, _propose_pantry_add_batch
 from app.handlers import pantry_shopping
 from app.router import NECESITO_COMPRAR_PATTERN, route

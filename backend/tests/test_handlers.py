@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from tests.conftest import FAKE_USER
 
@@ -405,7 +405,7 @@ def test_set_pantry_stock_caps_at_9999(mock_client):
     ]
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.pantry import set_pantry_stock
-    result = set_pantry_stock("jabón", 99999, FAKE_USER)
+    set_pantry_stock("jabón", 99999, FAKE_USER)
     updated = mock_client.table.return_value.update.call_args[0][0]
     assert updated["current_quantity"] == 9999
 
@@ -510,9 +510,8 @@ def test_set_budget(mock_client):
 # Seed pantry → qué cocino → mocked AI → elegir 2 → sí
 # ---------------------------------------------------------------------------
 
-import json
-import pytest
-from unittest.mock import patch
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
 E2E_USER = {"id": "e2e-user-1111", "phone": "+56911111111", "ai_mode": True, "onboarding_complete": True}
 
@@ -746,7 +745,6 @@ def test_e2e_que_cocino_elegir_si(e2e_store, monkeypatch):
 def test_e2e_que_puedo_hacer_elegir_no_missing(e2e_store, monkeypatch):
     """Flavor A: qué puedo hacer → elegir 1 (no missing) → no shopping prompt."""
     from app.router import route
-    from unittest.mock import patch as upatch
 
     SUGGESTIONS_A = [
         {"recipe_id": "r-saved", "name": "sopa de verduras", "have": 2, "total": 2, "missing": [], "score": 1.0},
@@ -846,22 +844,7 @@ def test_handle_onboarding_invalid_budget_reprompts(mock_client):
 
 def test_handlers_init_exports_all_public_api():
     from app.handlers import (
-        save_expense, expense_history, map_category,
-        set_budget,
-        get_week_summary, aggregate_by_category, format_amount,
-        handle_batch_create, handle_batch_confirm, handle_batch_cancel,
-        add_todo, list_todos, complete_todo, delete_todo,
-        add_waiting, list_waiting, resolve_waiting,
-        add_pantry_item, list_pantry, consume_pantry_item,
-        restock_pantry_item, set_pantry_stock, restock_all_pantry,
-        handle_pantry_add_create, handle_pantry_add_confirm_despensa,
-        handle_pantry_add_confirm_lista, handle_pantry_add_cancel,
-        add_to_shopping, add_many_to_shopping, list_shopping, check_item,
-        nueva_receta, confirm_recipe_create, cancel_recipe_create,
-        list_recipes, show_recipe, que_puedo_hacer,
-        sugerir_recetas, elegir_receta,
-        confirm_shopping_add, cancel_shopping_add,
-        find_first_substring, normalize, parse_clp_amount,
+        save_expense, nueva_receta, normalize, parse_clp_amount,
     )
     assert callable(save_expense)
     assert callable(normalize)

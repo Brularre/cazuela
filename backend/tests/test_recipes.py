@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch, MagicMock
 from tests.conftest import FAKE_USER
 
@@ -420,7 +419,7 @@ class TestElegirRecetaFlavorA:
              patch("app.handlers.recipes.create_recipe", side_effect=RuntimeError("db down")):
             from app.handlers.recipes import elegir_receta
             try:
-                elegir_receta(1, FAKE_USER)
+                result = elegir_receta(1, FAKE_USER)
             except RuntimeError:
                 pass
         mock_mcp.confirm.assert_not_called()
@@ -496,7 +495,7 @@ class TestElegirRecetaFlavorB:
              patch("app.handlers.recipes.create_recipe", mock_create), \
              patch("app.handlers.recipes.replace_ingredients", mock_replace):
             from app.handlers.recipes import elegir_receta
-            result = elegir_receta(1, FAKE_USER)
+            elegir_receta(1, FAKE_USER)
         rows = mock_replace.call_args[0][1]
         assert rows[0]["item"] == "pollo"
 
