@@ -21,8 +21,7 @@ import warnings
 from datetime import date
 
 from app.db import client as db
-from app.ai_router import classify
-from app.copy import HELP_TEXT, _PANTRY_CATEGORIES, _CATEGORY_PROMPT
+from app.copy import HELP_TEXT, _PANTRY_CATEGORIES
 from app.config import settings
 from app.mcp import client as mcp
 from app.handlers.expenses import expense_history, save_expense
@@ -32,7 +31,7 @@ from app.handlers.expense_batch import (
     handle_batch_cancel,
 )
 from app.handlers.summary import format_amount, get_week_summary
-from app.handlers.todos import add_todo, list_todos, complete_todo, delete_todo
+from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.budget import set_budget
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
@@ -42,12 +41,9 @@ from app.handlers.pantry import (
     consume_pantry_item,
     restock_pantry_item,
     restock_all_pantry,
-    set_pantry_stock,
 )
 from app.handlers.pantry_shopping import (
     handle_pantry_add_create,
-    handle_pantry_add_confirm_despensa,
-    handle_pantry_add_confirm_lista,
     handle_pantry_add_cancel,
 )
 from app.handlers.recipes import (
@@ -56,9 +52,6 @@ from app.handlers.recipes import (
     cancel_recipe_create,
     list_recipes,
     show_recipe,
-    que_puedo_hacer,
-    sugerir_recetas,
-    elegir_receta,
     confirm_shopping_add,
     cancel_shopping_add,
 )

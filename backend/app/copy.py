@@ -45,7 +45,7 @@ HELP_TEXT = (
     "• _elegir 2_ — elegir una sugerencia después de pedirlas\n\n"
     "Escribe *ayuda* en cualquier momento para ver esto.\n\n"
     "*Tu perfil*\n"
-    "• _me llamo Bruno_ — guardar tu nombre\n\n"
+    "• _me llamo Juan_ — guardar tu nombre\n\n"
     "*Tablero*\n"
     "• _tablero_ — link al dashboard web"
 )

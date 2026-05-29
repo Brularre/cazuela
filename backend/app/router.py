@@ -5,8 +5,8 @@ Routing order:
   1. Batch expense shortcut (regex, fast path)
   2. Pantry-add despensa/lista shortcuts (requires pending MCP context)
   3. Confirm/cancel shortcuts (sí/no/ok/…)
-  4. AI classify → _dispatch (returns None on miss → fallthrough)
-  5. Manual regex chain (all intents, in priority order)
+  4. Manual regex chain (all intents, in priority order)
+  5. AI classify → _dispatch (returns None on miss → fallthrough)
   6. Fallback hint
 
 See patterns.py for all compiled regexes.
@@ -55,7 +55,7 @@ from app.patterns import (
     CANCEL_PATTERN,
 )
 from app.copy import HELP_TEXT, _CATEGORY_PROMPT
-from app.ai_router import classify
+from app.llm import classify
 from app.handlers.onboarding import is_onboarding, handle_onboarding
 from app.handlers.utils import parse_clp_amount
 from app.dispatch import (
@@ -135,15 +135,6 @@ def route(message: str, user: dict) -> str:
 
     if CANCEL_SHORTCUT_PATTERN.match(message) and mcp.find_pending_for_user(user["id"]):
         return _handle_cancel(user)
-
-    intent = classify(message)
-    if intent:
-        try:
-            result = _dispatch(intent, message, user)
-            if result is not None:
-                return result
-        except Exception as e:
-            warnings.warn(f"AI dispatch failed, falling back to regex: {e}")
 
     match = EXPENSE_PATTERN.match(message)
     if match:
@@ -300,5 +291,14 @@ def route(message: str, user: dict) -> str:
 
     if CANCEL_PATTERN.match(message):
         return _handle_cancel(user)
+
+    intent = classify(message, user)
+    if intent:
+        try:
+            result = _dispatch(intent, message, user)
+            if result is not None:
+                return result
+        except Exception as e:
+            warnings.warn(f"AI dispatch failed, falling back to regex: {e}")
 
     return _hint_for_message(message)
