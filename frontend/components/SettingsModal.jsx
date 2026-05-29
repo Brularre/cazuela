@@ -1,11 +1,30 @@
 import { useRef, useState } from "react";
 import styles from "./SettingsModal.module.css";
 
-export default function SettingsModal({ onClose }) {
+const MODULE_LABELS = {
+  dinero: "Dinero",
+  tiempo: "Tiempo",
+  comida: "Comida",
+  calendario: "Calendario",
+  recordatorios: "Recordatorios",
+};
+
+export default function SettingsModal({ onClose, modulos }) {
+  const [moduleState, setModuleState] = useState(modulos || {});
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [importError, setImportError] = useState(null);
   const fileRef = useRef(null);
+
+  async function toggleModule(module) {
+    const next = !moduleState[module];
+    setModuleState((prev) => ({ ...prev, [module]: next }));
+    await fetch(`/api/dashboard/modules/${module}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: next }),
+    });
+  }
 
   async function handleExport() {
     const res = await fetch("/api/dashboard/export");
@@ -122,6 +141,32 @@ export default function SettingsModal({ onClose }) {
               </ul>
             </div>
           )}
+        </section>
+
+        <div className={styles.divider} />
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Módulos</h3>
+          <p className={styles.sectionDesc}>
+            Activa o desactiva funciones de Cazuela.
+          </p>
+          <ul className={styles.moduleList}>
+            {Object.entries(MODULE_LABELS).map(([key, label]) => {
+              const enabled = moduleState[key] !== false;
+              return (
+                <li key={key} className={styles.moduleItem}>
+                  <span className={styles.moduleLabel}>{label}</span>
+                  <button
+                    className={enabled ? styles.toggleOn : styles.toggleOff}
+                    onClick={() => toggleModule(key)}
+                    aria-label={enabled ? `Desactivar ${label}` : `Activar ${label}`}
+                  >
+                    {enabled ? "Activo" : "Inactivo"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       </div>
     </div>

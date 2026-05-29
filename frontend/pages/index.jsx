@@ -10,7 +10,6 @@ import PantrySection from "../components/PantrySection.jsx";
 import RecipesSection from "../components/RecipesSection.jsx";
 import MealPlanSection from "../components/MealPlanSection.jsx";
 import CalendarSection from "../components/CalendarSection.jsx";
-import ModulesSection from "../components/ModulesSection.jsx";
 import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {
@@ -25,7 +24,7 @@ export default function Dashboard({ data }) {
   return (
     <>
       <Header onLogout={handleLogout} onSettings={() => setShowSettings(true)} />
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} modulos={data.modulos} />}
       <main className={styles.main}>
         {(data.modulos?.dinero !== false) && <ExpensesSection gastos={data.gastos} />}
         {(data.modulos?.comida !== false) && <ShoppingSection compras={data.compras} />}
@@ -35,7 +34,6 @@ export default function Dashboard({ data }) {
         {(data.modulos?.calendario !== false) && <CalendarSection eventos={data.eventos} icalUrl={data.ical_url} />}
         {(data.modulos?.comida !== false) && <RecipesSection recetas={data.recetas} />}
         {(data.modulos?.comida !== false) && <MealPlanSection plan={data.plan} recetas={data.recetas} />}
-        <ModulesSection modulos={data.modulos} />
       </main>
     </>
   );
