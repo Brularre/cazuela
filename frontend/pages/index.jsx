@@ -9,6 +9,8 @@ import ShoppingSection from "../components/ShoppingSection.jsx";
 import PantrySection from "../components/PantrySection.jsx";
 import RecipesSection from "../components/RecipesSection.jsx";
 import MealPlanSection from "../components/MealPlanSection.jsx";
+import CalendarSection from "../components/CalendarSection.jsx";
+import ModulesSection from "../components/ModulesSection.jsx";
 import styles from "../styles/dashboard.module.css";
 
 export default function Dashboard({ data }) {
@@ -25,13 +27,15 @@ export default function Dashboard({ data }) {
       <Header onLogout={handleLogout} onSettings={() => setShowSettings(true)} />
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       <main className={styles.main}>
-        <ExpensesSection gastos={data.gastos} />
-        <ShoppingSection compras={data.compras} />
-        <TodosSection pendientes={data.pendientes} />
-        <WaitingSection esperando={data.esperando} />
-        <PantrySection despensa={data.despensa} />
-        <RecipesSection recetas={data.recetas} />
-        <MealPlanSection plan={data.plan} recetas={data.recetas} />
+        {(data.modulos?.dinero !== false) && <ExpensesSection gastos={data.gastos} />}
+        {(data.modulos?.comida !== false) && <ShoppingSection compras={data.compras} />}
+        {(data.modulos?.tiempo !== false) && <TodosSection pendientes={data.pendientes} />}
+        {(data.modulos?.tiempo !== false) && <WaitingSection esperando={data.esperando} />}
+        {(data.modulos?.comida !== false) && <PantrySection despensa={data.despensa} />}
+        {(data.modulos?.calendario !== false) && <CalendarSection eventos={data.eventos} icalUrl={data.ical_url} />}
+        {(data.modulos?.comida !== false) && <RecipesSection recetas={data.recetas} />}
+        {(data.modulos?.comida !== false) && <MealPlanSection plan={data.plan} recetas={data.recetas} />}
+        <ModulesSection modulos={data.modulos} />
       </main>
     </>
   );
@@ -71,6 +75,8 @@ export async function getServerSideProps(context) {
   data.despensa = data.despensa ?? { cocina: [], baño: [], otros: [] };
   data.recetas = data.recetas ?? [];
   data.plan = data.plan ?? null;
+  data.eventos = data.eventos ?? [];
+  data.modulos = data.modulos ?? {};
 
   return { props: { data } };
 }

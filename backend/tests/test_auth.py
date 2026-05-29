@@ -18,13 +18,13 @@ def test_request_otp_throttled_when_recent_exists():
     ]
 
     with patch("app.routes.auth.client", db), \
-         patch("app.routes.auth.requests") as mock_requests:
+         patch("app.routes.auth.send_text") as mock_send_text:
         response = client.post("/auth/request-otp", json={"phone": TEST_PHONE})
 
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     db.table.return_value.insert.assert_not_called()
-    mock_requests.post.assert_not_called()
+    mock_send_text.assert_not_called()
 
 
 def test_request_otp_unknown_phone():
@@ -48,10 +48,8 @@ def test_request_otp_known_phone():
     db.table.return_value.insert.return_value.execute.return_value.data = [{}]
 
     with patch("app.routes.auth.client", db), \
-         patch("app.routes.auth.requests") as mock_requests, \
+         patch("app.routes.auth.send_text") as mock_send_text, \
          patch("app.routes.auth.settings") as mock_settings:
-        mock_settings.meta_access_token = "fake-token"
-        mock_settings.meta_phone_number_id = "12345"
         mock_settings.session_secret = "test-secret"
 
         response = client.post("/auth/request-otp", json={"phone": TEST_PHONE})
@@ -59,7 +57,7 @@ def test_request_otp_known_phone():
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     db.table.return_value.insert.assert_called_once()
-    mock_requests.post.assert_called_once()
+    mock_send_text.assert_called_once()
 
 
 def _otp_select_chain(db):

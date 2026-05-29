@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     use_ai_agent: bool = False
     dashboard_url: str = ""
+    backend_url: str = ""
 
     classifier_provider: str = "anthropic"
     classifier_api_key: str | None = None

@@ -20,6 +20,7 @@ Primary identity table. One row per WhatsApp number.
 | anthropic_key | text | nullable, encrypted |
 | ai_mode | boolean | default false |
 | onboarding_complete | boolean | default false, NOT NULL |
+| calendar_token | text | nullable, unguessable token for iCal feed |
 | created_at | timestamptz | default now() |
 
 ---
@@ -246,6 +247,45 @@ exist with no recipe assigned yet.
 
 ---
 
+## user_modules ✓
+
+Per-user feature toggle table. Missing row = module enabled
+(opt-out model; no backfill needed for existing users).
+
+Module keys: `dinero`, `tiempo`, `comida`, `calendario`,
+`recordatorios`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| user_id | uuid FK → users(id) | on delete cascade |
+| module | text | feature key |
+| enabled | boolean | default true |
+
+Primary key: (user_id, module)
+
+---
+
+## events ✓
+
+Calendar events per user.
+
+Event categories: `trabajo`, `personal`, `salud`, `social`,
+`viajes`, `otro` (display/filter only — not load-bearing).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | gen_random_uuid() |
+| user_id | uuid FK → users(id) | on delete cascade |
+| title | text | |
+| starts_at | timestamptz | not null |
+| ends_at | timestamptz | nullable |
+| category | text | default 'otro' |
+| created_at | timestamptz | default now() |
+
+Indexes: (user_id, starts_at)
+
+---
+
 ## Migrations run (in order)
 
 1. Initial schema — users, expenses, todos, shopping_list,
@@ -270,3 +310,5 @@ exist with no recipe assigned yet.
     on pantry(user_id, item)
 14. `onboarding_migration.sql` — add onboarding_complete to users;
     existing users set to true
+15. `calendar_modules_migration.sql` — user_modules and events
+    tables; add calendar_token to users

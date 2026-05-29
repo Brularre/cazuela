@@ -1,0 +1,40 @@
+.list {
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--cazuela-border);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: var(--cazuela-text-primary);
+}
+
+.toggleOn,
+.toggleOff {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.toggleOn {
+  background: var(--cazuela-accent);
+  color: #fff;
+}
+
+.toggleOff {
+  background: var(--cazuela-border);
+  color: var(--cazuela-text-muted);
+}

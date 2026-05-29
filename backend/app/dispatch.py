@@ -55,6 +55,9 @@ from app.handlers.recipes import (
     confirm_shopping_add,
     cancel_shopping_add,
 )
+from app.handlers.modules import is_enabled, module_for_intent
+
+_MODULE_DISABLED = "Ese módulo está desactivado. Actívalo en el tablero."
 
 
 def _handle_set_name(name: str, user: dict) -> str:
@@ -193,6 +196,9 @@ def _dashboard_reply() -> str:
 
 def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
     name = intent.get("intent")
+    module = module_for_intent(name or "")
+    if module and not is_enabled(user, module):
+        return _MODULE_DISABLED
     if name == "add_expense":
         amount = intent.get("amount")
         description = intent.get("description")

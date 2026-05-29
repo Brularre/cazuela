@@ -1,7 +1,5 @@
 import re
 import secrets
-import warnings
-import requests
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
@@ -9,6 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.config import settings
 from app.db import client
+from app.notify import send_text
 
 _PHONE_RE = re.compile(r'^\+\d{7,15}$')
 
@@ -57,22 +56,7 @@ def request_otp(body: OTPRequest):
         "expires_at": expires_at,
     }).execute()
 
-    if settings.meta_access_token and settings.meta_phone_number_id:
-        res = requests.post(
-            f"https://graph.facebook.com/v19.0/{settings.meta_phone_number_id}/messages",
-            headers={"Authorization": f"Bearer {settings.meta_access_token}"},
-            json={
-                "messaging_product": "whatsapp",
-                "to": phone.lstrip("+"),
-                "type": "text",
-                "text": {"body": f"Tu código de acceso a Cazuela: {code}"},
-            },
-            timeout=10,
-        )
-        if not res.ok:
-            warnings.warn(f"OTP send failed {res.status_code}: {res.text[:200]}")
-    else:
-        warnings.warn("Meta credentials not set — OTP not sent")
+    send_text(phone, f"Tu código de acceso a Cazuela: {code}")
 
     return {"ok": True}
 

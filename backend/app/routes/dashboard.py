@@ -192,6 +192,35 @@ def get_dashboard(uid: str = Depends(require_auth)):
     except Exception as exc:
         warnings.warn(f"Failed to load meal plan: {exc}")
 
+    from datetime import datetime, timezone as tz
+    now_iso = datetime.now(tz.utc).isoformat()
+    events_result = (
+        client.table("events")
+        .select("id, title, starts_at, ends_at, category")
+        .eq("user_id", uid)
+        .gte("starts_at", now_iso)
+        .order("starts_at")
+        .limit(50)
+        .execute()
+    )
+    eventos = events_result.data or []
+
+    modules_result = (
+        client.table("user_modules")
+        .select("module, enabled")
+        .eq("user_id", uid)
+        .execute()
+    )
+    module_map = {r["module"]: r["enabled"] for r in (modules_result.data or [])}
+    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    modulos = {m: module_map.get(m, True) for m in all_modules}
+
+    from app.routes.calendar import generate_calendar_token
+    from app.config import settings as _settings
+    cal_token = generate_calendar_token(uid)
+    backend_base = (_settings.backend_url or "").rstrip("/")
+    ical_url = f"{backend_base}/calendar/{cal_token}.ics" if backend_base else None
+
     return {
         "gastos": {
             "weekly_total": weekly_total,
@@ -207,6 +236,9 @@ def get_dashboard(uid: str = Depends(require_auth)):
         "despensa": despensa,
         "recetas": recetas,
         "plan": plan,
+        "eventos": eventos,
+        "modulos": modulos,
+        "ical_url": ical_url,
     }
 
 
@@ -715,6 +747,95 @@ def generate_shopping(plan_id: str, uid: str = Depends(require_auth)):
             })
 
     return {"added": added, "confirm": confirm}
+
+
+class EventIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    starts_at: str
+    ends_at: str | None = None
+    category: str = "otro"
+
+
+@router.get("/events")
+def list_events(uid: str = Depends(require_auth)):
+    from datetime import datetime, timezone as tz
+    now_iso = datetime.now(tz.utc).isoformat()
+    result = (
+        client.table("events")
+        .select("id, title, starts_at, ends_at, category")
+        .eq("user_id", uid)
+        .gte("starts_at", now_iso)
+        .order("starts_at")
+        .limit(50)
+        .execute()
+    )
+    return result.data or []
+
+
+@router.post("/events")
+def create_event(body: EventIn, uid: str = Depends(require_auth)):
+    row = {
+        "user_id": uid,
+        "title": body.title,
+        "starts_at": body.starts_at,
+        "ends_at": body.ends_at,
+        "category": body.category,
+    }
+    result = client.table("events").insert(row).execute()
+    if not result.data:
+        raise HTTPException(status_code=500)
+    return result.data[0]
+
+
+@router.delete("/events/{event_id}")
+def delete_event(event_id: str, uid: str = Depends(require_auth)):
+    result = (
+        client.table("events")
+        .select("id")
+        .eq("id", event_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404)
+    client.table("events").delete().eq("id", event_id).execute()
+    return {"ok": True}
+
+
+class ModuleToggle(BaseModel):
+    enabled: bool
+
+
+@router.get("/modules")
+def get_modules(uid: str = Depends(require_auth)):
+    result = (
+        client.table("user_modules")
+        .select("module, enabled")
+        .eq("user_id", uid)
+        .execute()
+    )
+    module_map = {r["module"]: r["enabled"] for r in (result.data or [])}
+    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    return {m: module_map.get(m, True) for m in all_modules}
+
+
+@router.patch("/modules/{module}")
+def update_module(module: str, body: ModuleToggle, uid: str = Depends(require_auth)):
+    allowed = {"dinero", "tiempo", "comida", "calendario", "recordatorios"}
+    if module not in allowed:
+        raise HTTPException(status_code=400, detail="Módulo no válido")
+    existing = (
+        client.table("user_modules")
+        .select("user_id")
+        .eq("user_id", uid)
+        .eq("module", module)
+        .execute()
+    )
+    if existing.data:
+        client.table("user_modules").update({"enabled": body.enabled}).eq("user_id", uid).eq("module", module).execute()
+    else:
+        client.table("user_modules").insert({"user_id": uid, "module": module, "enabled": body.enabled}).execute()
+    return {"ok": True}
 
 
 @router.patch("/pantry/{item_id}/restock")
