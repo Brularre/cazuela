@@ -11,9 +11,12 @@ Public API:
   delete_event(title_fragment, user) -> str
     Fuzzy-match by substring; hard-deletes the first upcoming match.
 
-  set_event_reminder(title_fragment, remind_at, user) -> str | None
-    Fuzzy-match by substring on upcoming events; writes remind_at and
-    resets remind_sent to False. Returns None if no match found.
+  set_event_reminder(title_fragment, remind_at, user, recur=None) -> str | None
+    Fuzzy-match by substring on upcoming events; writes remind_at, resets
+    remind_sent to False, and optionally sets recur. Passing recur=None
+    explicitly sets the column to null (clearing any existing recurrence).
+    Returns None if no match found.
+    Appends " (se repite)" to the confirmation when recur is set.
 
   parse_event_time(text, now=None) -> datetime | None
     Thin wrapper around timeparse.parse_time. Kept for backwards compat.
@@ -80,7 +83,7 @@ def delete_event(title_fragment: str, user: dict) -> str:
     return f"✓ Evento eliminado: {match['title']}"
 
 
-def set_event_reminder(title_fragment: str, remind_at: datetime, user: dict) -> str | None:
+def set_event_reminder(title_fragment: str, remind_at: datetime, user: dict, recur: str | None = None) -> str | None:
     now = datetime.now(timezone.utc).isoformat()
     result = (
         client.table("events")
@@ -93,9 +96,14 @@ def set_event_reminder(title_fragment: str, remind_at: datetime, user: dict) -> 
     match = find_first_substring(items, title_fragment, "title")
     if not match:
         return None
-    client.table("events").update({
+    update = {
         "remind_at": remind_at.isoformat(),
         "remind_sent": False,
-    }).eq("id", match["id"]).execute()
+        "recur": recur,
+    }
+    client.table("events").update(update).eq("id", match["id"]).execute()
     time_str = remind_at.astimezone(_TZ).strftime("%d/%m %H:%M")
-    return f"⏰ Recordatorio guardado: {match['title']} ({time_str})"
+    msg = f"⏰ Recordatorio guardado: {match['title']} ({time_str})"
+    if recur:
+        msg += " (se repite)"
+    return msg

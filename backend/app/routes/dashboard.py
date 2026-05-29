@@ -67,7 +67,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
 
     todo_result = (
         client.table("todos")
-        .select("id, task, priority, remind_at, remind_sent")
+        .select("id, task, priority, remind_at, remind_sent, recur")
         .eq("user_id", uid)
         .eq("done", False)
         .execute()
@@ -81,6 +81,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
             "id": row["id"],
             "task": row["task"],
             "remind_at": row.get("remind_at"),
+            "recur": row.get("recur"),
         })
 
     waiting_result = (
@@ -202,7 +203,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
     now_iso = datetime.now(tz.utc).isoformat()
     events_result = (
         client.table("events")
-        .select("id, title, starts_at, ends_at, category, remind_at")
+        .select("id, title, starts_at, ends_at, category, remind_at, recur")
         .eq("user_id", uid)
         .gte("starts_at", now_iso)
         .order("starts_at")
@@ -281,8 +282,16 @@ def delete_todo(todo_id: str, uid: str = Depends(require_auth)):
     return {"ok": True}
 
 
+_VALID_RECUR = {
+    "daily", "weekly",
+    "mondays", "tuesdays", "wednesdays", "thursdays",
+    "fridays", "saturdays", "sundays",
+}
+
+
 class ReminderIn(BaseModel):
     remind_at: str | None = None
+    recur: str | None = None
 
     @field_validator("remind_at")
     @classmethod
@@ -297,6 +306,15 @@ class ReminderIn(BaseModel):
             dt = dt.replace(tzinfo=_TZ)
         if dt.astimezone(timezone.utc) <= datetime.now(timezone.utc):
             raise ValueError("remind_at must be a future datetime")
+        return v
+
+    @field_validator("recur")
+    @classmethod
+    def validate_recur(cls, v):
+        if v is None:
+            return None
+        if v not in _VALID_RECUR:
+            raise ValueError(f"recur must be one of: {', '.join(sorted(_VALID_RECUR))}")
         return v
 
 
@@ -314,8 +332,9 @@ def set_todo_reminder(todo_id: str, body: ReminderIn, uid: str = Depends(require
     client.table("todos").update({
         "remind_at": body.remind_at,
         "remind_sent": False,
+        "recur": body.recur,
     }).eq("id", todo_id).eq("user_id", uid).execute()
-    return {"ok": True, "remind_at": body.remind_at}
+    return {"ok": True, "remind_at": body.remind_at, "recur": body.recur}
 
 
 @router.patch("/events/{event_id}/reminder")
@@ -332,8 +351,9 @@ def set_event_reminder(event_id: str, body: ReminderIn, uid: str = Depends(requi
     client.table("events").update({
         "remind_at": body.remind_at,
         "remind_sent": False,
+        "recur": body.recur,
     }).eq("id", event_id).eq("user_id", uid).execute()
-    return {"ok": True, "remind_at": body.remind_at}
+    return {"ok": True, "remind_at": body.remind_at, "recur": body.recur}
 
 
 class WaitingItemIn(BaseModel):

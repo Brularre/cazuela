@@ -33,7 +33,7 @@ from app.handlers.expense_batch import (
 from app.handlers.summary import format_amount, get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo, set_todo_reminder
 from app.handlers.events import set_event_reminder
-from app.handlers.timeparse import parse_iso, extract_fragment
+from app.handlers.timeparse import parse_iso, extract_fragment, parse_recur, extract_recur_fragment
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.budget import set_budget
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
@@ -313,10 +313,14 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
         remind_at = parse_iso(str(remind_at_raw))
         if remind_at is None:
             return "No pude interpretar la hora del recordatorio. Intenta con el formato: _mañana a las 10_."
-        fragment = extract_fragment(task_fragment) or task_fragment
-        result = set_todo_reminder(fragment, remind_at, user)
+        recur = parse_recur(str(task_fragment))
+        if recur:
+            fragment = extract_recur_fragment(str(task_fragment))
+        else:
+            fragment = extract_fragment(str(task_fragment)) or str(task_fragment)
+        result = set_todo_reminder(fragment, remind_at, user, recur=recur)
         if result is None:
-            result = set_event_reminder(fragment, remind_at, user)
+            result = set_event_reminder(fragment, remind_at, user, recur=recur)
         if result is None:
             return f"No encontré ningún pendiente ni evento con '{fragment}'."
         return result

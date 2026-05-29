@@ -28,9 +28,23 @@ function toDatetimeLocal(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function EventReminderControl({ eventId, remindAt, onUpdate }) {
+const RECUR_OPTIONS = [
+  { value: "", label: "Sin repetición" },
+  { value: "daily", label: "Cada día" },
+  { value: "weekly", label: "Cada semana" },
+  { value: "mondays", label: "Cada lunes" },
+  { value: "tuesdays", label: "Cada martes" },
+  { value: "wednesdays", label: "Cada miércoles" },
+  { value: "thursdays", label: "Cada jueves" },
+  { value: "fridays", label: "Cada viernes" },
+  { value: "saturdays", label: "Cada sábado" },
+  { value: "sundays", label: "Cada domingo" },
+];
+
+function EventReminderControl({ eventId, remindAt, recur, onUpdate }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(toDatetimeLocal(remindAt));
+  const [recurValue, setRecurValue] = useState(recur || "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -39,10 +53,10 @@ function EventReminderControl({ eventId, remindAt, onUpdate }) {
     const res = await fetch(`/api/dashboard/events/${eventId}/reminder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remind_at: iso }),
+      body: JSON.stringify({ remind_at: iso, recur: recurValue || null }),
     });
     if (res.ok) {
-      onUpdate(eventId, iso);
+      onUpdate(eventId, iso, recurValue || null);
       setOpen(false);
     }
     setSaving(false);
@@ -53,11 +67,12 @@ function EventReminderControl({ eventId, remindAt, onUpdate }) {
     const res = await fetch(`/api/dashboard/events/${eventId}/reminder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remind_at: null }),
+      body: JSON.stringify({ remind_at: null, recur: null }),
     });
     if (res.ok) {
-      onUpdate(eventId, null);
+      onUpdate(eventId, null, null);
       setValue("");
+      setRecurValue("");
       setOpen(false);
     }
     setSaving(false);
@@ -82,6 +97,16 @@ function EventReminderControl({ eventId, remindAt, onUpdate }) {
             onChange={(e) => setValue(e.target.value)}
             aria-label="Hora del recordatorio"
           />
+          <select
+            className={styles.reminderInput}
+            value={recurValue}
+            onChange={(e) => setRecurValue(e.target.value)}
+            aria-label="Repetición del recordatorio"
+          >
+            {RECUR_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
           <button className={styles.reminderSave} onClick={save} disabled={saving}>
             {saving ? "…" : "Guardar"}
           </button>
@@ -110,9 +135,9 @@ export default function CalendarSection({ eventos, icalUrl }) {
     if (!res.ok) setItems(snapshot);
   }
 
-  function updateReminder(id, remindAt) {
+  function updateReminder(id, remindAt, recur) {
     setItems((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, remind_at: remindAt } : ev))
+      prev.map((ev) => (ev.id === id ? { ...ev, remind_at: remindAt, recur } : ev))
     );
   }
 
@@ -154,6 +179,7 @@ export default function CalendarSection({ eventos, icalUrl }) {
             <EventReminderControl
               eventId={ev.id}
               remindAt={ev.remind_at}
+              recur={ev.recur}
               onUpdate={updateReminder}
             />
             <button className={styles.delete} onClick={() => remove(ev.id)} title="Eliminar">×</button>

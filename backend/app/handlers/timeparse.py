@@ -13,11 +13,23 @@ Public API:
     Validates an ISO 8601 datetime string (from the AI classifier).
     Ensures it is a future UTC-aware datetime. Returns None on failure.
 
+  parse_recur(text) -> str | None
+    Scans text for a "cada ..." phrase and returns the canonical recur
+    value, or None if not found.
+
+  extract_recur_fragment(text) -> str
+    Like extract_fragment but also strips the "cada ..." phrase.
+
 Supported phrasings (manual mode):
   - hoy a las HH[:MM]            today at given time
   - mañana a las HH[:MM]         tomorrow at given time
   - el WEEKDAY a las HH[:MM]     next occurrence of named weekday
   - en N horas / en N minutos    relative offset from now
+
+Supported recur phrasings:
+  - cada día / cada dia          → "daily"
+  - cada semana                  → "weekly"
+  - cada lunes/martes/...        → "mondays"/"tuesdays"/etc.
 
 All outputs normalised to America/Santiago and stored as UTC timestamptz.
 Accent variants accepted: miercoles / miércoles, sabado / sábado, manana / mañana.
@@ -38,6 +50,29 @@ _WEEKDAY_MAP = {
     "sabado": 5,
     "domingo": 6,
 }
+
+_RECUR_MAP = {
+    "lunes": "mondays",
+    "martes": "tuesdays",
+    "miércoles": "wednesdays",
+    "miercoles": "wednesdays",
+    "jueves": "thursdays",
+    "viernes": "fridays",
+    "sábado": "saturdays",
+    "sabado": "saturdays",
+    "domingo": "sundays",
+}
+
+_RECUR_WEEKDAY_RE = re.compile(
+    r"\bcada\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b",
+    re.IGNORECASE,
+)
+_RECUR_DAY_RE = re.compile(r"\bcada\s+d[ií]a\b", re.IGNORECASE)
+_RECUR_WEEK_RE = re.compile(r"\bcada\s+semana\b", re.IGNORECASE)
+_RECUR_ANY_RE = re.compile(
+    r"\bcada\s+(?:d[ií]a|semana|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b",
+    re.IGNORECASE,
+)
 
 _TIME_PART = r"(?:a\s+las?\s+)?(\d{1,2})(?::(\d{2}))?(?:\s*hrs?)?"
 
@@ -164,3 +199,30 @@ def parse_iso(iso_str: str, now: datetime | None = None) -> datetime | None:
         return dt
     except (ValueError, TypeError):
         return None
+
+
+def parse_recur(text: str) -> str | None:
+    """Scan text for a 'cada ...' phrase and return the canonical recur value.
+
+    Returns None if no supported recur phrase is found.
+    """
+    if _RECUR_DAY_RE.search(text):
+        return "daily"
+    if _RECUR_WEEK_RE.search(text):
+        return "weekly"
+    m = _RECUR_WEEKDAY_RE.search(text)
+    if m:
+        return _RECUR_MAP[m.group(1).lower()]
+    return None
+
+
+def extract_recur_fragment(text: str) -> str:
+    """Strip both the 'cada ...' phrase and the time phrase from text.
+
+    The recur phrase is removed first so that a weekday that serves as
+    both the recurrence anchor and the time anchor (e.g. "cada lunes a las 10")
+    does not leave a dangling 'cada' after time stripping.
+    Returns the remaining task/event fragment.
+    """
+    without_recur = _RECUR_ANY_RE.sub("", text).strip().rstrip(",").strip()
+    return extract_fragment(without_recur)

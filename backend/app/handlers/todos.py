@@ -14,10 +14,12 @@ Public API:
   delete_todo(task_fragment, user) -> str
     Fuzzy-match by substring; hard-deletes first match.
 
-  set_todo_reminder(task_fragment, remind_at, user) -> str | None
-    Fuzzy-match by substring on open todos; writes remind_at and
-    resets remind_sent to False. Returns None if no match found
-    (caller may try events next).
+  set_todo_reminder(task_fragment, remind_at, user, recur=None) -> str | None
+    Fuzzy-match by substring on open todos; writes remind_at, resets
+    remind_sent to False, and optionally sets recur. Passing recur=None
+    explicitly sets the column to null (clearing any existing recurrence).
+    Returns None if no match found (caller may try events next).
+    Appends " (se repite)" to the confirmation when recur is set.
 """
 from datetime import datetime
 
@@ -80,15 +82,20 @@ def delete_todo(task_fragment: str, user: dict) -> str:
     return f"✓ Borrado: {match['task']}"
 
 
-def set_todo_reminder(task_fragment: str, remind_at: datetime, user: dict) -> str | None:
+def set_todo_reminder(task_fragment: str, remind_at: datetime, user: dict, recur: str | None = None) -> str | None:
     result = client.table("todos").select("id, task").eq("user_id", user["id"]).eq("done", False).execute()
     items = result.data or []
     match = find_first_substring(items, task_fragment, "task")
     if not match:
         return None
-    client.table("todos").update({
+    update = {
         "remind_at": remind_at.isoformat(),
         "remind_sent": False,
-    }).eq("id", match["id"]).execute()
+        "recur": recur,
+    }
+    client.table("todos").update(update).eq("id", match["id"]).execute()
     time_str = remind_at.astimezone(_TZ).strftime("%d/%m %H:%M")
-    return f"⏰ Recordatorio guardado: {match['task']} ({time_str})"
+    msg = f"⏰ Recordatorio guardado: {match['task']} ({time_str})"
+    if recur:
+        msg += " (se repite)"
+    return msg
