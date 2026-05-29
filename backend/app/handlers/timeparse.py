@@ -24,9 +24,8 @@ Accent variants accepted: miercoles / miércoles, sabado / sábado, manana / ma�
 """
 import re
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 
-_TZ = ZoneInfo("America/Santiago")
+from app.config import TZ as _TZ
 
 _WEEKDAY_MAP = {
     "lunes": 0,

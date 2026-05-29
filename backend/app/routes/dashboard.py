@@ -1,7 +1,8 @@
 import warnings
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
-from zoneinfo import ZoneInfo
+
+from app.config import TZ as _TZ
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from app.db import client
@@ -293,7 +294,7 @@ class ReminderIn(BaseModel):
         except ValueError:
             raise ValueError("remind_at must be a valid ISO 8601 datetime")
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=ZoneInfo("America/Santiago"))
+            dt = dt.replace(tzinfo=_TZ)
         if dt.astimezone(timezone.utc) <= datetime.now(timezone.utc):
             raise ValueError("remind_at must be a future datetime")
         return v

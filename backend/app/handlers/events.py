@@ -19,13 +19,11 @@ Public API:
     Thin wrapper around timeparse.parse_time. Kept for backwards compat.
 """
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
+from app.config import TZ as _TZ
 from app.db import client
 from app.handlers.timeparse import parse_time
 from app.handlers.utils import find_first_substring
-
-_TZ = ZoneInfo("America/Santiago")
 
 
 def parse_event_time(text: str, now: datetime | None = None) -> datetime | None:

@@ -18,12 +18,10 @@ Delivery notes:
 """
 import warnings
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
+from app.config import TZ as _TZ
 from app.db import client
 from app.notify import send_interactive
-
-_TZ = ZoneInfo("America/Santiago")
 
 _EXPLANATION = (
     "_Cazuela te saluda cada mañana para mantener activos tus "
