@@ -39,7 +39,7 @@ def test_module_for_intent_known():
     from app.handlers.modules import module_for_intent
     assert module_for_intent("add_expense") == "dinero"
     assert module_for_intent("add_todo") == "tiempo"
-    assert module_for_intent("add_to_shopping") == "comida"
+    assert module_for_intent("add_to_shopping") == "despensa"
     assert module_for_intent("add_event") == "calendario"
 
 
@@ -94,8 +94,8 @@ def test_disabled_tiempo_blocks_todo():
     assert "desactivado" in result
 
 
-def test_disabled_comida_blocks_shopping():
-    result = _route("comprar leche", modules_enabled={"comida": False})
+def test_disabled_despensa_blocks_shopping():
+    result = _route("comprar leche", modules_enabled={"despensa": False})
     assert "desactivado" in result
 
 

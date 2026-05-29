@@ -221,7 +221,7 @@ def route(message: str, user: dict) -> str:
 
     match = NECESITO_COMPRAR_PATTERN.match(message)
     if match:
-        if guard := _module_guard("add_pantry_item", user):
+        if guard := _module_guard("add_to_shopping", user):
             return guard
         return handle_pantry_add_create(match.group(1).strip(), user)
 

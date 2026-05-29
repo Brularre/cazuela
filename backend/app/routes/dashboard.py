@@ -212,7 +212,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
         .execute()
     )
     module_map = {r["module"]: r["enabled"] for r in (modules_result.data or [])}
-    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    all_modules = ["dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"]
     modulos = {m: module_map.get(m, True) for m in all_modules}
 
     from app.routes.calendar import generate_calendar_token
@@ -815,13 +815,13 @@ def get_modules(uid: str = Depends(require_auth)):
         .execute()
     )
     module_map = {r["module"]: r["enabled"] for r in (result.data or [])}
-    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    all_modules = ["dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"]
     return {m: module_map.get(m, True) for m in all_modules}
 
 
 @router.patch("/modules/{module}")
 def update_module(module: str, body: ModuleToggle, uid: str = Depends(require_auth)):
-    allowed = {"dinero", "tiempo", "comida", "calendario", "recordatorios"}
+    allowed = {"dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"}
     if module not in allowed:
         raise HTTPException(status_code=400, detail="Módulo no válido")
     existing = (
