@@ -5,6 +5,10 @@ passed and remind_sent is still false. Each message carries two buttons:
 "Posponer 30 min" (snooze) and "Listo" (done). Marks each as sent on
 success; leaves failures untouched so they retry on the next pass.
 
+For recurring rows (recur is set), instead of marking remind_sent=True,
+_advance_recur computes the next occurrence and resets remind_at with
+remind_sent=False so the row fires again automatically.
+
 Entrypoint: python -m app.jobs.send_reminders
 Railway schedule: cron */15 * * * * (every 15 minutes).
 
@@ -19,7 +23,7 @@ Delivery notes:
     due during a long disable period will fire as a burst on re-enable.
 """
 import warnings
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.db import client
 from app.notify import send_interactive
@@ -43,7 +47,7 @@ def _due_rows(table: str, title_field: str) -> list[dict]:
     now = datetime.now(timezone.utc).isoformat()
     result = (
         client.table(table)
-        .select(f"id, user_id, {title_field}")
+        .select(f"id, user_id, {title_field}, remind_at, recur")
         .eq("remind_sent", False)
         .lte("remind_at", now)
         .execute()
@@ -64,6 +68,31 @@ def _phone_for_user(user_id: str) -> str | None:
 
 def _mark_sent(table: str, row_id: str) -> None:
     client.table(table).update({"remind_sent": True}).eq("id", row_id).execute()
+
+
+def _advance_recur(table: str, row_id: str, old_remind_at_iso: str, recur: str) -> None:
+    old_dt = datetime.fromisoformat(old_remind_at_iso).astimezone(timezone.utc)
+
+    if recur == "daily":
+        next_dt = old_dt + timedelta(days=1)
+    elif recur == "weekly":
+        next_dt = old_dt + timedelta(days=7)
+    else:
+        weekday_targets = {
+            "mondays": 0, "tuesdays": 1, "wednesdays": 2, "thursdays": 3,
+            "fridays": 4, "saturdays": 5, "sundays": 6,
+        }
+        target_wd = weekday_targets[recur]
+        current_wd = old_dt.weekday()
+        days_ahead = (target_wd - current_wd) % 7
+        if days_ahead == 0:
+            days_ahead = 7
+        next_dt = old_dt + timedelta(days=days_ahead)
+
+    client.table(table).update({
+        "remind_at": next_dt.isoformat(),
+        "remind_sent": False,
+    }).eq("id", row_id).execute()
 
 
 def main() -> None:
@@ -92,7 +121,10 @@ def main() -> None:
             ]
             ok = send_interactive(phone, f"⏰ {title}", buttons)
             if ok:
-                _mark_sent(table, row["id"])
+                if row.get("recur"):
+                    _advance_recur(table, row_id, row["remind_at"], row["recur"])
+                else:
+                    _mark_sent(table, row["id"])
                 sent += 1
             else:
                 failed += 1

@@ -112,4 +112,49 @@ describe("TodosSection", () => {
       )
     );
   });
+
+  it("includes recur in PATCH body when recur select is changed", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "t-1", task: "gimnasio", remind_at: null, recur: null }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    fireEvent.change(screen.getByLabelText("Hora del recordatorio"), {
+      target: { value: "2025-06-17T10:00" },
+    });
+    fireEvent.change(screen.getByLabelText("Repetición del recordatorio"), {
+      target: { value: "mondays" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => {
+      const fetchCall = global.fetch.mock.calls.find(
+        (c) => c[0] === "/api/dashboard/todos/t-1/reminder"
+      );
+      expect(fetchCall).toBeDefined();
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body.recur).toBe("mondays");
+    });
+  });
+
+  it("renders recur select with Sin repetición as default", () => {
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "1", task: "tarea", remind_at: null, recur: null }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    const select = screen.getByLabelText("Repetición del recordatorio");
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe("");
+  });
 });

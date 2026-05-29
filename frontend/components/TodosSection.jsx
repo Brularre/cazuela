@@ -23,9 +23,23 @@ function toDatetimeLocal(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function TodoReminderControl({ todoId, remindAt, onUpdate }) {
+const RECUR_OPTIONS = [
+  { value: "", label: "Sin repetición" },
+  { value: "daily", label: "Cada día" },
+  { value: "weekly", label: "Cada semana" },
+  { value: "mondays", label: "Cada lunes" },
+  { value: "tuesdays", label: "Cada martes" },
+  { value: "wednesdays", label: "Cada miércoles" },
+  { value: "thursdays", label: "Cada jueves" },
+  { value: "fridays", label: "Cada viernes" },
+  { value: "saturdays", label: "Cada sábado" },
+  { value: "sundays", label: "Cada domingo" },
+];
+
+function TodoReminderControl({ todoId, remindAt, recur, onUpdate }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(toDatetimeLocal(remindAt));
+  const [recurValue, setRecurValue] = useState(recur || "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -34,10 +48,10 @@ function TodoReminderControl({ todoId, remindAt, onUpdate }) {
     const res = await fetch(`/api/dashboard/todos/${todoId}/reminder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remind_at: iso }),
+      body: JSON.stringify({ remind_at: iso, recur: recurValue || null }),
     });
     if (res.ok) {
-      onUpdate(todoId, iso);
+      onUpdate(todoId, iso, recurValue || null);
       setOpen(false);
     }
     setSaving(false);
@@ -48,11 +62,12 @@ function TodoReminderControl({ todoId, remindAt, onUpdate }) {
     const res = await fetch(`/api/dashboard/todos/${todoId}/reminder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remind_at: null }),
+      body: JSON.stringify({ remind_at: null, recur: null }),
     });
     if (res.ok) {
-      onUpdate(todoId, null);
+      onUpdate(todoId, null, null);
       setValue("");
+      setRecurValue("");
       setOpen(false);
     }
     setSaving(false);
@@ -77,6 +92,16 @@ function TodoReminderControl({ todoId, remindAt, onUpdate }) {
             onChange={(e) => setValue(e.target.value)}
             aria-label="Hora del recordatorio"
           />
+          <select
+            className={styles.reminderInput}
+            value={recurValue}
+            onChange={(e) => setRecurValue(e.target.value)}
+            aria-label="Repetición del recordatorio"
+          >
+            {RECUR_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
           <button className={styles.reminderSave} onClick={save} disabled={saving}>
             {saving ? "…" : "Guardar"}
           </button>
@@ -113,12 +138,12 @@ export default function TodosSection({ pendientes }) {
   const complete = (id) => optimisticRemove(id, `/api/dashboard/todos/${id}/complete`);
   const remove = (id) => optimisticRemove(id, `/api/dashboard/todos/${id}`, "DELETE");
 
-  function updateReminder(id, remindAt) {
+  function updateReminder(id, remindAt, recur) {
     setItems((prev) => {
       const next = {};
       for (const bucket of ["hoy", "semana", "mes"]) {
         next[bucket] = (prev[bucket] || []).map((t) =>
-          t.id === id ? { ...t, remind_at: remindAt } : t
+          t.id === id ? { ...t, remind_at: remindAt, recur } : t
         );
       }
       return next;
@@ -170,6 +195,7 @@ export default function TodosSection({ pendientes }) {
                   <TodoReminderControl
                     todoId={todo.id}
                     remindAt={todo.remind_at}
+                    recur={todo.recur}
                     onUpdate={updateReminder}
                   />
                   <button className={styles.complete} onClick={() => complete(todo.id)} title="Completar">✓</button>

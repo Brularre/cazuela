@@ -57,7 +57,13 @@ ropa, tecnología, educación, viajes, otros
 | priority | text | hoy \| semana \| mes, default semana |
 | remind_at | timestamptz | nullable; when to send reminder |
 | remind_sent | boolean | NOT NULL default false |
+| recur | text | nullable; recurrence cadence (see allowed values) |
 | created_at | timestamptz | default now() |
+
+Allowed `recur` values: `daily`, `weekly`, `mondays`, `tuesdays`,
+`wednesdays`, `thursdays`, `fridays`, `saturdays`, `sundays`.
+When set, the cron resets `remind_at` to the next occurrence instead of
+marking `remind_sent=true`.
 
 Indexes: (remind_at) where remind_sent = false
 
@@ -286,7 +292,11 @@ Event categories: `trabajo`, `personal`, `salud`, `social`,
 | category | text | default 'otro' |
 | remind_at | timestamptz | nullable; when to send reminder |
 | remind_sent | boolean | NOT NULL default false |
+| recur | text | nullable; recurrence cadence (see allowed values) |
 | created_at | timestamptz | default now() |
+
+Allowed `recur` values: same as todos. When set, the cron resets
+`remind_at` to the next occurrence instead of marking `remind_sent=true`.
 
 Indexes: (user_id, starts_at),
 (remind_at) where remind_sent = false
@@ -321,3 +331,5 @@ Indexes: (user_id, starts_at),
     tables; add calendar_token to users
 16. `reminders_migration.sql` — add remind_at + remind_sent
     to todos and events; partial indexes for due-reminder query
+17. `recur_migration.sql` — add recur column to todos and events
+    with check constraint (daily, weekly, weekday names)

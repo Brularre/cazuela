@@ -36,6 +36,30 @@ def test_set_todo_reminder_found():
     assert "remind_at" in update_call
 
 
+def test_set_todo_reminder_with_recur_appends_se_repite():
+    remind_at = _future_dt()
+    db = _db_todos(rows=[{"id": "t-1", "task": "gimnasio"}])
+    with patch("app.handlers.todos.client", db):
+        from app.handlers.todos import set_todo_reminder
+        result = set_todo_reminder("gimnasio", remind_at, FAKE_USER, recur="mondays")
+    assert result is not None
+    assert "(se repite)" in result
+    update_call = db.table.return_value.update.call_args[0][0]
+    assert update_call["recur"] == "mondays"
+
+
+def test_set_todo_reminder_recur_none_sets_null():
+    remind_at = _future_dt()
+    db = _db_todos(rows=[{"id": "t-1", "task": "tarea"}])
+    with patch("app.handlers.todos.client", db):
+        from app.handlers.todos import set_todo_reminder
+        result = set_todo_reminder("tarea", remind_at, FAKE_USER, recur=None)
+    assert result is not None
+    assert "(se repite)" not in result
+    update_call = db.table.return_value.update.call_args[0][0]
+    assert update_call["recur"] is None
+
+
 def test_set_todo_reminder_not_found_returns_none():
     db = _db_todos(rows=[])
     with patch("app.handlers.todos.client", db):
@@ -53,6 +77,30 @@ def test_set_event_reminder_found():
     assert result is not None
     assert "⏰" in result
     assert "Dentista" in result
+
+
+def test_set_event_reminder_with_recur_appends_se_repite():
+    remind_at = _future_dt()
+    db = _db_events(rows=[{"id": "e-1", "title": "Reunión semanal"}])
+    with patch("app.handlers.events.client", db):
+        from app.handlers.events import set_event_reminder
+        result = set_event_reminder("reunión", remind_at, FAKE_USER, recur="weekly")
+    assert result is not None
+    assert "(se repite)" in result
+    update_call = db.table.return_value.update.call_args[0][0]
+    assert update_call["recur"] == "weekly"
+
+
+def test_set_event_reminder_recur_none_sets_null():
+    remind_at = _future_dt()
+    db = _db_events(rows=[{"id": "e-1", "title": "Dentista"}])
+    with patch("app.handlers.events.client", db):
+        from app.handlers.events import set_event_reminder
+        result = set_event_reminder("dentista", remind_at, FAKE_USER, recur=None)
+    assert result is not None
+    assert "(se repite)" not in result
+    update_call = db.table.return_value.update.call_args[0][0]
+    assert update_call["recur"] is None
 
 
 def test_set_event_reminder_not_found_returns_none():

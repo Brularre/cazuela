@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 
@@ -36,7 +37,7 @@ def _make_db(
 
 
 def test_due_todo_is_sent_interactively_and_flagged():
-    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Llamar al banco"}]
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Llamar al banco", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
     db = _make_db(todos_due=todos_due)
     with patch("app.jobs.send_reminders.client", db), \
          patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send, \
@@ -54,7 +55,7 @@ def test_due_todo_is_sent_interactively_and_flagged():
 
 
 def test_due_event_is_sent_interactively_and_flagged():
-    events_due = [{"id": "e-1", "user_id": "u-1", "title": "Dentista"}]
+    events_due = [{"id": "e-1", "user_id": "u-1", "title": "Dentista", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
     db = _make_db(events_due=events_due)
     with patch("app.jobs.send_reminders.client", db), \
          patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
@@ -69,7 +70,7 @@ def test_due_event_is_sent_interactively_and_flagged():
 
 
 def test_send_failure_leaves_remind_sent_false():
-    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea"}]
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
     db = _make_db(todos_due=todos_due)
     with patch("app.jobs.send_reminders.client", db), \
          patch("app.jobs.send_reminders.send_interactive", return_value=False):
@@ -79,7 +80,7 @@ def test_send_failure_leaves_remind_sent_false():
 
 
 def test_disabled_recordatorios_skips_row():
-    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea"}]
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
     modules = [{"enabled": False}]
     db = _make_db(todos_due=todos_due, modules=modules)
     with patch("app.jobs.send_reminders.client", db), \
@@ -99,7 +100,7 @@ def test_no_due_rows_nothing_sent():
 
 
 def test_missing_user_phone_skips_row():
-    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea"}]
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
     db = _make_db(todos_due=todos_due, user_phone=None)
     with patch("app.jobs.send_reminders.client", db), \
          patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
@@ -109,8 +110,8 @@ def test_missing_user_phone_skips_row():
 
 
 def test_both_todos_and_events_processed():
-    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea A"}]
-    events_due = [{"id": "e-1", "user_id": "u-1", "title": "Evento B"}]
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea A", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
+    events_due = [{"id": "e-1", "user_id": "u-1", "title": "Evento B", "remind_at": "2025-06-16T15:00:00+00:00", "recur": None}]
     db = _make_db(todos_due=todos_due, events_due=events_due)
     with patch("app.jobs.send_reminders.client", db), \
          patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
@@ -120,3 +121,76 @@ def test_both_todos_and_events_processed():
     bodies = [c[0][1] for c in mock_send.call_args_list]
     assert any("Tarea A" in b for b in bodies)
     assert any("Evento B" in b for b in bodies)
+
+
+def test_recurring_row_calls_advance_recur_not_mark_sent():
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Gimnasio", "remind_at": "2025-06-16T09:00:00+00:00", "recur": "mondays"}]
+    db = _make_db(todos_due=todos_due)
+    with patch("app.jobs.send_reminders.client", db), \
+         patch("app.jobs.send_reminders.send_interactive", return_value=True), \
+         patch("app.jobs.send_reminders._mark_sent") as mock_mark, \
+         patch("app.jobs.send_reminders._advance_recur") as mock_advance:
+        from app.jobs.send_reminders import main
+        main()
+    mock_advance.assert_called_once_with("todos", "t-1", "2025-06-16T09:00:00+00:00", "mondays")
+    mock_mark.assert_not_called()
+
+
+def test_non_recurring_row_calls_mark_sent_not_advance_recur():
+    todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea", "remind_at": "2025-06-16T14:00:00+00:00", "recur": None}]
+    db = _make_db(todos_due=todos_due)
+    with patch("app.jobs.send_reminders.client", db), \
+         patch("app.jobs.send_reminders.send_interactive", return_value=True), \
+         patch("app.jobs.send_reminders._mark_sent") as mock_mark, \
+         patch("app.jobs.send_reminders._advance_recur") as mock_advance:
+        from app.jobs.send_reminders import main
+        main()
+    mock_mark.assert_called_once_with("todos", "t-1")
+    mock_advance.assert_not_called()
+
+
+def test_advance_recur_daily():
+    from app.jobs.send_reminders import _advance_recur
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db):
+        _advance_recur("todos", "t-1", "2025-06-16T09:00:00+00:00", "daily")
+    update_call = db.table.return_value.update.call_args[0][0]
+    next_dt = datetime.fromisoformat(update_call["remind_at"])
+    old_dt = datetime(2025, 6, 16, 9, 0, tzinfo=timezone.utc)
+    assert next_dt == old_dt + timedelta(days=1)
+    assert update_call["remind_sent"] is False
+
+
+def test_advance_recur_weekly():
+    from app.jobs.send_reminders import _advance_recur
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db):
+        _advance_recur("todos", "t-1", "2025-06-16T09:00:00+00:00", "weekly")
+    update_call = db.table.return_value.update.call_args[0][0]
+    next_dt = datetime.fromisoformat(update_call["remind_at"])
+    old_dt = datetime(2025, 6, 16, 9, 0, tzinfo=timezone.utc)
+    assert next_dt == old_dt + timedelta(days=7)
+    assert update_call["remind_sent"] is False
+
+
+def test_advance_recur_weekday_mondays():
+    from app.jobs.send_reminders import _advance_recur
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db):
+        _advance_recur("todos", "t-1", "2025-06-16T09:00:00+00:00", "mondays")
+    update_call = db.table.return_value.update.call_args[0][0]
+    next_dt = datetime.fromisoformat(update_call["remind_at"])
+    assert next_dt.weekday() == 0
+    assert next_dt > datetime(2025, 6, 16, 9, 0, tzinfo=timezone.utc)
+    assert update_call["remind_sent"] is False
+
+
+def test_advance_recur_same_weekday_advances_full_week():
+    from app.jobs.send_reminders import _advance_recur
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db):
+        _advance_recur("todos", "t-1", "2025-06-16T09:00:00+00:00", "mondays")
+    update_call = db.table.return_value.update.call_args[0][0]
+    next_dt = datetime.fromisoformat(update_call["remind_at"])
+    old_dt = datetime(2025, 6, 16, 9, 0, tzinfo=timezone.utc)
+    assert (next_dt - old_dt).days == 7

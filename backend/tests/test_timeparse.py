@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from app.handlers.timeparse import parse_iso, parse_time
+from app.handlers.timeparse import parse_iso, parse_time, parse_recur, extract_recur_fragment
 
 _TZ = ZoneInfo("America/Santiago")
 
@@ -273,3 +273,91 @@ def test_parse_iso_malformed_returns_none():
 
 def test_parse_iso_empty_returns_none():
     assert parse_iso("") is None
+
+
+# ---------------------------------------------------------------------------
+# parse_recur
+# ---------------------------------------------------------------------------
+
+
+def test_parse_recur_cada_dia():
+    assert parse_recur("llamar cada día") == "daily"
+
+
+def test_parse_recur_cada_dia_no_accent():
+    assert parse_recur("llamar cada dia") == "daily"
+
+
+def test_parse_recur_cada_semana():
+    assert parse_recur("reunión cada semana") == "weekly"
+
+
+def test_parse_recur_lunes():
+    assert parse_recur("gimnasio cada lunes") == "mondays"
+
+
+def test_parse_recur_martes():
+    assert parse_recur("cada martes") == "tuesdays"
+
+
+def test_parse_recur_miercoles_no_accent():
+    assert parse_recur("cada miercoles") == "wednesdays"
+
+
+def test_parse_recur_miercoles_accent():
+    assert parse_recur("cada miércoles") == "wednesdays"
+
+
+def test_parse_recur_jueves():
+    assert parse_recur("cada jueves") == "thursdays"
+
+
+def test_parse_recur_viernes():
+    assert parse_recur("cada viernes") == "fridays"
+
+
+def test_parse_recur_sabado_no_accent():
+    assert parse_recur("cada sabado") == "saturdays"
+
+
+def test_parse_recur_sabado_accent():
+    assert parse_recur("cada sábado") == "saturdays"
+
+
+def test_parse_recur_domingo():
+    assert parse_recur("cada domingo") == "sundays"
+
+
+def test_parse_recur_unknown_returns_none():
+    assert parse_recur("llamar mañana a las 10") is None
+
+
+def test_parse_recur_empty_returns_none():
+    assert parse_recur("") is None
+
+
+def test_parse_recur_case_insensitive():
+    assert parse_recur("CADA DÍA") == "daily"
+
+
+# ---------------------------------------------------------------------------
+# extract_recur_fragment
+# ---------------------------------------------------------------------------
+
+
+def test_extract_recur_fragment_strips_time_and_recur():
+    result = extract_recur_fragment("tomar pastilla mañana a las 9 cada día")
+    assert "tomar pastilla" in result
+    assert "cada" not in result
+    assert "mañana" not in result
+
+
+def test_extract_recur_fragment_only_recur():
+    result = extract_recur_fragment("reunión cada lunes a las 10")
+    assert "reunión" in result
+    assert "cada" not in result
+
+
+def test_extract_recur_fragment_no_time_no_recur():
+    result = extract_recur_fragment("llamar al banco")
+    assert result == "llamar al banco"

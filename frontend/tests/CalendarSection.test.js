@@ -104,4 +104,45 @@ describe("CalendarSection", () => {
       )
     );
   });
+
+  it("includes recur in PATCH body when recur select is changed", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+    render(
+      <CalendarSection
+        eventos={[{ id: "e-1", title: "Reunión", starts_at: future, category: "trabajo", remind_at: null, recur: null }]}
+        icalUrl={null}
+      />
+    );
+    open();
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    fireEvent.change(screen.getByLabelText("Hora del recordatorio"), {
+      target: { value: "2025-06-17T09:00" },
+    });
+    fireEvent.change(screen.getByLabelText("Repetición del recordatorio"), {
+      target: { value: "weekly" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => {
+      const fetchCall = global.fetch.mock.calls.find(
+        (c) => c[0] === "/api/dashboard/events/e-1/reminder"
+      );
+      expect(fetchCall).toBeDefined();
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body.recur).toBe("weekly");
+    });
+  });
+
+  it("renders recur select with Sin repetición as default", () => {
+    render(
+      <CalendarSection
+        eventos={[{ id: "1", title: "Dentista", starts_at: future, category: "salud", remind_at: null, recur: null }]}
+        icalUrl={null}
+      />
+    );
+    open();
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    const select = screen.getByLabelText("Repetición del recordatorio");
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe("");
+  });
 });
