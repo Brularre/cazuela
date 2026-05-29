@@ -13,9 +13,19 @@ Public API:
 
   delete_todo(task_fragment, user) -> str
     Fuzzy-match by substring; hard-deletes first match.
+
+  set_todo_reminder(task_fragment, remind_at, user) -> str | None
+    Fuzzy-match by substring on open todos; writes remind_at and
+    resets remind_sent to False. Returns None if no match found
+    (caller may try events next).
 """
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from app.db import client
 from app.handlers.utils import find_first_substring
+
+_TZ = ZoneInfo("America/Santiago")
 
 
 def add_todo(task: str, user: dict, priority: str = "semana") -> str:
@@ -70,3 +80,17 @@ def delete_todo(task_fragment: str, user: dict) -> str:
         return f"No encontré un pendiente con '{task_fragment}'."
     client.table("todos").delete().eq("id", match["id"]).execute()
     return f"✓ Borrado: {match['task']}"
+
+
+def set_todo_reminder(task_fragment: str, remind_at: datetime, user: dict) -> str | None:
+    result = client.table("todos").select("id, task").eq("user_id", user["id"]).eq("done", False).execute()
+    items = result.data or []
+    match = find_first_substring(items, task_fragment, "task")
+    if not match:
+        return None
+    client.table("todos").update({
+        "remind_at": remind_at.isoformat(),
+        "remind_sent": False,
+    }).eq("id", match["id"]).execute()
+    time_str = remind_at.astimezone(_TZ).strftime("%d/%m %H:%M")
+    return f"⏰ Recordatorio guardado: {match['task']} ({time_str})"

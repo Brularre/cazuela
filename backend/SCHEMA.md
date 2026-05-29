@@ -55,7 +55,11 @@ ropa, tecnología, educación, viajes, otros
 | done | boolean | default false |
 | due_date | date | nullable |
 | priority | text | hoy \| semana \| mes, default semana |
+| remind_at | timestamptz | nullable; when to send reminder |
+| remind_sent | boolean | NOT NULL default false |
 | created_at | timestamptz | default now() |
+
+Indexes: (remind_at) where remind_sent = false
 
 ---
 
@@ -280,9 +284,12 @@ Event categories: `trabajo`, `personal`, `salud`, `social`,
 | starts_at | timestamptz | not null |
 | ends_at | timestamptz | nullable |
 | category | text | default 'otro' |
+| remind_at | timestamptz | nullable; when to send reminder |
+| remind_sent | boolean | NOT NULL default false |
 | created_at | timestamptz | default now() |
 
-Indexes: (user_id, starts_at)
+Indexes: (user_id, starts_at),
+(remind_at) where remind_sent = false
 
 ---
 
@@ -312,3 +319,5 @@ Indexes: (user_id, starts_at)
     existing users set to true
 15. `calendar_modules_migration.sql` — user_modules and events
     tables; add calendar_token to users
+16. `reminders_migration.sql` — add remind_at + remind_sent
+    to todos and events; partial indexes for due-reminder query

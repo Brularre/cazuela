@@ -44,4 +44,72 @@ describe("TodosSection", () => {
       expect(screen.getByText("Nueva tarea")).toBeInTheDocument()
     );
   });
+
+  it("renders reminder button for each todo", () => {
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "1", task: "llamar al banco", remind_at: null }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Recordatorio" })).toBeInTheDocument();
+  });
+
+  it("shows reminder time in button when remind_at is set", () => {
+    const future = new Date(Date.now() + 3600 * 1000).toISOString();
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "1", task: "llamar al banco", remind_at: future }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    const btn = screen.getByRole("button", { name: "Recordatorio" });
+    expect(btn.textContent).toContain("⏰");
+  });
+
+  it("opens reminder editor on button click", () => {
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "1", task: "tarea", remind_at: null }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    expect(screen.getByLabelText("Hora del recordatorio")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeInTheDocument();
+  });
+
+  it("calls PATCH reminder endpoint on save", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+    const future = new Date(Date.now() + 3600 * 1000).toISOString();
+    render(
+      <TodosSection
+        pendientes={{
+          hoy: [{ id: "t-1", task: "tarea", remind_at: null }],
+          semana: [],
+          mes: [],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Recordatorio" }));
+    fireEvent.change(screen.getByLabelText("Hora del recordatorio"), {
+      target: { value: "2025-06-17T10:00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/dashboard/todos/t-1/reminder",
+        expect.objectContaining({ method: "PATCH" })
+      )
+    );
+  });
 });
