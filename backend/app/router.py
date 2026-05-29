@@ -51,6 +51,7 @@ from app.patterns import (
     RECIPE_MATCH_PATTERN,
     RECIPE_SUGGEST_PATTERN,
     RECIPE_CHOOSE_PATTERN,
+    REMINDER_SET_PATTERN,
     ME_LLAMO_PATTERN,
     TABLERO_PATTERN,
     HELP_PATTERN,
@@ -62,7 +63,9 @@ from app.llm import classify
 from app.handlers.onboarding import is_onboarding, handle_onboarding
 from app.handlers.utils import parse_clp_amount
 from app.handlers.modules import is_enabled, module_for_intent
-from app.handlers.events import add_event, list_events, delete_event, parse_event_time
+from app.handlers.events import add_event, list_events, delete_event, parse_event_time, set_event_reminder
+from app.handlers.todos import set_todo_reminder
+from app.handlers.timeparse import parse_time, extract_fragment
 from app.dispatch import (
     _dispatch,
     _handle_confirm,
@@ -322,6 +325,24 @@ def route(message: str, user: dict) -> str:
         if guard := _module_guard("delete_event", user):
             return guard
         return delete_event(match.group(1).strip(), user)
+
+    match = REMINDER_SET_PATTERN.match(message)
+    if match:
+        if guard := _module_guard("set_reminder", user):
+            return guard
+        captured = match.group(1).strip()
+        remind_at = parse_time(captured)
+        if remind_at is None:
+            return "No entendí la hora. Ejemplo: _recuérdame: dentista mañana a las 10_"
+        fragment = extract_fragment(captured)
+        if not fragment:
+            return "No entendí qué debo recordarte. Ejemplo: _recuérdame: dentista mañana a las 10_"
+        result = set_todo_reminder(fragment, remind_at, user)
+        if result is None:
+            result = set_event_reminder(fragment, remind_at, user)
+        if result is None:
+            return f"No encontré ningún pendiente ni evento con '{fragment}'."
+        return result
 
     match = RECIPE_NEW_PATTERN.match(message)
     if match:

@@ -37,6 +37,7 @@ _INTENT_MODULE: dict[str, str] = {
     "add_event": "calendario",
     "list_events": "calendario",
     "delete_event": "calendario",
+    "set_reminder": "recordatorios",
 }
 
 
