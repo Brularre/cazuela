@@ -114,8 +114,7 @@ async def webhook(request: Request):
                             button_id = interactive["button_reply"]["id"]
                             text = handle_snooze_reply(button_id, user)
                             if text is None:
-                                body = message.get("text", {}).get("body", "").strip()
-                                text = route(body, user)
+                                continue
                         else:
                             continue
                     else:
