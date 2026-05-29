@@ -13,6 +13,7 @@ from app.db import client
 from app.db.users import get_or_create_user
 from app.router import route
 from app.handlers.onboarding import start_onboarding
+from app.handlers.reminders import handle_snooze_reply
 from app.routes.auth import router as auth_router
 from app.routes.calendar import router as calendar_router
 from app.routes.dashboard import router as dashboard_router
@@ -99,13 +100,27 @@ async def webhook(request: Request):
         for change in entry.get("changes", []):
             value = change.get("value", {})
             for message in value.get("messages", []):
-                if message.get("type") != "text":
+                msg_type = message.get("type")
+                if msg_type not in ("text", "interactive"):
                     continue
                 sender = "+" + message["from"]
-                body = message.get("text", {}).get("body", "").strip()
                 try:
                     user, is_new = get_or_create_user(sender)
-                    text = start_onboarding(user) if is_new else route(body, user)
+                    if is_new:
+                        text = start_onboarding(user)
+                    elif msg_type == "interactive":
+                        interactive = message.get("interactive", {})
+                        if interactive.get("type") == "button_reply":
+                            button_id = interactive["button_reply"]["id"]
+                            text = handle_snooze_reply(button_id, user)
+                            if text is None:
+                                body = message.get("text", {}).get("body", "").strip()
+                                text = route(body, user)
+                        else:
+                            continue
+                    else:
+                        body = message.get("text", {}).get("body", "").strip()
+                        text = route(body, user)
                 except Exception as e:
                     warnings.warn(f"Webhook error for {sender}: {e}")
                     text = "Tuve un problema. Por favor intenta nuevamente."

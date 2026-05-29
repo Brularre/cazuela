@@ -21,6 +21,7 @@ CALENDARIO/RECORDATORIOS
                   parse_event_time
   todos.py      : set_todo_reminder (sets remind_at on a todo)
   timeparse.py  : parse_time, extract_fragment, parse_iso
+  reminders.py  : handle_snooze_reply (routes interactive button replies)
 
 COMIDA
   pantry.py           : add_pantry_item, list_pantry, consume_pantry_item,
@@ -57,6 +58,7 @@ from app.handlers.recipes import (
     sugerir_recetas, elegir_receta,
     confirm_shopping_add, cancel_shopping_add,
 )
+from app.handlers.reminders import handle_snooze_reply
 from app.handlers.utils import find_first_substring, normalize, parse_clp_amount
 
 __all__ = [
@@ -75,6 +77,7 @@ __all__ = [
     "list_recipes", "show_recipe", "que_puedo_hacer",
     "sugerir_recetas", "elegir_receta",
     "confirm_shopping_add", "cancel_shopping_add",
+    "handle_snooze_reply",
     "find_first_substring",
     "parse_clp_amount",
 ]
