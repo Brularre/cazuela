@@ -21,6 +21,7 @@ _INTENTS = [
     "restock_pantry_item", "restock_all_pantry",
     "add_waiting", "list_waiting", "resolve_waiting",
     "recipe_new", "recipe_list", "recipe_show",
+    "set_reminder",
     "tablero", "set_name",
     "confirm", "cancel", "help", "unknown",
 ]
@@ -54,6 +55,8 @@ Intents and their JSON shapes:
 - recipe_new: {"intent": "recipe_new", "name": "<str>"}
 - recipe_list: {"intent": "recipe_list"}
 - recipe_show: {"intent": "recipe_show", "name_fragment": "<str>"}
+- set_reminder: {"intent": "set_reminder", "task_fragment": "<str>", "remind_at": "<ISO 8601 datetime>"}
+  (user wants a reminder for an existing todo or event; remind_at must be a future UTC datetime)
 - tablero: {"intent": "tablero"}
 - set_name: {"intent": "set_name", "name": "<str>"}
 - confirm: {"intent": "confirm"}
@@ -78,6 +81,7 @@ Rules:
 - "no", "nope", "olvídalo", "olvidalo" (standalone) → cancel.
 - "despensa" or "lista" (standalone) → unknown (handled before AI routing).
 - "que puedo hacer" or "qué puedo hacer" (standalone) → unknown (handled before AI routing).
+- "recuérdame X a las HH" or "recuerda X mañana" → set_reminder; extract task_fragment (the thing to be reminded about) and remind_at as ISO 8601 UTC.
 - Return unknown if unsure."""
 
 

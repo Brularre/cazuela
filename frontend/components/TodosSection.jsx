@@ -5,6 +5,92 @@ import styles from "./TodosSection.module.css";
 
 const BUCKET_LABELS = { hoy: "Hoy", semana: "Esta semana", mes: "Este mes" };
 
+function fmtReminder(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return d.toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function toDatetimeLocal(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function TodoReminderControl({ todoId, remindAt, onUpdate }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(toDatetimeLocal(remindAt));
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const iso = value ? new Date(value).toISOString() : null;
+    const res = await fetch(`/api/dashboard/todos/${todoId}/reminder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ remind_at: iso }),
+    });
+    if (res.ok) {
+      onUpdate(todoId, iso);
+      setOpen(false);
+    }
+    setSaving(false);
+  }
+
+  async function clear() {
+    setSaving(true);
+    const res = await fetch(`/api/dashboard/todos/${todoId}/reminder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ remind_at: null }),
+    });
+    if (res.ok) {
+      onUpdate(todoId, null);
+      setValue("");
+      setOpen(false);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <>
+      <button
+        className={styles.reminderBtn}
+        onClick={() => setOpen((o) => !o)}
+        title={remindAt ? `Recordatorio: ${fmtReminder(remindAt)}` : "Agregar recordatorio"}
+        aria-label="Recordatorio"
+      >
+        {remindAt ? `⏰ ${fmtReminder(remindAt)}` : "⏰"}
+      </button>
+      {open && (
+        <div className={styles.reminderRow}>
+          <input
+            className={styles.reminderInput}
+            type="datetime-local"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            aria-label="Hora del recordatorio"
+          />
+          <button className={styles.reminderSave} onClick={save} disabled={saving}>
+            {saving ? "…" : "Guardar"}
+          </button>
+          {remindAt && (
+            <button className={styles.reminderClear} onClick={clear} disabled={saving}>
+              Borrar
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function TodosSection({ pendientes }) {
   const [items, setItems] = useState(pendientes || { hoy: [], semana: [], mes: [] });
   const [newTask, setNewTask] = useState("");
@@ -26,6 +112,18 @@ export default function TodosSection({ pendientes }) {
 
   const complete = (id) => optimisticRemove(id, `/api/dashboard/todos/${id}/complete`);
   const remove = (id) => optimisticRemove(id, `/api/dashboard/todos/${id}`, "DELETE");
+
+  function updateReminder(id, remindAt) {
+    setItems((prev) => {
+      const next = {};
+      for (const bucket of ["hoy", "semana", "mes"]) {
+        next[bucket] = (prev[bucket] || []).map((t) =>
+          t.id === id ? { ...t, remind_at: remindAt } : t
+        );
+      }
+      return next;
+    });
+  }
 
   async function add(e) {
     e.preventDefault();
@@ -69,6 +167,11 @@ export default function TodosSection({ pendientes }) {
               {list.map((todo) => (
                 <li key={todo.id} className={styles.item}>
                   <span className={styles.task}>{todo.task.charAt(0).toUpperCase() + todo.task.slice(1)}</span>
+                  <TodoReminderControl
+                    todoId={todo.id}
+                    remindAt={todo.remind_at}
+                    onUpdate={updateReminder}
+                  />
                   <button className={styles.complete} onClick={() => complete(todo.id)} title="Completar">✓</button>
                   <button className={styles.delete} onClick={() => remove(todo.id)} title="Eliminar">×</button>
                 </li>

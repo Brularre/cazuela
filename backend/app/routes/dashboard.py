@@ -1,6 +1,7 @@
 import warnings
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from app.db import client
@@ -65,7 +66,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
 
     todo_result = (
         client.table("todos")
-        .select("id, task, priority")
+        .select("id, task, priority, remind_at, remind_sent")
         .eq("user_id", uid)
         .eq("done", False)
         .execute()
@@ -75,7 +76,11 @@ def get_dashboard(uid: str = Depends(require_auth)):
         bucket = row.get("priority", "semana")
         if bucket not in pendientes:
             bucket = "semana"
-        pendientes[bucket].append({"id": row["id"], "task": row["task"]})
+        pendientes[bucket].append({
+            "id": row["id"],
+            "task": row["task"],
+            "remind_at": row.get("remind_at"),
+        })
 
     waiting_result = (
         client.table("waiting_on")
@@ -196,7 +201,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
     now_iso = datetime.now(tz.utc).isoformat()
     events_result = (
         client.table("events")
-        .select("id, title, starts_at, ends_at, category")
+        .select("id, title, starts_at, ends_at, category, remind_at")
         .eq("user_id", uid)
         .gte("starts_at", now_iso)
         .order("starts_at")
@@ -212,7 +217,7 @@ def get_dashboard(uid: str = Depends(require_auth)):
         .execute()
     )
     module_map = {r["module"]: r["enabled"] for r in (modules_result.data or [])}
-    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    all_modules = ["dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"]
     modulos = {m: module_map.get(m, True) for m in all_modules}
 
     from app.routes.calendar import generate_calendar_token
@@ -273,6 +278,61 @@ def complete_todo(todo_id: str, uid: str = Depends(require_auth)):
 def delete_todo(todo_id: str, uid: str = Depends(require_auth)):
     client.table("todos").delete().eq("id", todo_id).eq("user_id", uid).execute()
     return {"ok": True}
+
+
+class ReminderIn(BaseModel):
+    remind_at: str | None = None
+
+    @field_validator("remind_at")
+    @classmethod
+    def validate_remind_at(cls, v):
+        if v is None:
+            return None
+        try:
+            dt = datetime.fromisoformat(v)
+        except ValueError:
+            raise ValueError("remind_at must be a valid ISO 8601 datetime")
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("America/Santiago"))
+        if dt.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+            raise ValueError("remind_at must be a future datetime")
+        return v
+
+
+@router.patch("/todos/{todo_id}/reminder")
+def set_todo_reminder(todo_id: str, body: ReminderIn, uid: str = Depends(require_auth)):
+    owned = (
+        client.table("todos")
+        .select("id")
+        .eq("id", todo_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not owned.data:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    client.table("todos").update({
+        "remind_at": body.remind_at,
+        "remind_sent": False,
+    }).eq("id", todo_id).eq("user_id", uid).execute()
+    return {"ok": True, "remind_at": body.remind_at}
+
+
+@router.patch("/events/{event_id}/reminder")
+def set_event_reminder(event_id: str, body: ReminderIn, uid: str = Depends(require_auth)):
+    owned = (
+        client.table("events")
+        .select("id")
+        .eq("id", event_id)
+        .eq("user_id", uid)
+        .execute()
+    )
+    if not owned.data:
+        raise HTTPException(status_code=404, detail="No encontrado")
+    client.table("events").update({
+        "remind_at": body.remind_at,
+        "remind_sent": False,
+    }).eq("id", event_id).eq("user_id", uid).execute()
+    return {"ok": True, "remind_at": body.remind_at}
 
 
 class WaitingItemIn(BaseModel):
@@ -815,13 +875,13 @@ def get_modules(uid: str = Depends(require_auth)):
         .execute()
     )
     module_map = {r["module"]: r["enabled"] for r in (result.data or [])}
-    all_modules = ["dinero", "tiempo", "comida", "calendario", "recordatorios"]
+    all_modules = ["dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"]
     return {m: module_map.get(m, True) for m in all_modules}
 
 
 @router.patch("/modules/{module}")
 def update_module(module: str, body: ModuleToggle, uid: str = Depends(require_auth)):
-    allowed = {"dinero", "tiempo", "comida", "calendario", "recordatorios"}
+    allowed = {"dinero", "tiempo", "despensa", "comida", "calendario", "recordatorios"}
     if module not in allowed:
         raise HTTPException(status_code=400, detail="Módulo no válido")
     existing = (

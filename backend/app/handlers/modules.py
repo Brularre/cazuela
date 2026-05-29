@@ -4,7 +4,9 @@ Public API:
 - is_enabled(user, module) -> bool   (default True if no row)
 - module_for_intent(intent) -> str | None
 
-Module keys: dinero, tiempo, comida, calendario, recordatorios.
+Module keys: dinero, tiempo, despensa, comida, calendario, recordatorios.
+  despensa — shopping list + pantry stock
+  comida   — recipes + meal planning
 Missing user_modules row for a module means enabled (opt-out model).
 """
 from app.db import client
@@ -21,11 +23,11 @@ _INTENT_MODULE: dict[str, str] = {
     "add_waiting": "tiempo",
     "list_waiting": "tiempo",
     "resolve_waiting": "tiempo",
-    "add_to_shopping": "comida",
-    "list_shopping": "comida",
-    "add_pantry_item": "comida",
-    "list_pantry": "comida",
-    "consume_pantry_item": "comida",
+    "add_to_shopping": "despensa",
+    "list_shopping": "despensa",
+    "add_pantry_item": "despensa",
+    "list_pantry": "despensa",
+    "consume_pantry_item": "despensa",
     "nueva_receta": "comida",
     "list_recipes": "comida",
     "show_recipe": "comida",
@@ -35,6 +37,7 @@ _INTENT_MODULE: dict[str, str] = {
     "add_event": "calendario",
     "list_events": "calendario",
     "delete_event": "calendario",
+    "set_reminder": "recordatorios",
 }
 
 

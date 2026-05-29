@@ -68,7 +68,8 @@ def test_delete_event_not_found():
 def test_parse_event_time_tomorrow():
     from zoneinfo import ZoneInfo
     from app.handlers.events import parse_event_time
-    result = parse_event_time("evento: reunión mañana a las 10")
+    now = datetime(2025, 6, 16, 10, 0, tzinfo=ZoneInfo("America/Santiago"))
+    result = parse_event_time("evento: reunión mañana a las 10", now=now)
     assert result is not None
     local = result.astimezone(ZoneInfo("America/Santiago"))
     assert local.hour == 10
@@ -77,7 +78,8 @@ def test_parse_event_time_tomorrow():
 def test_parse_event_time_today():
     from zoneinfo import ZoneInfo
     from app.handlers.events import parse_event_time
-    result = parse_event_time("evento: reunión hoy a las 15")
+    now = datetime(2025, 6, 16, 10, 0, tzinfo=ZoneInfo("America/Santiago"))
+    result = parse_event_time("evento: reunión hoy a las 15", now=now)
     assert result is not None
     local = result.astimezone(ZoneInfo("America/Santiago"))
     assert local.hour == 15

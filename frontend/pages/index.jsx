@@ -27,10 +27,10 @@ export default function Dashboard({ data }) {
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} modulos={data.modulos} />}
       <main className={styles.main}>
         {(data.modulos?.dinero !== false) && <ExpensesSection gastos={data.gastos} />}
-        {(data.modulos?.comida !== false) && <ShoppingSection compras={data.compras} />}
+        {(data.modulos?.despensa !== false) && <ShoppingSection compras={data.compras} />}
         {(data.modulos?.tiempo !== false) && <TodosSection pendientes={data.pendientes} />}
         {(data.modulos?.tiempo !== false) && <WaitingSection esperando={data.esperando} />}
-        {(data.modulos?.comida !== false) && <PantrySection despensa={data.despensa} />}
+        {(data.modulos?.despensa !== false) && <PantrySection despensa={data.despensa} />}
         {(data.modulos?.calendario !== false) && <CalendarSection eventos={data.eventos} icalUrl={data.ical_url} />}
         {(data.modulos?.comida !== false) && <RecipesSection recetas={data.recetas} />}
         {(data.modulos?.comida !== false) && <MealPlanSection plan={data.plan} recetas={data.recetas} />}

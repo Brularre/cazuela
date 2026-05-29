@@ -4,7 +4,8 @@ import styles from "./SettingsModal.module.css";
 const MODULE_LABELS = {
   dinero: "Dinero",
   tiempo: "Tiempo",
-  comida: "Comida",
+  despensa: "Despensa y compras",
+  comida: "Recetas y menú",
   calendario: "Calendario",
   recordatorios: "Recordatorios",
 };

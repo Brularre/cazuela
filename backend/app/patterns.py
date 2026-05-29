@@ -76,3 +76,5 @@ RECIPE_SUGGEST_PATTERN = re.compile(
     re.IGNORECASE,
 )
 RECIPE_CHOOSE_PATTERN = re.compile(r'^elegir\s+(\d+)$', re.IGNORECASE)
+
+REMINDER_SET_PATTERN = re.compile(r'^recu[eé]rd[aá](?:me)?[:\s]+(.+)$', re.IGNORECASE)

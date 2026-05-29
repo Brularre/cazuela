@@ -115,3 +115,55 @@
 .icalLink {
   color: var(--cazuela-accent);
 }
+
+.reminderBtn {
+  background: transparent;
+  border: none;
+  padding: 0 0.25rem;
+  font-size: 0.8rem;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reminderBtn:hover {
+  color: var(--cazuela-accent);
+}
+
+.reminderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.reminderInput {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--cazuela-surface);
+  color: var(--cazuela-text-primary);
+}
+
+.reminderSave {
+  padding: 0.2rem 0.6rem;
+  background: var(--cazuela-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.reminderClear {
+  padding: 0.2rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--cazuela-border);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--cazuela-text-muted);
+  cursor: pointer;
+}

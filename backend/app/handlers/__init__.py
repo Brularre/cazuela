@@ -11,8 +11,16 @@ DINERO
   expense_batch : handle_batch_create, handle_batch_confirm, handle_batch_cancel
 
 TIEMPO
-  todos.py      : add_todo, list_todos, complete_todo, delete_todo
+  todos.py      : add_todo, list_todos, complete_todo, delete_todo,
+                  set_todo_reminder
   waiting_on.py : add_waiting, list_waiting, resolve_waiting
+
+CALENDARIO/RECORDATORIOS
+  events.py     : add_event, list_events, delete_event,
+                  set_event_reminder (sets remind_at on an event),
+                  parse_event_time
+  todos.py      : set_todo_reminder (sets remind_at on a todo)
+  timeparse.py  : parse_time, extract_fragment, parse_iso
 
 COMIDA
   pantry.py           : add_pantry_item, list_pantry, consume_pantry_item,
@@ -32,7 +40,7 @@ from app.handlers.expenses import save_expense, expense_history, map_category
 from app.handlers.budget import set_budget
 from app.handlers.summary import get_week_summary, aggregate_by_category, format_amount
 from app.handlers.expense_batch import handle_batch_create, handle_batch_confirm, handle_batch_cancel
-from app.handlers.todos import add_todo, list_todos, complete_todo, delete_todo
+from app.handlers.todos import add_todo, list_todos, complete_todo, delete_todo, set_todo_reminder
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.handlers.pantry import (
     add_pantry_item, list_pantry, consume_pantry_item,
@@ -56,7 +64,7 @@ __all__ = [
     "set_budget",
     "get_week_summary", "aggregate_by_category", "format_amount",
     "handle_batch_create", "handle_batch_confirm", "handle_batch_cancel",
-    "add_todo", "list_todos", "complete_todo", "delete_todo",
+    "add_todo", "list_todos", "complete_todo", "delete_todo", "set_todo_reminder",
     "add_waiting", "list_waiting", "resolve_waiting",
     "add_pantry_item", "list_pantry", "consume_pantry_item",
     "restock_pantry_item", "set_pantry_stock", "restock_all_pantry",
