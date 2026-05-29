@@ -1,6 +1,6 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
-import AddItemForm from "./AddItemForm";
+import CollapsibleSection from "./CollapsibleSection.jsx";
+import AddItemForm from "./AddItemForm.jsx";
 import styles from "./TodosSection.module.css";
 
 const BUCKET_LABELS = { hoy: "Hoy", semana: "Esta semana", mes: "Este mes" };

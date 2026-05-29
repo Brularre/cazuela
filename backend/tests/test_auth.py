@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 import jwt
 from fastapi.testclient import TestClient

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
+import CollapsibleSection from "./CollapsibleSection.jsx";
 import styles from "../styles/MealPlanSection.module.css";
 
 const DAYS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];

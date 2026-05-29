@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
+import CollapsibleSection from "./CollapsibleSection.jsx";
 import styles from "../styles/PantrySection.module.css";
 
 const TABS = ["cocina", "baño", "otros"];

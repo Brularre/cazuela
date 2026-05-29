@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CollapsibleSection from "./CollapsibleSection";
+import CollapsibleSection from "./CollapsibleSection.jsx";
 import styles from "../styles/ShoppingSection.module.css";
 
 export default function ShoppingSection({ compras: initial }) {

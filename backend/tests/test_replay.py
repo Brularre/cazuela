@@ -10,8 +10,8 @@ import pytest
 
 pytestmark = pytest.mark.scripts
 
-from app.mcp import context as ctx
-from app.mcp.agent import propose
+from app.mcp import context as ctx  # noqa: E402
+from app.mcp.agent import propose  # noqa: E402
 
 BACKEND = Path(__file__).resolve().parents[1]
 FIXTURES = BACKEND / "fixtures" / "mcp_snapshots"
