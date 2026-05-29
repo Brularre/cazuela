@@ -6,9 +6,9 @@ Public API:
 
 - send_interactive(phone, body, buttons) -> bool
     Free-form interactive button message (max 3 buttons, each title ≤ 20
-    chars). Used by the daily digest to carry a Continuar quick-reply
-    button that resets the 24-hour window when tapped. Only delivers
-    inside an already-open window.
+    chars). buttons is list[str | dict]. A plain str uses an auto-generated
+    id (btn_0, btn_1, …). A dict must have keys "id" and "title" and uses
+    the provided id verbatim. Only delivers inside an already-open window.
 
 Known limitation: both functions fail silently (warn + return False) when
 the 24-hour window is closed. The daily digest accepts this — the user
@@ -47,10 +47,16 @@ def send_text(phone: str, body: str) -> bool:
     return res.ok
 
 
-def send_interactive(phone: str, body: str, buttons: list[str]) -> bool:
+def send_interactive(phone: str, body: str, buttons: list[str | dict]) -> bool:
     if not (settings.meta_access_token and settings.meta_phone_number_id):
         warnings.warn("Meta credentials not set — message not sent")
         return False
+
+    def _button_entry(i: int, btn: str | dict) -> dict:
+        if isinstance(btn, dict):
+            return {"type": "reply", "reply": {"id": btn["id"], "title": btn["title"]}}
+        return {"type": "reply", "reply": {"id": f"btn_{i}", "title": btn}}
+
     res = requests.post(
         _META_URL.format(phone_number_id=settings.meta_phone_number_id),
         headers=_meta_headers(),
@@ -62,13 +68,7 @@ def send_interactive(phone: str, body: str, buttons: list[str]) -> bool:
                 "type": "button",
                 "body": {"text": body},
                 "action": {
-                    "buttons": [
-                        {
-                            "type": "reply",
-                            "reply": {"id": f"btn_{i}", "title": title},
-                        }
-                        for i, title in enumerate(buttons)
-                    ]
+                    "buttons": [_button_entry(i, btn) for i, btn in enumerate(buttons)]
                 },
             },
         },

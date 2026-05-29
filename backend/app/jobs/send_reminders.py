@@ -1,16 +1,17 @@
 """Individual reminder cron job.
 
-Sends plain-text reminders for todos and events whose remind_at has
-passed and remind_sent is still false. Marks each as sent on success;
-leaves failures untouched so they retry on the next pass.
+Sends interactive reminders for todos and events whose remind_at has
+passed and remind_sent is still false. Each message carries two buttons:
+"Posponer 30 min" (snooze) and "Listo" (done). Marks each as sent on
+success; leaves failures untouched so they retry on the next pass.
 
 Entrypoint: python -m app.jobs.send_reminders
 Railway schedule: cron */15 * * * * (every 15 minutes).
 
 Delivery notes:
-  - Uses send_text, which only works inside the 24-hour window opened by
-    the morning digest. On failure the row is retried automatically on
-    the next 15-minute pass once the window reopens.
+  - Uses send_interactive, which only works inside the 24-hour window
+    opened by the morning digest. On failure the row is retried
+    automatically on the next 15-minute pass once the window reopens.
   - Rows whose owner has recordatorios disabled are skipped but NOT
     marked sent. This is intentional: if the user re-enables the module,
     pending due reminders flush on the next cron pass (same self-healing
@@ -21,7 +22,7 @@ import warnings
 from datetime import datetime, timezone
 
 from app.db import client
-from app.notify import send_text
+from app.notify import send_interactive
 
 
 def _recordatorios_enabled(user_id: str) -> bool:
@@ -84,7 +85,12 @@ def main() -> None:
                 continue
 
             title = row[title_field]
-            ok = send_text(phone, f"⏰ {title}")
+            row_id = row["id"]
+            buttons = [
+                {"id": f"snooze:{table}:{row_id}:30", "title": "Posponer 30 min"},
+                {"id": f"done:{table}:{row_id}", "title": "Listo"},
+            ]
+            ok = send_interactive(phone, f"⏰ {title}", buttons)
             if ok:
                 _mark_sent(table, row["id"])
                 sent += 1

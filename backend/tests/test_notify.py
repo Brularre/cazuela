@@ -133,3 +133,24 @@ def test_send_interactive_body_text_preserved():
         send_interactive("+56900000000", "☀️ Buenos días\n• tarea 1", ["Continuar"])
     payload = mock_post.call_args.kwargs["json"]
     assert payload["interactive"]["body"]["text"] == "☀️ Buenos días\n• tarea 1"
+
+
+def test_send_interactive_dict_button_uses_provided_id():
+    with patch("app.notify.requests.post", return_value=_ok_response()) as mock_post, \
+         patch("app.notify.settings", _settings()):
+        from app.notify import send_interactive
+        send_interactive(
+            "+56900000000",
+            "⏰ Llamar al banco",
+            [
+                {"id": "snooze:todos:abc-123:30", "title": "Posponer 30 min"},
+                {"id": "done:todos:abc-123", "title": "Listo"},
+            ],
+        )
+    payload = mock_post.call_args.kwargs["json"]
+    buttons = payload["interactive"]["action"]["buttons"]
+    assert len(buttons) == 2
+    assert buttons[0]["reply"]["id"] == "snooze:todos:abc-123:30"
+    assert buttons[0]["reply"]["title"] == "Posponer 30 min"
+    assert buttons[1]["reply"]["id"] == "done:todos:abc-123"
+    assert buttons[1]["reply"]["title"] == "Listo"

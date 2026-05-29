@@ -35,33 +35,44 @@ def _make_db(
     return db
 
 
-def test_due_todo_is_sent_and_flagged():
+def test_due_todo_is_sent_interactively_and_flagged():
     todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Llamar al banco"}]
     db = _make_db(todos_due=todos_due)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send, \
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send, \
          patch("app.jobs.send_reminders._mark_sent") as mock_mark:
         from app.jobs.send_reminders import main
         main()
-    mock_send.assert_called_once_with("+56900000001", "⏰ Llamar al banco")
+    mock_send.assert_called_once()
+    call_args = mock_send.call_args
+    assert call_args[0][0] == "+56900000001"
+    assert "Llamar al banco" in call_args[0][1]
+    buttons = call_args[0][2]
+    assert any(b["id"] == "snooze:todos:t-1:30" for b in buttons)
+    assert any(b["id"] == "done:todos:t-1" for b in buttons)
     mock_mark.assert_called_once_with("todos", "t-1")
 
 
-def test_due_event_is_sent_and_flagged():
+def test_due_event_is_sent_interactively_and_flagged():
     events_due = [{"id": "e-1", "user_id": "u-1", "title": "Dentista"}]
     db = _make_db(events_due=events_due)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send:
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
         from app.jobs.send_reminders import main
         main()
-    mock_send.assert_called_once_with("+56900000001", "⏰ Dentista")
+    mock_send.assert_called_once()
+    call_args = mock_send.call_args
+    assert "Dentista" in call_args[0][1]
+    buttons = call_args[0][2]
+    assert any(b["id"] == "snooze:events:e-1:30" for b in buttons)
+    assert any(b["id"] == "done:events:e-1" for b in buttons)
 
 
 def test_send_failure_leaves_remind_sent_false():
     todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea"}]
     db = _make_db(todos_due=todos_due)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=False):
+         patch("app.jobs.send_reminders.send_interactive", return_value=False):
         from app.jobs.send_reminders import main
         main()
     db.table.return_value.update.assert_not_called()
@@ -72,7 +83,7 @@ def test_disabled_recordatorios_skips_row():
     modules = [{"enabled": False}]
     db = _make_db(todos_due=todos_due, modules=modules)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send:
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
         from app.jobs.send_reminders import main
         main()
     mock_send.assert_not_called()
@@ -81,7 +92,7 @@ def test_disabled_recordatorios_skips_row():
 def test_no_due_rows_nothing_sent():
     db = _make_db()
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send:
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
         from app.jobs.send_reminders import main
         main()
     mock_send.assert_not_called()
@@ -91,7 +102,7 @@ def test_missing_user_phone_skips_row():
     todos_due = [{"id": "t-1", "user_id": "u-1", "task": "Tarea"}]
     db = _make_db(todos_due=todos_due, user_phone=None)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send:
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
         from app.jobs.send_reminders import main
         main()
     mock_send.assert_not_called()
@@ -102,10 +113,10 @@ def test_both_todos_and_events_processed():
     events_due = [{"id": "e-1", "user_id": "u-1", "title": "Evento B"}]
     db = _make_db(todos_due=todos_due, events_due=events_due)
     with patch("app.jobs.send_reminders.client", db), \
-         patch("app.jobs.send_reminders.send_text", return_value=True) as mock_send:
+         patch("app.jobs.send_reminders.send_interactive", return_value=True) as mock_send:
         from app.jobs.send_reminders import main
         main()
     assert mock_send.call_count == 2
-    calls = [c[0][1] for c in mock_send.call_args_list]
-    assert any("Tarea A" in c for c in calls)
-    assert any("Evento B" in c for c in calls)
+    bodies = [c[0][1] for c in mock_send.call_args_list]
+    assert any("Tarea A" in b for b in bodies)
+    assert any("Evento B" in b for b in bodies)
