@@ -148,7 +148,7 @@ def test_reminder_router_pattern_recuerda_form():
     assert m is not None
 
 
-def test_router_set_reminder_todo_found():
+def test_router_set_reminder_stages_confirmation():
     from app.router import route
 
     def patched_is_enabled(user, module):
@@ -156,46 +156,134 @@ def test_router_set_reminder_todo_found():
 
     remind_at = _future_dt()
     with patch("app.router.is_enabled", patched_is_enabled), \
-         patch("app.router.parse_time", return_value=remind_at), \
+         patch("app.router.parse_time_meta", return_value=(remind_at, False)), \
          patch("app.router.extract_fragment", return_value="banco"), \
-         patch("app.router.set_todo_reminder", return_value="⏰ Recordatorio guardado: llamar al banco (16/06 12:00)") as mock_todo, \
-         patch("app.router.set_event_reminder", return_value=None):
+         patch("app.router.stage_reminder", return_value="⏰ ¿Te recuerdo *banco* el 16/06 12:00?") as mock_stage:
         result = route("recuérdame: banco mañana a las 10", FAKE_USER)
+    mock_stage.assert_called_once()
+    assert mock_stage.call_args[0][0] == "banco"
+    assert "¿Te recuerdo" in result
+
+
+def test_router_set_reminder_passes_ambiguous():
+    from app.router import route
+
+    def patched_is_enabled(user, module):
+        return True
+
+    remind_at = _future_dt()
+    with patch("app.router.is_enabled", patched_is_enabled), \
+         patch("app.router.parse_time_meta", return_value=(remind_at, True)), \
+         patch("app.router.extract_fragment", return_value="banco"), \
+         patch("app.router.stage_reminder", return_value="prompt") as mock_stage:
+        route("recuérdame: banco a las 3", FAKE_USER)
+    assert mock_stage.call_args.kwargs["ambiguous"] is True
+
+
+def test_stage_reminder_sends_context_and_prompts():
+    remind_at = _future_dt()
+    with patch("app.handlers.reminders.mcp") as mock_mcp:
+        mock_mcp.send_context.return_value = "ctx-1"
+        from app.handlers.reminders import stage_reminder
+        result = stage_reminder("dentista", remind_at, FAKE_USER, recur="mondays")
+    domain, _user_id, payload = mock_mcp.send_context.call_args[0]
+    assert domain == "reminder_set"
+    assert payload["fragment"] == "dentista"
+    assert payload["recur"] == "mondays"
+    mock_mcp.request_action.assert_called_once_with("ctx-1")
+    assert "dentista" in result
+    assert "(se repite)" in result
+    assert "sí" in result and "no" in result
+
+
+def test_stage_reminder_ambiguous_pm_adds_am_hint():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("America/Santiago")
+    remind_at = datetime(2026, 6, 6, 15, 0, tzinfo=tz)
+    with patch("app.handlers.reminders.mcp") as mock_mcp:
+        mock_mcp.send_context.return_value = "ctx-1"
+        from app.handlers.reminders import stage_reminder
+        result = stage_reminder("llamar", remind_at, FAKE_USER, ambiguous=True)
+    assert "3 am" in result
+    assert "tarde" in result.lower()
+
+
+def test_stage_reminder_ambiguous_am_adds_pm_hint():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("America/Santiago")
+    remind_at = datetime(2026, 6, 6, 9, 0, tzinfo=tz)
+    with patch("app.handlers.reminders.mcp") as mock_mcp:
+        mock_mcp.send_context.return_value = "ctx-1"
+        from app.handlers.reminders import stage_reminder
+        result = stage_reminder("gimnasio", remind_at, FAKE_USER, ambiguous=True)
+    assert "9 pm" in result
+    assert "noche" in result.lower()
+
+
+def test_confirm_reminder_attaches_to_existing_todo():
+    remind_at = _future_dt()
+    ctx = {"payload": {"fragment": "banco", "remind_at": remind_at.isoformat(), "recur": None}}
+    with patch("app.handlers.reminders.mcp") as mock_mcp, \
+         patch("app.handlers.reminders.set_todo_reminder", return_value="⏰ ok-todo") as mock_todo, \
+         patch("app.handlers.reminders.set_event_reminder") as mock_ev, \
+         patch("app.handlers.reminders.create_todo_reminder") as mock_create:
+        from app.handlers.reminders import confirm_reminder
+        result = confirm_reminder("ctx-1", FAKE_USER, ctx)
+    mock_mcp.confirm.assert_called_once_with("ctx-1")
     mock_todo.assert_called_once()
-    assert "⏰" in result
+    mock_ev.assert_not_called()
+    mock_create.assert_not_called()
+    assert result == "⏰ ok-todo"
 
 
-def test_router_set_reminder_falls_back_to_event():
-    from app.router import route
-
-    def patched_is_enabled(user, module):
-        return True
-
+def test_confirm_reminder_creates_new_when_no_match():
     remind_at = _future_dt()
-    with patch("app.router.is_enabled", patched_is_enabled), \
-         patch("app.router.parse_time", return_value=remind_at), \
-         patch("app.router.extract_fragment", return_value="dentista"), \
-         patch("app.router.set_todo_reminder", return_value=None), \
-         patch("app.router.set_event_reminder", return_value="⏰ Recordatorio guardado: Dentista (16/06 15:00)") as mock_ev:
-        result = route("recuérdame: dentista viernes a las 15", FAKE_USER)
-    mock_ev.assert_called_once()
-    assert "⏰" in result
+    ctx = {"payload": {"fragment": "comprar pan", "remind_at": remind_at.isoformat(), "recur": "daily"}}
+    with patch("app.handlers.reminders.mcp"), \
+         patch("app.handlers.reminders.set_todo_reminder", return_value=None), \
+         patch("app.handlers.reminders.set_event_reminder", return_value=None), \
+         patch("app.handlers.reminders.create_todo_reminder", return_value="⏰ nuevo") as mock_create:
+        from app.handlers.reminders import confirm_reminder
+        result = confirm_reminder("ctx-1", FAKE_USER, ctx)
+    mock_create.assert_called_once()
+    assert result == "⏰ nuevo"
 
 
-def test_router_set_reminder_not_found():
-    from app.router import route
+def test_cancel_reminder_rolls_back():
+    with patch("app.handlers.reminders.mcp") as mock_mcp:
+        from app.handlers.reminders import cancel_reminder
+        result = cancel_reminder("ctx-1", FAKE_USER)
+    mock_mcp.rollback.assert_called_once_with("ctx-1")
+    assert "cancelado" in result.lower()
 
-    def patched_is_enabled(user, module):
-        return True
 
+def test_create_todo_reminder_inserts_new_todo():
     remind_at = _future_dt()
-    with patch("app.router.is_enabled", patched_is_enabled), \
-         patch("app.router.parse_time", return_value=remind_at), \
-         patch("app.router.extract_fragment", return_value="xyz"), \
-         patch("app.router.set_todo_reminder", return_value=None), \
-         patch("app.router.set_event_reminder", return_value=None):
-        result = route("recuérdame: xyz mañana a las 10", FAKE_USER)
-    assert "No encontré" in result
+    db = MagicMock()
+    db.table.return_value.insert.return_value.execute.return_value.data = [{}]
+    with patch("app.handlers.todos.client", db):
+        from app.handlers.todos import create_todo_reminder
+        result = create_todo_reminder("dentista", remind_at, FAKE_USER)
+    assert "⏰" in result
+    assert "dentista" in result
+    insert_call = db.table.return_value.insert.call_args[0][0]
+    assert insert_call["task"] == "dentista"
+    assert insert_call["remind_sent"] is False
+    assert "remind_at" in insert_call
+
+
+def test_create_todo_reminder_with_recur_appends_se_repite():
+    remind_at = _future_dt()
+    db = MagicMock()
+    db.table.return_value.insert.return_value.execute.return_value.data = [{}]
+    with patch("app.handlers.todos.client", db):
+        from app.handlers.todos import create_todo_reminder
+        result = create_todo_reminder("gimnasio", remind_at, FAKE_USER, recur="mondays")
+    assert "(se repite)" in result
+    insert_call = db.table.return_value.insert.call_args[0][0]
+    assert insert_call["recur"] == "mondays"
 
 
 def test_router_set_reminder_no_time():
@@ -205,7 +293,7 @@ def test_router_set_reminder_no_time():
         return True
 
     with patch("app.router.is_enabled", patched_is_enabled), \
-         patch("app.router.parse_time", return_value=None):
+         patch("app.router.parse_time_meta", return_value=(None, False)):
         result = route("recuérdame: dentista el próximo martes", FAKE_USER)
     assert "No entendí la hora" in result
 

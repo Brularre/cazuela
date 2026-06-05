@@ -31,8 +31,8 @@ from app.handlers.expense_batch import (
     handle_batch_cancel,
 )
 from app.handlers.summary import format_amount, get_week_summary
-from app.handlers.todos import add_todo, list_todos, complete_todo, set_todo_reminder
-from app.handlers.events import set_event_reminder
+from app.handlers.todos import add_todo, list_todos, complete_todo
+from app.handlers.reminders import stage_reminder, confirm_reminder, cancel_reminder
 from app.handlers.timeparse import parse_iso, extract_fragment, parse_recur, extract_recur_fragment
 from app.handlers.shopping import add_to_shopping, list_shopping, check_item
 from app.handlers.budget import set_budget
@@ -117,6 +117,8 @@ def _handle_confirm(user: dict) -> str:
         return handle_batch_confirm(context_id, user)
     if ctx.get("domain") == "shopping_add_pending":
         return confirm_shopping_add(context_id, user, ctx)
+    if ctx.get("domain") == "reminder_set":
+        return confirm_reminder(context_id, user, ctx)
     if ctx.get("domain") in ("recipe_match", "recipe_suggest"):
         n = len((ctx.get("proposed") or {}).get("suggestions", []))
         return f"Elige una opción del 1 al {n} con *elegir N*, o *cancelar*."
@@ -159,6 +161,8 @@ def _handle_cancel(user: dict) -> str:
         return cancel_recipe_create(context_id, user)
     if peek.get("domain") == "shopping_add_pending":
         return cancel_shopping_add(context_id, user)
+    if peek.get("domain") == "reminder_set":
+        return cancel_reminder(context_id, user)
     if peek.get("domain") in ("recipe_match", "recipe_suggest"):
         try:
             mcp.rollback(context_id)
@@ -318,12 +322,7 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
             fragment = extract_recur_fragment(str(task_fragment))
         else:
             fragment = extract_fragment(str(task_fragment)) or str(task_fragment)
-        result = set_todo_reminder(fragment, remind_at, user, recur=recur)
-        if result is None:
-            result = set_event_reminder(fragment, remind_at, user, recur=recur)
-        if result is None:
-            return f"No encontré ningún pendiente ni evento con '{fragment}'."
-        return result
+        return stage_reminder(fragment, remind_at, user, recur=recur)
     if name == "tablero":
         return _dashboard_reply()
     if name == "set_name":
