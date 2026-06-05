@@ -16,6 +16,7 @@ Handles the "gasté/pagué N en el súper: X, Y, Z" three-step MCP flow:
 
 Uses expense_history from app.handlers.expenses for category-frequency context.
 """
+import warnings
 from datetime import date
 
 from app.db import client
@@ -73,19 +74,23 @@ def handle_batch_confirm(context_id: str, user: dict) -> str:
     raw_message = payload.get("raw_message", "")
     day = payload.get("date") or str(date.today())
     try:
+        for it in items:
+            amt = float(it.get("amount", 0))
+            note = f"{raw_message} — {it.get('name', '')}"
+            client.table("expenses").insert({
+                "user_id": user["id"],
+                "amount": amt,
+                "category": it.get("category", "otros"),
+                "note": note,
+                "date": day,
+            }).execute()
+    except Exception as exc:
+        warnings.warn(f"batch expense insert failed: {type(exc).__name__}", stacklevel=1)
+        return "Hubo un problema al guardar los gastos. Intenta *confirmar* de nuevo."
+    try:
         mcp.confirm(context_id)
     except (ValueError, KeyError):
         return "Este gasto ya fue confirmado, cancelado, o expiró."
-    for it in items:
-        amt = float(it.get("amount", 0))
-        note = f"{raw_message} — {it.get('name', '')}"
-        client.table("expenses").insert({
-            "user_id": user["id"],
-            "amount": amt,
-            "category": it.get("category", "otros"),
-            "note": note,
-            "date": day,
-        }).execute()
     parts = [
         f"{format_amount(float(it.get('amount', 0)))} · {it.get('category', 'otros')}"
         for it in items

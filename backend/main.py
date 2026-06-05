@@ -5,7 +5,7 @@ import io
 import json
 import warnings
 import requests
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Header, Request, Response, HTTPException
 from fastapi.responses import StreamingResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.config import settings
@@ -129,7 +129,8 @@ async def webhook(request: Request):
 
 
 @app.get("/export")
-def export(phone: str, format: str = "json", token: str = ""):
+def export(phone: str, format: str = "json", authorization: str = Header(default="")):
+    token = authorization.removeprefix("Bearer ").strip()
     if not settings.export_token or token != settings.export_token:
         raise HTTPException(status_code=403, detail="Forbidden")
 

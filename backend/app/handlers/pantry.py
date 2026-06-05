@@ -54,7 +54,7 @@ def add_pantry_item(item: str, desired_qty: int, user: dict, category: str = "ot
         client.table("pantry")
         .select("id")
         .eq("user_id", user["id"])
-        .ilike("item", normalized)
+        .eq("item", normalized)
         .execute()
     ).data or []
     if existing:

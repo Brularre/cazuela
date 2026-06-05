@@ -15,8 +15,21 @@ create table if not exists events (
     created_at timestamptz default now()
 );
 
+alter table events
+    add column if not exists remind_at timestamptz,
+    add column if not exists remind_sent boolean not null default false,
+    add column if not exists recur text check (
+        recur is null or recur in (
+            'daily', 'weekly',
+            'mondays', 'tuesdays', 'wednesdays', 'thursdays',
+            'fridays', 'saturdays', 'sundays'
+        )
+    );
+
 create index if not exists events_user_start
     on events (user_id, starts_at);
+create index if not exists events_due_reminders
+    on events (remind_at) where remind_sent = false;
 
 alter table users
     add column if not exists calendar_token text;

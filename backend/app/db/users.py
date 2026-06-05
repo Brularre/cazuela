@@ -12,7 +12,13 @@ def get_or_create_user(raw_phone: str) -> tuple[dict, bool]:
     result = client.table("users").select("*").eq("phone", phone).execute()
     if result.data:
         return result.data[0], False
-    result = client.table("users").insert({"phone": phone}).execute()
-    if not result.data:
-        raise RuntimeError("Failed to create user")
-    return result.data[0], True
+    try:
+        result = client.table("users").insert({"phone": phone}).execute()
+        if not result.data:
+            raise RuntimeError("Failed to create user")
+        return result.data[0], True
+    except Exception:
+        result = client.table("users").select("*").eq("phone", phone).execute()
+        if result.data:
+            return result.data[0], False
+        raise

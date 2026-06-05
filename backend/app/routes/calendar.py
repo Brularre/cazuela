@@ -47,6 +47,18 @@ def _fold(line: str) -> str:
     return "\r\n ".join(parts) + "\r\n"
 
 
+def _escape_text(value: str) -> str:
+    """Escape a value for an iCal TEXT field per RFC 5545 §3.3.11."""
+    return (
+        value.replace("\\", "\\\\")
+        .replace(";", "\\;")
+        .replace(",", "\\,")
+        .replace("\r\n", "\\n")
+        .replace("\r", "\\n")
+        .replace("\n", "\\n")
+    )
+
+
 def _format_dt(iso: str) -> str:
     dt = datetime.fromisoformat(iso).astimezone(timezone.utc)
     return dt.strftime("%Y%m%dT%H%M%SZ")
@@ -103,7 +115,7 @@ def ical_feed(token: str):
             + _fold(f"DTSTAMP:{now_stamp}")
             + _fold(f"DTSTART:{dtstart}")
             + _fold(f"DTEND:{dtend}")
-            + _fold(f"SUMMARY:{ev['title']}")
+            + _fold(f"SUMMARY:{_escape_text(ev['title'])}")
             + "END:VEVENT\r\n"
         )
         lines.append(vevent)

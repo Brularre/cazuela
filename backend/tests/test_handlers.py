@@ -181,7 +181,7 @@ def test_resolve_waiting_no_match(mock_client):
 
 @patch("app.handlers.pantry.client")
 def test_add_pantry_item_new(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     mock_client.table.return_value.insert.return_value.execute.return_value = None
     from app.handlers.pantry import add_pantry_item
     result = add_pantry_item("jabón", 3, FAKE_USER)
@@ -196,7 +196,7 @@ def test_add_pantry_item_new(mock_client):
 
 @patch("app.handlers.pantry.client")
 def test_add_pantry_item_with_category(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     mock_client.table.return_value.insert.return_value.execute.return_value = None
     from app.handlers.pantry import add_pantry_item
     add_pantry_item("arroz", 3, FAKE_USER, "cocina")
@@ -206,7 +206,7 @@ def test_add_pantry_item_with_category(mock_client):
 
 @patch("app.handlers.pantry.client")
 def test_add_pantry_item_existing_updates_desired(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [{"id": "x"}]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"id": "x"}]
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.pantry import add_pantry_item
     result = add_pantry_item("jabón", 5, FAKE_USER)
@@ -215,7 +215,7 @@ def test_add_pantry_item_existing_updates_desired(mock_client):
 
 @patch("app.handlers.pantry.client")
 def test_add_pantry_item_existing_resets_current_qty(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [{"id": "x"}]
+    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"id": "x"}]
     mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
     from app.handlers.pantry import add_pantry_item
     add_pantry_item("jabón", 5, FAKE_USER)

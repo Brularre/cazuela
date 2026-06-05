@@ -30,6 +30,7 @@ Public API:
 
 Tables touched: todos, events.
 """
+import warnings
 from datetime import datetime, timedelta, timezone
 
 from app.config import TZ as _TZ
@@ -83,14 +84,18 @@ def confirm_reminder(context_id: str, user: dict, ctx: dict) -> str:
         return "No pude recuperar el recordatorio. Intenta de nuevo."
     remind_at = datetime.fromisoformat(remind_at_raw)
     try:
+        result = set_todo_reminder(fragment, remind_at, user, recur=recur)
+        if result is None:
+            result = set_event_reminder(fragment, remind_at, user, recur=recur)
+        if result is None:
+            result = create_todo_reminder(fragment, remind_at, user, recur=recur)
+    except Exception as exc:
+        warnings.warn(f"reminder write failed: {type(exc).__name__}", stacklevel=1)
+        return "Hubo un problema al guardar el recordatorio. Intenta de nuevo."
+    try:
         mcp.confirm(context_id)
     except (ValueError, KeyError):
         return "Este recordatorio ya fue confirmado, cancelado, o expiró."
-    result = set_todo_reminder(fragment, remind_at, user, recur=recur)
-    if result is None:
-        result = set_event_reminder(fragment, remind_at, user, recur=recur)
-    if result is None:
-        result = create_todo_reminder(fragment, remind_at, user, recur=recur)
     return result
 
 
@@ -119,11 +124,13 @@ def handle_snooze_reply(button_id: str, user: dict) -> str | None:
             minutes = int(minutes_str)
         except ValueError:
             return None
+        if not 1 <= minutes <= 1440:
+            return None
         new_remind_at = datetime.now(timezone.utc) + timedelta(minutes=minutes)
         client.table(table).update({
             "remind_at": new_remind_at.isoformat(),
             "remind_sent": False,
-        }).eq("id", item_id).execute()
+        }).eq("id", item_id).eq("user_id", user["id"]).execute()
         return f"⏰ Te recuerdo en {minutes} min."
 
     if action == "done":
@@ -131,7 +138,7 @@ def handle_snooze_reply(button_id: str, user: dict) -> str | None:
             return None
         _, table, item_id = parts
         if table == "todos":
-            client.table("todos").update({"done": True}).eq("id", item_id).execute()
+            client.table("todos").update({"done": True}).eq("id", item_id).eq("user_id", user["id"]).execute()
             return "✅ Listo."
         if table == "events":
             return "✅ Listo."

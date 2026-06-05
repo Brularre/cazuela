@@ -196,6 +196,16 @@ def test_advance_recur_same_weekday_advances_full_week():
     assert (next_dt - old_dt).days == 7
 
 
+def test_advance_recur_unknown_value_marks_sent_and_does_not_raise():
+    from app.jobs.send_reminders import _advance_recur
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db), \
+         patch("app.jobs.send_reminders._mark_sent") as mock_mark:
+        _advance_recur("todos", "t-bad", "2025-06-16T09:00:00+00:00", "fortnightly")
+    mock_mark.assert_called_once_with("todos", "t-bad")
+    db.table.return_value.update.assert_not_called()
+
+
 def test_advance_recur_weekday_uses_local_date():
     from zoneinfo import ZoneInfo
     from app.jobs.send_reminders import _advance_recur

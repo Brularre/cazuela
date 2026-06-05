@@ -94,7 +94,7 @@ class _AnthropicProvider:
         self, system: str, user: str, max_tokens: int, temperature: float
     ) -> str | None:
         import anthropic
-        client = anthropic.Anthropic(api_key=self.api_key)
+        client = anthropic.Anthropic(api_key=self.api_key, timeout=10.0)
         response = client.messages.create(
             model=self.model,
             max_tokens=max_tokens,

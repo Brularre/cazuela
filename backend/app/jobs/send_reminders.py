@@ -83,7 +83,14 @@ def _advance_recur(table: str, row_id: str, old_remind_at_iso: str, recur: str) 
             "mondays": 0, "tuesdays": 1, "wednesdays": 2, "thursdays": 3,
             "fridays": 4, "saturdays": 5, "sundays": 6,
         }
-        target_wd = weekday_targets[recur]
+        target_wd = weekday_targets.get(recur)
+        if target_wd is None:
+            warnings.warn(
+                f"unknown recur '{recur}' on {table}/{row_id}; marking sent",
+                stacklevel=1,
+            )
+            _mark_sent(table, row_id)
+            return
         current_wd = old_dt.astimezone(_TZ).weekday()
         days_ahead = (target_wd - current_wd) % 7
         if days_ahead == 0:

@@ -298,6 +298,48 @@ def test_router_set_reminder_no_time():
     assert "No entendí la hora" in result
 
 
+def test_snooze_reply_updates_correct_user_only():
+    db = MagicMock()
+    update_chain = db.table.return_value.update.return_value
+    update_chain.eq.return_value.eq.return_value.execute.return_value.data = [{}]
+    with patch("app.handlers.reminders.client", db):
+        from app.handlers.reminders import handle_snooze_reply
+        result = handle_snooze_reply("snooze:todos:t-abc:30", FAKE_USER)
+    assert result is not None
+    second_eq_calls = update_chain.eq.return_value.eq.call_args_list
+    assert any(c.args == ("user_id", FAKE_USER["id"]) for c in second_eq_calls), \
+        "user_id filter must be applied on snooze update"
+
+
+def test_done_reply_filters_by_user_id():
+    db = MagicMock()
+    update_chain = db.table.return_value.update.return_value
+    update_chain.eq.return_value.eq.return_value.execute.return_value.data = [{}]
+    with patch("app.handlers.reminders.client", db):
+        from app.handlers.reminders import handle_snooze_reply
+        result = handle_snooze_reply("done:todos:t-abc", FAKE_USER)
+    assert result == "✅ Listo."
+    second_eq_calls = update_chain.eq.return_value.eq.call_args_list
+    assert any(c.args == ("user_id", FAKE_USER["id"]) for c in second_eq_calls), \
+        "user_id filter must be applied on done update"
+
+
+def test_snooze_reply_rejects_out_of_range_minutes():
+    from app.handlers.reminders import handle_snooze_reply
+    assert handle_snooze_reply("snooze:todos:t-abc:0", FAKE_USER) is None
+    assert handle_snooze_reply("snooze:todos:t-abc:1441", FAKE_USER) is None
+    assert handle_snooze_reply("snooze:todos:t-abc:-10", FAKE_USER) is None
+
+
+def test_snooze_reply_accepts_boundary_minutes():
+    db = MagicMock()
+    db.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{}]
+    with patch("app.handlers.reminders.client", db):
+        from app.handlers.reminders import handle_snooze_reply
+        assert handle_snooze_reply("snooze:todos:t-abc:1", FAKE_USER) is not None
+        assert handle_snooze_reply("snooze:todos:t-abc:1440", FAKE_USER) is not None
+
+
 def test_router_set_reminder_disabled_module():
     from app.router import route
 

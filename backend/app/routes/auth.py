@@ -111,7 +111,7 @@ def verify_otp(body: OTPVerify):
         key="session",
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="strict",
         secure=settings.cookie_secure,
         max_age=60 * 60 * 24 * 30,
     )
