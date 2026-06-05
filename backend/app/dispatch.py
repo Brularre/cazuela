@@ -5,8 +5,7 @@ Private helpers:
   _handle_set_name(name, user) -> str
   _handle_pantry_category_choice(n, context_id, user, ctx_data) -> str
   _hint_for_message(message) -> str
-  _handle_bought(fragment, user, qty=None) -> str
-  _handle_confirm(user) -> str
+  _handle_bought(fragment, user, qty=None) -> str  _handle_confirm(user) -> str
   _handle_cancel(user) -> str
   _handle_ambiguous_expense(amount, raw_message, user) -> str
   _dashboard_reply() -> str
@@ -92,13 +91,7 @@ def _hint_for_message(message: str) -> str:
 
 
 def _handle_bought(fragment: str, user: dict, qty: int | None = None) -> str:
-    results = []
-    for result in (check_item(fragment, user), restock_pantry_item(fragment, user, qty)):
-        if result and (not result.startswith("No encontré") or "Quisiste decir" in result):
-            results.append(result)
-    if results:
-        return "\n".join(results)
-    return f"No encontré '{fragment}' en tu lista ni en tu despensa."
+    return restock_pantry_item(fragment, user, qty)
 
 
 def _handle_confirm(user: dict) -> str:
