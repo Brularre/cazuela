@@ -5,6 +5,10 @@ Public API:
     Parses a small, fixed set of Spanish time phrasings and returns
     a UTC-aware datetime. Returns None if unrecognised or in the past.
 
+  parse_time_meta(text, now=None) -> tuple[datetime | None, bool]
+    Same as parse_time, plus a flag that is True when a bare hour 1–11
+    with no am/pm qualifier was parsed (12h-ambiguous).
+
   extract_fragment(text) -> str
     Strips the recognized time phrase from text, returning the
     task/event fragment. Used when parsing reminder commands.
@@ -25,6 +29,13 @@ Supported phrasings (manual mode):
   - mañana a las HH[:MM]         tomorrow at given time
   - el WEEKDAY a las HH[:MM]     next occurrence of named weekday
   - en N horas / en N minutos    relative offset from now
+  - a las HH[:MM]                next occurrence of that time (today if
+                                 still future, otherwise tomorrow)
+
+Meridiem (12h) handling:
+  - explicit qualifiers win: "am"/"pm", "de la tarde"/"de la noche" (PM),
+    "de la mañana"/"de la madrugada" (AM).
+  - otherwise a bare hour 1–7 is assumed PM (3 → 15:00); 8–23 stay literal.
 
 Supported recur phrasings:
   - cada día / cada dia          → "daily"
@@ -74,20 +85,29 @@ _RECUR_ANY_RE = re.compile(
     re.IGNORECASE,
 )
 
-_TIME_PART = r"(?:a\s+las?\s+)?(\d{1,2})(?::(\d{2}))?(?:\s*hrs?)?"
+_MERIDIEM = (
+    r"(?:\s*(?P<mer>[ap])\.?\s?m\.?\b)?"
+    r"(?:\s+de\s+la\s+(?:tarde|noche|ma[nñ]ana|madrugada))?"
+)
+_CLOCK = r"(?P<h>\d{1,2})(?::(?P<m>\d{2}))?(?:\s*hrs?)?" + _MERIDIEM
+_TIME_PART = r"(?:a\s+las?\s+)?" + _CLOCK
 
 _HOY_MANANA_RE = re.compile(
-    r"\b(hoy|ma[nñ]ana)\b\s*" + _TIME_PART,
+    r"\b(?P<anchor>hoy|ma[nñ]ana)\b\s*" + _TIME_PART,
     re.IGNORECASE,
 )
 _WEEKDAY_RE = re.compile(
-    r"\b(?:el\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b\s*" + _TIME_PART,
+    r"\b(?:el\s+)?(?P<wd>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b\s*" + _TIME_PART,
     re.IGNORECASE,
 )
 _RELATIVE_RE = re.compile(
     r"\ben\s+(\d+)\s+(horas?|minutos?|mins?)\b",
     re.IGNORECASE,
 )
+_BARE_TIME_RE = re.compile(r"\ba\s+las?\s+" + _CLOCK, re.IGNORECASE)
+
+_PM_PHRASE_RE = re.compile(r"\bde\s+la\s+(?:tarde|noche)\b", re.IGNORECASE)
+_AM_PHRASE_RE = re.compile(r"\bde\s+la\s+(?:ma[nñ]ana|madrugada)\b", re.IGNORECASE)
 
 
 def _as_santiago(dt: datetime) -> datetime:
@@ -107,44 +127,71 @@ def _parse_hhmm(h_str: str, min_str: str | None) -> tuple[int, int] | None:
     return hour, minute
 
 
+def _resolve_hour(hour: int, merid: str | None, text: str) -> tuple[int, bool]:
+    """Apply am/pm and 'de la tarde/noche/mañana' qualifiers to a raw hour.
+
+    Returns (resolved_hour, ambiguous). ambiguous is True when no qualifier
+    was given and the raw hour (1–11) could plausibly be either am or pm.
+    The daytime heuristic resolves 1–7 to PM and keeps 8–11 as AM, but in
+    both cases the caller may want to offer a correction.
+    """
+    is_pm = (merid is not None and merid.lower() == "p") or bool(_PM_PHRASE_RE.search(text))
+    is_am = (merid is not None and merid.lower() == "a") or bool(_AM_PHRASE_RE.search(text))
+    if is_pm:
+        return (hour + 12 if 1 <= hour <= 11 else hour), False
+    if is_am:
+        return (0 if hour == 12 else hour), False
+    ambiguous = 1 <= hour <= 11
+    if 1 <= hour <= 7:
+        hour += 12
+    return hour, ambiguous
+
+
 def parse_time(text: str, now: datetime | None = None) -> datetime | None:
+    return parse_time_meta(text, now)[0]
+
+
+def parse_time_meta(text: str, now: datetime | None = None) -> tuple[datetime | None, bool]:
+    """Like parse_time but also reports 12h ambiguity.
+
+    The second element is True when a bare hour 1–11 was given with no am/pm
+    qualifier (so it could be either am or pm), letting callers offer the
+    user a correction hint.
+    """
     now_local = _as_santiago(now) if now is not None else datetime.now(_TZ)
 
-    m = _RELATIVE_RE.search(text)
-    if m:
-        n = int(m.group(1))
-        unit = m.group(2).lower().rstrip("s")
+    mt = _RELATIVE_RE.search(text)
+    if mt:
+        n = int(mt.group(1))
+        unit = mt.group(2).lower().rstrip("s")
         delta = timedelta(hours=n) if unit.startswith("hora") else timedelta(minutes=n)
-        return (now_local + delta).astimezone(timezone.utc)
+        return (now_local + delta).astimezone(timezone.utc), False
 
-    m = _HOY_MANANA_RE.search(text)
-    if m:
-        anchor, h_str, min_str = m.group(1).lower(), m.group(2), m.group(3)
-        hm = _parse_hhmm(h_str, min_str)
+    mt = _HOY_MANANA_RE.search(text)
+    if mt:
+        hm = _parse_hhmm(mt.group("h"), mt.group("m"))
         if hm is None:
-            return None
+            return None, False
         hour, minute = hm
+        hour, ambiguous = _resolve_hour(hour, mt.group("mer"), text)
         base = now_local.date()
-        if anchor in ("mañana", "manana"):
+        if mt.group("anchor").lower() in ("mañana", "manana"):
             base = base + timedelta(days=1)
         local = _build_local(base, hour, minute)
         if local <= now_local:
-            return None
-        return local.astimezone(timezone.utc)
+            return None, False
+        return local.astimezone(timezone.utc), ambiguous
 
-    m = _WEEKDAY_RE.search(text)
-    if m:
-        weekday_str = m.group(1).lower()
-        h_str, min_str = m.group(2), m.group(3)
-        if h_str is None:
-            return None
-        hm = _parse_hhmm(h_str, min_str)
+    mt = _WEEKDAY_RE.search(text)
+    if mt:
+        hm = _parse_hhmm(mt.group("h"), mt.group("m"))
         if hm is None:
-            return None
+            return None, False
         hour, minute = hm
-        target_wd = _WEEKDAY_MAP.get(weekday_str)
+        hour, ambiguous = _resolve_hour(hour, mt.group("mer"), text)
+        target_wd = _WEEKDAY_MAP.get(mt.group("wd").lower())
         if target_wd is None:
-            return None
+            return None, False
         today_wd = now_local.weekday()
         days_ahead = (target_wd - today_wd) % 7
         if days_ahead == 0:
@@ -154,10 +201,22 @@ def parse_time(text: str, now: datetime | None = None) -> datetime | None:
         base = now_local.date() + timedelta(days=days_ahead)
         local = _build_local(base, hour, minute)
         if local <= now_local:
-            return None
-        return local.astimezone(timezone.utc)
+            return None, False
+        return local.astimezone(timezone.utc), ambiguous
 
-    return None
+    mt = _BARE_TIME_RE.search(text)
+    if mt:
+        hm = _parse_hhmm(mt.group("h"), mt.group("m"))
+        if hm is None:
+            return None, False
+        hour, minute = hm
+        hour, ambiguous = _resolve_hour(hour, mt.group("mer"), text)
+        local = _build_local(now_local.date(), hour, minute)
+        if local <= now_local:
+            local = _build_local(now_local.date() + timedelta(days=1), hour, minute)
+        return local.astimezone(timezone.utc), ambiguous
+
+    return None, False
 
 
 def extract_fragment(text: str) -> str:
@@ -169,7 +228,7 @@ def extract_fragment(text: str) -> str:
     """
     best_start = None
     best_end = None
-    for pattern in (_RELATIVE_RE, _HOY_MANANA_RE, _WEEKDAY_RE):
+    for pattern in (_RELATIVE_RE, _HOY_MANANA_RE, _WEEKDAY_RE, _BARE_TIME_RE):
         m = pattern.search(text)
         if m and (best_start is None or m.start() < best_start):
             best_start = m.start()

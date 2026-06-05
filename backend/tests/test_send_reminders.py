@@ -194,3 +194,18 @@ def test_advance_recur_same_weekday_advances_full_week():
     next_dt = datetime.fromisoformat(update_call["remind_at"])
     old_dt = datetime(2025, 6, 16, 9, 0, tzinfo=timezone.utc)
     assert (next_dt - old_dt).days == 7
+
+
+def test_advance_recur_weekday_uses_local_date():
+    from zoneinfo import ZoneInfo
+    from app.jobs.send_reminders import _advance_recur
+    tz = ZoneInfo("America/Santiago")
+    monday_evening_local = datetime(2025, 6, 16, 22, 0, tzinfo=tz)
+    stored = monday_evening_local.astimezone(timezone.utc).isoformat()
+    db = MagicMock()
+    with patch("app.jobs.send_reminders.client", db):
+        _advance_recur("todos", "t-1", stored, "mondays")
+    update_call = db.table.return_value.update.call_args[0][0]
+    next_local = datetime.fromisoformat(update_call["remind_at"]).astimezone(tz)
+    assert next_local.weekday() == 0
+    assert next_local.date() == monday_evening_local.date() + timedelta(days=7)

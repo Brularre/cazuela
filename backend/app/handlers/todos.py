@@ -20,6 +20,12 @@ Public API:
     explicitly sets the column to null (clearing any existing recurrence).
     Returns None if no match found (caller may try events next).
     Appends " (se repite)" to the confirmation when recur is set.
+
+  create_todo_reminder(task, remind_at, user, recur=None) -> str
+    Creates a brand-new todo with the reminder already set. Used when a
+    'recuérdame' command names something that isn't an existing todo or
+    event, so the user gets a working reminder instead of an error.
+    Appends " (se repite)" to the confirmation when recur is set.
 """
 from datetime import datetime
 
@@ -96,6 +102,23 @@ def set_todo_reminder(task_fragment: str, remind_at: datetime, user: dict, recur
     client.table("todos").update(update).eq("id", match["id"]).execute()
     time_str = remind_at.astimezone(_TZ).strftime("%d/%m %H:%M")
     msg = f"⏰ Recordatorio guardado: {match['task']} ({time_str})"
+    if recur:
+        msg += " (se repite)"
+    return msg
+
+
+def create_todo_reminder(task: str, remind_at: datetime, user: dict, recur: str | None = None) -> str:
+    task = task.strip()[:200]
+    client.table("todos").insert({
+        "user_id": user["id"],
+        "task": task,
+        "priority": "semana",
+        "remind_at": remind_at.isoformat(),
+        "remind_sent": False,
+        "recur": recur,
+    }).execute()
+    time_str = remind_at.astimezone(_TZ).strftime("%d/%m %H:%M")
+    msg = f"⏰ Recordatorio guardado: {task} ({time_str})"
     if recur:
         msg += " (se repite)"
     return msg

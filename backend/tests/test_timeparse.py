@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from app.handlers.timeparse import parse_iso, parse_time, parse_recur, extract_recur_fragment
+from app.handlers.timeparse import parse_iso, parse_time, parse_time_meta, parse_recur, extract_recur_fragment
 
 _TZ = ZoneInfo("America/Santiago")
 
@@ -75,6 +75,106 @@ def test_manana_past_time_still_tomorrow():
     local = result.astimezone(_TZ)
     assert local.date() == now.date() + timedelta(days=1)
     assert local.hour == 9
+
+
+# ---------------------------------------------------------------------------
+# Bare "a las HH" (no day anchor)
+# ---------------------------------------------------------------------------
+
+
+def test_bare_time_future_today():
+    now = _now_monday_morning()
+    result = parse_time("llamar a las 17", now=now)
+    assert result is not None
+    local = result.astimezone(_TZ)
+    assert local.date() == now.date()
+    assert local.hour == 17
+
+
+def test_bare_time_past_rolls_to_tomorrow():
+    now = _now_monday_morning()
+    result = parse_time("llamar a las 8", now=now)
+    assert result is not None
+    local = result.astimezone(_TZ)
+    assert local.date() == now.date() + timedelta(days=1)
+    assert local.hour == 8
+
+
+def test_bare_time_with_daily_recur():
+    now = _now_monday_morning()
+    result = parse_time("tomar pastilla cada día a las 20", now=now)
+    assert result is not None
+    assert _local_h(result) == 20
+    assert parse_recur("tomar pastilla cada día a las 20") == "daily"
+    assert extract_recur_fragment("tomar pastilla cada día a las 20") == "tomar pastilla"
+
+
+def test_bare_time_with_weekly_recur():
+    now = _now_monday_morning()
+    result = parse_time("leer cada semana a las 20", now=now)
+    assert result is not None
+    assert _local_h(result) == 20
+    assert parse_recur("leer cada semana a las 20") == "weekly"
+
+
+def test_bare_time_invalid_hour_returns_none():
+    now = _now_monday_morning()
+    assert parse_time("algo a las 33", now=now) is None
+
+
+# ---------------------------------------------------------------------------
+# Meridiem (12h) — qualifiers and daytime heuristic
+# ---------------------------------------------------------------------------
+
+
+def test_bare_ambiguous_hour_assumed_pm():
+    now = _now_monday_morning()
+    dt, ambiguous = parse_time_meta("llamar a las 3", now=now)
+    assert _local_h(dt) == 15
+    assert ambiguous is True
+
+
+def test_de_la_tarde_qualifier_no_assumption():
+    now = _now_monday_morning()
+    dt, ambiguous = parse_time_meta("llamar a las 3 de la tarde", now=now)
+    assert _local_h(dt) == 15
+    assert ambiguous is False
+
+
+def test_de_la_noche_qualifier():
+    now = _now_monday_morning()
+    assert _local_h(parse_time("cenar a las 8 de la noche", now=now)) == 20
+
+
+def test_pm_suffix_attached():
+    now = _now_monday_morning()
+    assert _local_h(parse_time("a las 3pm", now=now)) == 15
+
+
+def test_am_suffix_keeps_morning():
+    now = _now_monday_morning()
+    dt, ambiguous = parse_time_meta("a las 3 am", now=now)
+    assert _local_h(dt) == 3
+    assert ambiguous is False
+
+
+def test_hour_eight_to_eleven_stays_am_but_ambiguous():
+    now = _now_monday_morning()
+    dt, ambiguous = parse_time_meta("a las 11", now=now)
+    assert _local_h(dt) == 11
+    assert ambiguous is True
+
+
+def test_hour_with_pm_qualifier_in_eight_to_eleven_range():
+    now = _now_monday_morning()
+    dt, ambiguous = parse_time_meta("a las 9 de la noche", now=now)
+    assert _local_h(dt) == 21
+    assert ambiguous is False
+
+
+def test_qualifier_stripped_from_fragment():
+    from app.handlers.timeparse import extract_fragment
+    assert extract_fragment("llamar al banco a las 3 de la tarde") == "llamar al banco"
 
 
 # ---------------------------------------------------------------------------

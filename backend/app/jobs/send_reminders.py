@@ -25,6 +25,7 @@ Delivery notes:
 import warnings
 from datetime import datetime, timedelta, timezone
 
+from app.config import TZ as _TZ
 from app.db import client
 from app.notify import send_interactive
 
@@ -83,7 +84,7 @@ def _advance_recur(table: str, row_id: str, old_remind_at_iso: str, recur: str) 
             "fridays": 4, "saturdays": 5, "sundays": 6,
         }
         target_wd = weekday_targets[recur]
-        current_wd = old_dt.weekday()
+        current_wd = old_dt.astimezone(_TZ).weekday()
         days_ahead = (target_wd - current_wd) % 7
         if days_ahead == 0:
             days_ahead = 7
