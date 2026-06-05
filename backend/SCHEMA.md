@@ -260,10 +260,15 @@ exist with no recipe assigned yet.
 ## user_modules ✓
 
 Per-user feature toggle table. Missing row = module enabled
-(opt-out model; no backfill needed for existing users).
+(opt-out model).
 
-Module keys: `dinero`, `tiempo`, `comida`, `calendario`,
+Module keys: `dinero`, `tiempo`, `despensa`, `comida`, `calendario`,
 `recordatorios`.
+
+Note: `comida` was split into `despensa` (pantry + shopping) and `comida`
+(recipes + meal planning) in the module-split migration. The
+`despensa_backfill_migration.sql` preserves `comida=false` for existing
+users by backfilling a `despensa=false` row.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -333,3 +338,5 @@ Indexes: (user_id, starts_at),
     to todos and events; partial indexes for due-reminder query
 17. `recur_migration.sql` — add recur column to todos and events
     with check constraint (daily, weekly, weekday names)
+18. `despensa_backfill_migration.sql` — backfill despensa=false
+    for any user who had comida=false before the module split

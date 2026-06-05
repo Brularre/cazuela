@@ -31,17 +31,21 @@ Multi-user, identified by phone number.
 | 5b | Meal planning | live |
 | 6 | Dashboard (Next.js) | live |
 | 7 | Onboarding + multi-user | live |
-| D | Reminders + digest cron | live* |
-
-*After running migration + Railway setup.
+| C | Pluggable LLM adapter; regex-first dispatch | live |
+| D | Reminders, snooze, recurring, digest cron | live |
+| E | Calendar events, iCal feed, module split | live |
 
 ## Feature Modules
 
 **DINERO** — Expenses, budget, monthly estimate (categories: comida, transporte, salud, hogar, entretenimiento, ropa, tecnología, educación, viajes, otros).
 
-**TIEMPO** — Todos; reminders (`remind_at`, daily 9am digest, 15-min cron, dashboard editor, gated on `recordatorios` module).
+**TIEMPO** — Todos; reminders (`remind_at`, daily 9am digest, 15-min cron, snooze/done buttons, recurring via `cada`, gated on `recordatorios` module).
 
-**COMIDA** — Pantry, shopping list, recipes, meal planning (weekly grid with pantry cross-reference).
+**DESPENSA** — Pantry (stock tracking) + shopping list. Module key: `despensa`.
+
+**COMIDA** — Recipes + meal planning (weekly grid with pantry cross-reference). Module key: `comida`.
+
+**CALENDARIO** — Calendar events + iCal feed (`/calendar/<token>.ics`). Module key: `calendario`.
 
 **DASHBOARD** — All modules unified; auth via WhatsApp OTP + session cookie.
 
@@ -53,8 +57,15 @@ Multi-user, identified by phone number.
 | Regex patterns | `backend/app/patterns.py` |
 | Handlers (CRUD) | `backend/app/handlers/<feature>.py` |
 | Handler APIs | `backend/app/handlers/__init__.py` |
+| LLM classifier | `backend/app/llm.py` (pluggable; regex-first) |
 | AI dispatch | `backend/app/dispatch.py` → `_dispatch()` |
+| Reminders | `backend/app/handlers/reminders.py`, `timeparse.py`, `events.py` |
+| Reminder cron | `backend/app/jobs/send_reminders.py` (every 15 min) |
+| Digest cron | `backend/app/jobs/send_digest.py` (daily 9am) |
+| Module gating | `backend/app/handlers/modules.py` |
+| WhatsApp notify | `backend/app/notify.py` |
 | Dashboard API | `backend/app/routes/dashboard.py` |
+| iCal feed | `backend/app/routes/calendar.py` |
 | Auth (OTP) | `backend/app/routes/auth.py` |
 | MCP protocol | `backend/app/mcp/` |
 | DB client | `backend/app/db/__init__.py` |
@@ -64,6 +75,7 @@ Multi-user, identified by phone number.
 
 - UI and messages: Spanish
 - Never log sensitive data; validate at boundaries only
-- Log architectural decisions in `agent_log.txt`
-- Tests: `cd backend && .venv/bin/pytest`
+- Log architectural decisions in `agent_log.txt` (recreate if missing)
+- Tests: `cd backend && .venv/bin/pytest` (backend) · `cd frontend && ./node_modules/.bin/jest` (frontend)
 - Run `/review-feature` before every push
+- Module keys (all layers must agree): `dinero`, `tiempo`, `despensa`, `comida`, `calendario`, `recordatorios`

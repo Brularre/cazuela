@@ -1,0 +1,76 @@
+# Agent Log — Architectural Decisions
+
+---
+
+## 2026-06-05 — Pre-parking security review (6 parallel Sonnet agents)
+
+### Context
+Full project review before merging feat/reminders-d2 to main and parking the
+project. Six read-only Sonnet subagents covered: reminders, calendar/iCal,
+module split, LLM adapter, regression spot-check, and security/backlog audit.
+
+### Decisions applied
+
+**IDOR fix in handle_snooze_reply** — Added `.eq("user_id", user["id"])` to
+both the snooze update and done update DB calls. Without this, any WhatsApp
+user could snooze or mark-done another user's reminders by replaying button IDs.
+Decision: always filter by user_id on mutation paths.
+
+**confirm-after-write (N4) for reminders and batch expenses** — Moved
+`mcp.confirm()` to after the DB inserts in both `confirm_reminder` and
+`handle_batch_confirm`. A DB failure now returns a retryable error instead of
+silently losing the data. Decision: never confirm MCP context before side
+effects complete.
+
+**Pluggable LLM timeout** — Added `timeout=10.0` to `anthropic.Anthropic()`
+constructor. The SDK default is 600s, which would block the async event loop
+long enough for Meta to retry the webhook and produce duplicate messages.
+Decision: 10s is generous for a classifier call; fail fast and fall back to
+the hint message.
+
+**iCal SUMMARY escaping** — Added `_escape_text()` to RFC 5545 §3.3.11 spec
+(backslash, semicolon, comma, CRLF). Without this, an event title containing
+a comma corrupts the feed for all calendar apps. Decision: escape at render
+time; store raw user input in DB.
+
+**Calendar migration made self-contained** — Added `remind_at`, `remind_sent`,
+`recur`, and the partial index directly into `calendar_modules_migration.sql`.
+The prior migration ordering assumed `reminders_migration.sql` and
+`recur_migration.sql` had already run, which fails on a fresh incremental
+deploy. Decision: each migration must be self-contained; idempotent ALTERs
+are safe to repeat.
+
+**despensa backfill migration** — Users who had `comida=false` before the
+module split would silently re-enable pantry and shopping (now keyed to
+`despensa`). Added `despensa_backfill_migration.sql` to preserve their
+preference. Decision: module split migrations must backfill all derived keys.
+
+**SameSite=Strict for session cookie** — Upgraded from `lax` to `strict`.
+No functional impact on a single-page dashboard (no cross-site link navigation
+relies on the cookie). Decision: no downside, reduces CSRF attack surface.
+
+**get_or_create_user race** — Added catch-unique-violation + re-select pattern.
+The race is low probability (two simultaneous first-time webhooks from the
+same number) but the failure was a hard crash shown to the user. Decision:
+upsert-style retry is idiomatic and safe.
+
+**Pantry lookup ilike → eq** — Normalized items are stored without accents;
+`ilike` is case-insensitive but not accent-folding in Postgres. Using `eq`
+on the pre-normalized value is both more correct and more efficient.
+Decision: store and query in the same normal form.
+
+**Delete dead ModulesSection component** — The component was removed from
+the page in commit 067ffbb but the file, CSS, and test remained. The test
+was testing a stale 5-module label set (missing `despensa`) and giving false
+confidence. Decision: delete dead code immediately when the test no longer
+reflects reality.
+
+**Export token → Authorization header** — The legacy `/export` endpoint
+accepted `token` as a query parameter, which appears in server logs, browser
+history, and HTTP referrer headers. Moved to `Authorization: Bearer` header.
+Decision: credentials never in URLs.
+
+### Items intentionally deferred
+See BACKLOG.md. Highlights: N6 OTP cooldown atomicity (low risk, duplicate
+SMS at worst), `is_enabled` per-call DB cost (fine at current scale),
+per-user LLM key plumbing (global key only by design for now).
