@@ -90,51 +90,6 @@ def test_compre_with_qty_routes_to_handle_bought(message, expected_item, expecte
         assert mock.call_args[0][2] == expected_qty
 
 
-def test_handle_bought_both_match():
-    with patch("app.dispatch.check_item", return_value="✓ Marcado: leche"), \
-         patch("app.dispatch.restock_pantry_item", return_value="✓ Repuesto: leche"):
-        from app.router import _handle_bought
-        result = _handle_bought("leche", FAKE_USER)
-        assert "✓ Marcado: leche" in result
-        assert "✓ Repuesto: leche" in result
-
-
-def test_handle_bought_only_shopping():
-    with patch("app.dispatch.check_item", return_value="✓ Marcado: leche"), \
-         patch("app.dispatch.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
-        from app.router import _handle_bought
-        result = _handle_bought("leche", FAKE_USER)
-        assert "✓ Marcado: leche" in result
-        assert "No encontré" not in result
-
-
-def test_handle_bought_only_pantry():
-    with patch("app.dispatch.check_item", return_value="No encontré 'leche' en la lista."), \
-         patch("app.dispatch.restock_pantry_item", return_value="✓ Repuesto: leche"):
-        from app.router import _handle_bought
-        result = _handle_bought("leche", FAKE_USER)
-        assert "✓ Repuesto: leche" in result
-        assert "No encontré" not in result
-
-
-def test_handle_bought_neither_match():
-    with patch("app.dispatch.check_item", return_value="No encontré 'leche' en la lista."), \
-         patch("app.dispatch.restock_pantry_item", return_value="No encontré 'leche' en tu despensa."):
-        from app.router import _handle_bought
-        result = _handle_bought("leche", FAKE_USER)
-        assert "en tu lista ni en tu despensa" in result
-
-
-def test_handle_bought_pantry_suggestion_passes_through():
-    suggestion = "No encontré 'leches' en tu despensa. ¿Quisiste decir _leche_?"
-    with patch("app.dispatch.check_item", return_value="No encontré 'leches' en la lista."), \
-         patch("app.dispatch.restock_pantry_item", return_value=suggestion):
-        from app.router import _handle_bought
-        result = _handle_bought("leches", FAKE_USER)
-        assert "Quisiste decir" in result
-        assert "leche" in result
-
-
 @pytest.mark.parametrize("message,expected_item,expected_qty", [
     ("stock 3 jabón", "jabón", 3),
     ("stock 12 botella agua 1.6", "botella agua 1.6", 12),

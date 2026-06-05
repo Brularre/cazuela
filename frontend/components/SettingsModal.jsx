@@ -20,11 +20,18 @@ export default function SettingsModal({ onClose, modulos }) {
   async function toggleModule(module) {
     const next = !moduleState[module];
     setModuleState((prev) => ({ ...prev, [module]: next }));
-    await fetch(`/api/dashboard/modules/${module}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: next }),
-    });
+    try {
+      const res = await fetch(`/api/dashboard/modules/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (!res.ok) {
+        setModuleState((prev) => ({ ...prev, [module]: !next }));
+      }
+    } catch {
+      setModuleState((prev) => ({ ...prev, [module]: !next }));
+    }
   }
 
   async function handleExport() {

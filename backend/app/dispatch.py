@@ -34,7 +34,7 @@ from app.handlers.summary import format_amount, get_week_summary
 from app.handlers.todos import add_todo, list_todos, complete_todo
 from app.handlers.reminders import stage_reminder, confirm_reminder, cancel_reminder
 from app.handlers.timeparse import parse_iso, extract_fragment, parse_recur, extract_recur_fragment
-from app.handlers.shopping import add_to_shopping, list_shopping, check_item
+from app.handlers.shopping import add_to_shopping, list_shopping
 from app.handlers.budget import set_budget
 from app.handlers.waiting_on import add_waiting, list_waiting, resolve_waiting
 from app.handlers.pantry import (
@@ -57,9 +57,7 @@ from app.handlers.recipes import (
     confirm_shopping_add,
     cancel_shopping_add,
 )
-from app.handlers.modules import is_enabled, module_for_intent
-
-_MODULE_DISABLED = "Ese módulo está desactivado. Actívalo en el tablero."
+from app.handlers.modules import is_enabled, module_for_intent, MODULE_DISABLED_MSG
 
 
 def _handle_set_name(name: str, user: dict) -> str:
@@ -204,7 +202,7 @@ def _dispatch(intent: dict, raw_message: str, user: dict) -> str | None:
     name = intent.get("intent")
     module = module_for_intent(name or "")
     if module and not is_enabled(user, module):
-        return _MODULE_DISABLED
+        return MODULE_DISABLED_MSG
     if name == "add_expense":
         amount = intent.get("amount")
         description = intent.get("description")

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.db import client
 from app.handlers.utils import normalize
 from app.handlers.summary import aggregate_by_category
+from app.handlers.modules import bust_module_cache
 from app.middleware.auth import require_auth
 
 
@@ -916,6 +917,7 @@ def update_module(module: str, body: ModuleToggle, uid: str = Depends(require_au
         client.table("user_modules").update({"enabled": body.enabled}).eq("user_id", uid).eq("module", module).execute()
     else:
         client.table("user_modules").insert({"user_id": uid, "module": module, "enabled": body.enabled}).execute()
+    bust_module_cache(uid)
     return {"ok": True}
 
 

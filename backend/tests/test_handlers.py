@@ -120,22 +120,6 @@ def test_list_shopping_empty(mock_client):
 
 
 @patch("app.handlers.shopping.client")
-def test_check_item_partial_match(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_shopping_rows("leche entera", "pan integral")
-    mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
-    from app.handlers.shopping import check_item
-    result = check_item("leche", FAKE_USER)
-    assert "leche entera" in result
-
-
-@patch("app.handlers.shopping.client")
-def test_check_item_no_match(mock_client):
-    mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = make_shopping_rows("leche")
-    from app.handlers.shopping import check_item
-    result = check_item("mantequilla", FAKE_USER)
-    assert "No encontré" in result
-
-
 def make_waiting_rows(*descriptions):
     return [{"id": str(i), "description": d} for i, d in enumerate(descriptions)]
 
@@ -564,6 +548,7 @@ def e2e_store(monkeypatch):
             self._eq = {}
             self._in_field = None
             self._in_values = None
+            self._gt = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
@@ -597,6 +582,10 @@ def e2e_store(monkeypatch):
             self._lt = (f, v)
             return self
 
+        def gt(self, f, v):
+            self._gt = (f, v)
+            return self
+
         def execute(self):
             if self._pending_insert is not None:
                 rows = self._pending_insert if isinstance(self._pending_insert, list) else [self._pending_insert]
@@ -620,6 +609,10 @@ def e2e_store(monkeypatch):
                 results = []
                 for row in self._store.values():
                     if all(row.get(k) == v for k, v in self._eq.items()):
+                        if self._gt:
+                            f, v = self._gt
+                            if row.get(f, "") <= v:
+                                continue
                         row.update(self._pending_update)
                         results.append(dict(row))
                 return FakeExecute(results)

@@ -9,7 +9,11 @@ Module keys: dinero, tiempo, despensa, comida, calendario, recordatorios.
   comida   — recipes + meal planning
 Missing user_modules row for a module means enabled (opt-out model).
 """
+import time
 from app.db import client
+
+_MODULE_CACHE: dict[tuple, tuple[bool, float]] = {}
+_CACHE_TTL = 30.0
 
 _INTENT_MODULE: dict[str, str] = {
     "add_expense": "dinero",
@@ -42,6 +46,13 @@ _INTENT_MODULE: dict[str, str] = {
 
 
 def is_enabled(user: dict, module: str) -> bool:
+    key = (user["id"], module)
+    now = time.monotonic()
+    cached = _MODULE_CACHE.get(key)
+    if cached is not None:
+        value, ts = cached
+        if now - ts < _CACHE_TTL:
+            return value
     result = (
         client.table("user_modules")
         .select("enabled")
@@ -50,9 +61,17 @@ def is_enabled(user: dict, module: str) -> bool:
         .execute()
     )
     rows = result.data or []
-    if not rows:
-        return True
-    return bool(rows[0]["enabled"])
+    value = True if not rows else bool(rows[0]["enabled"])
+    _MODULE_CACHE[key] = (value, now)
+    return value
+
+
+def bust_module_cache(user_id: str) -> None:
+    for key in [k for k in _MODULE_CACHE if k[0] == user_id]:
+        del _MODULE_CACHE[key]
+
+
+MODULE_DISABLED_MSG = "Ese módulo está desactivado. Actívalo en el tablero."
 
 
 def module_for_intent(intent: str) -> str | None:

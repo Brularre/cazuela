@@ -50,11 +50,14 @@ def request_otp(body: OTPRequest):
     code = str(secrets.randbelow(900000) + 100000)
     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
 
-    client.table("otp_codes").insert({
-        "phone": phone,
-        "code": code,
-        "expires_at": expires_at,
-    }).execute()
+    try:
+        client.table("otp_codes").insert({
+            "phone": phone,
+            "code": code,
+            "expires_at": expires_at,
+        }).execute()
+    except Exception:
+        return {"ok": True}
 
     send_text(phone, f"Tu código de acceso a Cazuela: {code}")
 

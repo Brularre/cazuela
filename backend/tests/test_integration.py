@@ -206,24 +206,6 @@ def test_shopping_list_with_items(mock_handler_client, mock_users_client):
     assert "pan" in text
 
 
-@patch("app.db.users.client")
-@patch("app.handlers.pantry.client")
-def test_shopping_check_item(mock_handler_client, mock_users_client):
-    mock_users_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [FAKE_USER]
-    mock_handler_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "p-1", "item": "leche", "desired_quantity": 2},
-    ]
-    mock_handler_client.table.return_value.update.return_value.eq.return_value.execute.return_value = None
-
-    with patch("main._send_whatsapp") as mock_send:
-        response = client.post("/webhook", json=meta_payload("compré leche"))
-
-    assert response.status_code == 200
-    text = mock_send.call_args[0][1]
-    assert "Repuesto" in text
-    assert "leche" in text
-
-
 def _make_mcp_expense_fake_client(ctx_store, expense_rows):
     class FakeExecute:
         def __init__(self, data):
@@ -236,6 +218,7 @@ def _make_mcp_expense_fake_client(ctx_store, expense_rows):
             self._expense_bucket = expense_bucket
             self._eq_filters = {}
             self._lt_filter = None
+            self._gt_filter = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
@@ -263,6 +246,10 @@ def _make_mcp_expense_fake_client(ctx_store, expense_rows):
             self._lt_filter = (field, value)
             return self
 
+        def gt(self, field, value):
+            self._gt_filter = (field, value)
+            return self
+
         def gte(self, field, value):
             return self
 
@@ -279,6 +266,10 @@ def _make_mcp_expense_fake_client(ctx_store, expense_rows):
                 results = []
                 for row in self._store.values():
                     if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                        if self._gt_filter:
+                            field, val = self._gt_filter
+                            if row.get(field, "") <= val:
+                                continue
                         row.update(self._pending_update)
                         results.append(dict(row))
                 return FakeExecute(results)

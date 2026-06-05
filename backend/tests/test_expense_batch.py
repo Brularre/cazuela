@@ -35,6 +35,7 @@ def db_store(monkeypatch):
             self._expense_bucket = expense_bucket
             self._eq_filters = {}
             self._lt_filter = None
+            self._gt_filter = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
@@ -62,6 +63,10 @@ def db_store(monkeypatch):
             self._lt_filter = (field, value)
             return self
 
+        def gt(self, field, value):
+            self._gt_filter = (field, value)
+            return self
+
         def gte(self, field, value):
             return self
 
@@ -78,6 +83,10 @@ def db_store(monkeypatch):
                 results = []
                 for row in self._store.values():
                     if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                        if self._gt_filter:
+                            field, val = self._gt_filter
+                            if row.get(field, "") <= val:
+                                continue
                         row.update(self._pending_update)
                         results.append(dict(row))
                 return FakeExecute(results)

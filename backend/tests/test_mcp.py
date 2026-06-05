@@ -32,6 +32,7 @@ def db_store(monkeypatch):
             self._table = table
             self._eq_filters = {}
             self._lt_filter = None
+            self._gt_filter = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
@@ -59,6 +60,10 @@ def db_store(monkeypatch):
             self._lt_filter = (field, value)
             return self
 
+        def gt(self, field, value):
+            self._gt_filter = (field, value)
+            return self
+
         def execute(self):
             if self._pending_insert is not None:
                 self._store[self._pending_insert["context_id"]] = dict(self._pending_insert)
@@ -68,6 +73,10 @@ def db_store(monkeypatch):
                 results = []
                 for row in self._store.values():
                     if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                        if self._gt_filter:
+                            field, val = self._gt_filter
+                            if row.get(field, "") <= val:
+                                continue
                         row.update(self._pending_update)
                         results.append(dict(row))
                 return FakeExecute(results)
@@ -96,6 +105,8 @@ def db_store(monkeypatch):
             return FakeQuery(self._store, name)
 
     monkeypatch.setattr("app.mcp.context.client", FakeClient(store))
+    monkeypatch.setattr("app.mcp.context._last_prune", 0.0)
+    monkeypatch.setattr("app.mcp.context._PRUNE_INTERVAL", 0.0)
     return store
 
 
@@ -257,6 +268,7 @@ def test_two_concurrent_confirms_raises_on_second(monkeypatch):
             self._store = store_ref
             self._eq_filters = {}
             self._lt_filter = None
+            self._gt_filter = None
             self._pending_insert = None
             self._pending_update = None
             self._do_delete = False
@@ -284,6 +296,10 @@ def test_two_concurrent_confirms_raises_on_second(monkeypatch):
             self._lt_filter = (field, value)
             return self
 
+        def gt(self, field, value):
+            self._gt_filter = (field, value)
+            return self
+
         def execute(self):
             with exec_lock:
                 if self._pending_insert is not None:
@@ -296,6 +312,10 @@ def test_two_concurrent_confirms_raises_on_second(monkeypatch):
                     results = []
                     for row in self._store.values():
                         if all(row.get(k) == v for k, v in self._eq_filters.items()):
+                            if self._gt_filter:
+                                field, val = self._gt_filter
+                                if row.get(field, "") <= val:
+                                    continue
                             row.update(self._pending_update)
                             results.append(dict(row))
                     return FakeExecute(results)
@@ -324,6 +344,8 @@ def test_two_concurrent_confirms_raises_on_second(monkeypatch):
             return FakeQuery(self._store)
 
     monkeypatch.setattr("app.mcp.context.client", FakeClient(store))
+    monkeypatch.setattr("app.mcp.context._last_prune", 0.0)
+    monkeypatch.setattr("app.mcp.context._PRUNE_INTERVAL", 0.0)
 
     context_id = send_context("expense", FAKE_USER_ID, EXPENSE_PAYLOAD)
     request_action(context_id)

@@ -62,7 +62,7 @@ from app.copy import HELP_TEXT, _CATEGORY_PROMPT
 from app.llm import classify
 from app.handlers.onboarding import is_onboarding, handle_onboarding
 from app.handlers.utils import parse_clp_amount
-from app.handlers.modules import is_enabled, module_for_intent
+from app.handlers.modules import is_enabled, module_for_intent, MODULE_DISABLED_MSG
 from app.handlers.events import add_event, list_events, delete_event, parse_event_time
 from app.handlers.reminders import stage_reminder
 from app.handlers.timeparse import parse_time_meta, extract_fragment, parse_recur, extract_recur_fragment
@@ -108,21 +108,23 @@ from app.handlers import (
 )
 from app.mcp import client as mcp
 
-_MODULE_DISABLED = "Ese módulo está desactivado. Actívalo en el tablero."
 
 
 def _module_guard(intent_name: str, user: dict) -> str | None:
     module = module_for_intent(intent_name)
     if module and not is_enabled(user, module):
-        return _MODULE_DISABLED
+        return MODULE_DISABLED_MSG
     return None
+
+
+_MAX_MSG_CHARS = 2000
 
 
 def route(message: str, user: dict) -> str:
     if is_onboarding(user):
         return handle_onboarding(message, user)
 
-    message = message.strip()
+    message = message.strip()[:_MAX_MSG_CHARS]
 
     match = BATCH_EXPENSE_PATTERN.match(message)
     if match:

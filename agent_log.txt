@@ -74,3 +74,82 @@ Decision: credentials never in URLs.
 See BACKLOG.md. Highlights: N6 OTP cooldown atomicity (low risk, duplicate
 SMS at worst), `is_enabled` per-call DB cost (fine at current scale),
 per-user LLM key plumbing (global key only by design for now).
+
+---
+
+## 2026-06-05 — Backlog cleanup and performance fixes (batch edits)
+
+### Context
+Multi-fix batch session addressing six outstanding BACKLOG items:
+N6 (OTP atomicity), N11 (context update optimization), N12 (module cache),
+N13 (constant extraction), #21 (prune throttle), #25 (#26, #27 frontend fixes),
+plus dead-code cleanup (#18, dead check_item function).
+
+### Decisions applied
+
+**OTP cooldown atomicity (N6)** — Created `otp_cooldown_unique_migration.sql`
+with a UNIQUE constraint on `otp_codes(phone) WHERE used = false`. Wrapped the
+INSERT in try/except to silently return `{"ok": True}` on constraint violation.
+Decision: atomic at the database level; race is eliminated; retries are
+idempotent.
+
+**Single-query context update (N11)** — Changed `update_context()` from
+`get_context()` → `UPDATE` (two round trips) to a single UPDATE with
+`.gt("expires_at", now)` filter. Semantics preserved: still raises KeyError if
+the context is missing or expired. Decision: reduces latency in the hot path;
+expired contexts are implicitly rejected by the filter.
+
+**Module cache with TTL (N12)** — Added 30-second in-process TTL cache to
+`is_enabled(user, module)` to avoid per-intent DB queries. Cache is keyed on
+`(user_id, module)`. Added `bust_module_cache(user_id)` helper; wired it into
+the dashboard `PATCH /modules/{module}` endpoint to invalidate on toggle.
+Decision: 30s TTL is long enough to amortize repeated checks during a conversation,
+short enough to feel responsive if a user toggles via dashboard + WhatsApp in
+parallel.
+
+**Prune throttle (20)** — Added 5-minute throttle to `prune_expired()` to avoid
+full-table DELETE on every `send_context()` call. Module-level `_last_prune`
+tracks the last run time; checks `time.monotonic() - _last_prune < 300.0` before
+pruning. Decision: 5 minutes is a reasonable batch window; expired contexts
+accumulate briefly but are cleaned up regularly; saves DB load during busy
+periods.
+
+**Constant extraction (N13)** — Moved `_MODULE_DISABLED` string to a shared
+`MODULE_DISABLED_MSG` constant in `handlers/modules.py`. Imported in both
+`router.py` and `dispatch.py` to keep message wording consistent.
+
+**Frontend error handling (#26)** — Dashboard `getServerSideProps` now passes
+an `error` flag when fetch fails or returns non-200/non-401. Component renders
+a banner "No se pudo conectar al servidor. Recarga la página." on network/5xx
+errors; 401 redirects silently as before. Decision: users now see failures
+instead of a blank dashboard.
+
+**Frontend optimistic rollback (#27)** — SettingsModal `toggleModule` now wraps
+the fetch in try/catch. On failure or `!res.ok`, calls `setModuleState` again
+with the opposite value to undo the optimistic toggle. Decision: module state
+stays consistent with the server; UI won't mislead users.
+
+**Dead-code cleanup** — Removed `check_item` function from `shopping.py` (router
+maps "compré X" to pantry restock, never shopping list). Removed import and tests.
+Cleaned up two test fixtures that had stray `@patch` decorators (`_make_mcp_expense_fake_client`).
+Decision: reduces confusion; tests now focus on live features only.
+
+**ConfigDict fix (#18)** — Changed `pydantic.ConfigDict` to `SettingsConfigDict`
+from `pydantic_settings` in `config.py`. Aligns with pydantic v2 best practice.
+
+### Test isolation fixes
+
+Added `_gt()` method to all FakeQuery test stubs to support the new `.gt("expires_at", now)`
+filter in `update_context()`.
+
+Set `_PRUNE_INTERVAL = 0.0` in test fixtures to disable throttle during test runs
+(prevents cross-test interference from previous `send_context()` calls).
+
+Added `_reset_module_cache` autouse fixture in `conftest.py` to clear
+`_MODULE_CACHE` between tests.
+
+Removed dead tests for `check_item` function (3 in test_handlers.py, 5 in test_router.py,
+1 integration test). Removed incorrect `@patch` decorators from `_make_mcp_expense_fake_client`
+that were causing TypeError.
+
+All 498 backend tests + 23 frontend tests now pass.

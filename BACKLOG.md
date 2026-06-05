@@ -2,40 +2,7 @@
 
 Deferred issues from code reviews. Not blocking current phase.
 
-## Security
-
-- **N6** OTP 60s cooldown check is not atomic — two concurrent
-  requests can both pass SELECT and both INSERT. Low risk (duplicate
-  SMS at worst).
-
-## Correctness
-
-- **#25** Long messages are not capped before DB insert.
-- **#26** Frontend `getServerSideProps` swallows non-401 errors
-  silently.
-- **#27** Optimistic UI doesn't roll back on failure (e.g. module
-  toggle stays flipped even if the PATCH fails).
-
 ## Performance
-
-- **#21** `prune_expired` runs on every `send_context` — full-table
-  scan in the hot path.
-- **N11** `update_context` does two round trips (read + write);
-  could be one query with `.gt("expires_at", now)`.
-- **N12** `is_enabled` in `handlers/modules.py` fires a DB query per
-  intent — no caching. Fine at current scale; revisit if latency
-  becomes an issue.
-
-## Dead Code / Hygiene
-
-- **#18** `pydantic.ConfigDict` import should be `SettingsConfigDict`.
-- **N8** `_make_db` helper in `test_auth.py` is unused.
-- `check_item` in `shopping.py` is dead code — router maps
-  `compré X` to pantry restock, never shopping list.
-- **N13** `_MODULE_DISABLED` string is defined in both `router.py`
-  and `dispatch.py`. Extract to a shared constant.
-
-## Design Decisions (documented, not bugs)
 
 - **N14** Per-user `anthropic_key` column exists in DB and is
   redacted from logs, but the new pluggable LLM adapter reads

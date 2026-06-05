@@ -12,7 +12,7 @@ import MealPlanSection from "../components/MealPlanSection.jsx";
 import CalendarSection from "../components/CalendarSection.jsx";
 import styles from "../styles/dashboard.module.css";
 
-export default function Dashboard({ data }) {
+export default function Dashboard({ data, error }) {
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
 
@@ -25,6 +25,11 @@ export default function Dashboard({ data }) {
     <>
       <Header onLogout={handleLogout} onSettings={() => setShowSettings(true)} />
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} modulos={data.modulos} />}
+      {error && (
+        <div className={styles.errorBanner}>
+          {error}
+        </div>
+      )}
       <main className={styles.main}>
         {(data.modulos?.dinero !== false) && <ExpensesSection gastos={data.gastos} />}
         {(data.modulos?.despensa !== false) && <ShoppingSection compras={data.compras} />}
@@ -49,6 +54,7 @@ export async function getServerSideProps(context) {
   const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
 
   let data;
+  let error = null;
   try {
     const res = await fetch(`${backendUrl}/dashboard`, {
       headers: { Cookie: `session=${session}` },
@@ -58,8 +64,13 @@ export async function getServerSideProps(context) {
       return { redirect: { destination: "/login", permanent: false } };
     }
 
+    if (!res.ok) {
+      error = "No se pudo conectar al servidor. Recarga la página.";
+    }
+
     data = await res.json();
   } catch {
+    error = "No se pudo conectar al servidor. Recarga la página.";
     data = {
       gastos: null,
       pendientes: { hoy: [], semana: [], mes: [] },
@@ -76,5 +87,5 @@ export async function getServerSideProps(context) {
   data.eventos = data.eventos ?? [];
   data.modulos = data.modulos ?? {};
 
-  return { props: { data } };
+  return { props: { data, error } };
 }

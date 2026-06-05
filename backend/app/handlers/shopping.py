@@ -1,5 +1,5 @@
 """
-Shopping list handler — COMIDA feature (lista de compras manual).
+Shopping list handler — DESPENSA feature (lista de compras manual).
 
 Public API:
   add_to_shopping(item, user, quantity=None, unit=None) -> str
@@ -11,12 +11,8 @@ Public API:
 
   list_shopping(user) -> str
     Returns all unchecked items with optional quantity/unit.
-
-  check_item(item_fragment, user) -> str
-    Fuzzy-match by substring; marks first unchecked match as checked=True.
 """
 from app.db import client
-from app.handlers.utils import find_first_substring
 
 
 def add_to_shopping(item: str, user: dict, quantity=None, unit=None) -> str:
@@ -46,22 +42,6 @@ def list_shopping(user: dict) -> str:
         qty = (f" x{i['quantity']} {i.get('unit') or ''}").strip() if i.get("quantity") else ""
         lines.append(f"• {i['item']}{qty}")
     return "\n".join(lines)
-
-
-def check_item(item_fragment: str, user: dict) -> str:
-    result = (
-        client.table("shopping_list")
-        .select("id, item")
-        .eq("user_id", user["id"])
-        .eq("checked", False)
-        .execute()
-    )
-    items = result.data or []
-    match = find_first_substring(items, item_fragment, "item")
-    if not match:
-        return f"No encontré '{item_fragment}' en la lista."
-    client.table("shopping_list").update({"checked": True}).eq("id", match["id"]).execute()
-    return f"✓ Marcado: {match['item']}"
 
 
 def add_many_to_shopping(items: list[str], user: dict, source: str = "manual") -> int:

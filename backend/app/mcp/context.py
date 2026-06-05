@@ -1,6 +1,7 @@
 import copy
 import json
 import re
+import time
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import TypedDict
@@ -14,6 +15,9 @@ MAX_USER_PROFILE_JSON_CHARS = 500
 MAX_CATEGORY_MAP_KEYS = 20
 
 SENSITIVE_KEYS = {"phone", "anthropic_key", "supabase_key", "google_tokens", "password"}
+
+_last_prune: float = 0.0
+_PRUNE_INTERVAL = 300.0
 
 
 def _prune_user_profile_to_budget(profile: dict) -> dict:
@@ -120,10 +124,16 @@ def get_context(context_id: str) -> dict:
 
 
 def update_context(context_id: str, **kwargs) -> dict:
-    get_context(context_id)
-    result = client.table("mcp_contexts").update(kwargs).eq("context_id", context_id).execute()
+    now = datetime.now(timezone.utc).isoformat()
+    result = (
+        client.table("mcp_contexts")
+        .update(kwargs)
+        .eq("context_id", context_id)
+        .gt("expires_at", now)
+        .execute()
+    )
     if not result.data:
-        raise KeyError(f"Context not found: {context_id}")
+        raise KeyError(f"Context not found or expired: {context_id}")
     return result.data[0]
 
 
@@ -149,8 +159,12 @@ def rollback(context_id: str) -> dict:
 
 
 def prune_expired() -> int:
+    global _last_prune
+    if time.monotonic() - _last_prune < _PRUNE_INTERVAL:
+        return 0
     now = datetime.now(timezone.utc).isoformat()
     result = client.table("mcp_contexts").delete().lt("expires_at", now).execute()
+    _last_prune = time.monotonic()
     return len(result.data)
 
 

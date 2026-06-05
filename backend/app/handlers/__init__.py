@@ -28,7 +28,7 @@ COMIDA
                         restock_pantry_item, set_pantry_stock, restock_all_pantry
   pantry_shopping.py  : handle_pantry_add_create, handle_pantry_add_confirm_despensa,
                         handle_pantry_add_confirm_lista, handle_pantry_add_cancel
-  shopping.py         : add_to_shopping, add_many_to_shopping, list_shopping, check_item
+  shopping.py         : add_to_shopping, add_many_to_shopping, list_shopping
   recipes.py          : nueva_receta, confirm_recipe_create, cancel_recipe_create,
                         list_recipes, show_recipe, que_puedo_hacer,
                         sugerir_recetas, elegir_receta,
@@ -51,7 +51,7 @@ from app.handlers.pantry_shopping import (
     handle_pantry_add_create, handle_pantry_add_confirm_despensa,
     handle_pantry_add_confirm_lista, handle_pantry_add_cancel,
 )
-from app.handlers.shopping import add_to_shopping, add_many_to_shopping, list_shopping, check_item
+from app.handlers.shopping import add_to_shopping, add_many_to_shopping, list_shopping
 from app.handlers.recipes import (
     nueva_receta, confirm_recipe_create, cancel_recipe_create,
     list_recipes, show_recipe, que_puedo_hacer,
@@ -72,7 +72,7 @@ __all__ = [
     "restock_pantry_item", "set_pantry_stock", "restock_all_pantry",
     "handle_pantry_add_create", "handle_pantry_add_confirm_despensa",
     "handle_pantry_add_confirm_lista", "handle_pantry_add_cancel",
-    "add_to_shopping", "add_many_to_shopping", "list_shopping", "check_item",
+    "add_to_shopping", "add_many_to_shopping", "list_shopping",
     "nueva_receta", "confirm_recipe_create", "cancel_recipe_create",
     "list_recipes", "show_recipe", "que_puedo_hacer",
     "sugerir_recetas", "elegir_receta",

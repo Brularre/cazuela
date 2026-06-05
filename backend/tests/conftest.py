@@ -1,5 +1,6 @@
 import os
 import sys
+import pytest
 from unittest.mock import MagicMock
 
 os.environ.setdefault("SUPABASE_URL", "https://fake.supabase.co")
@@ -34,3 +35,9 @@ _mock_users = MagicMock()
 _mock_users.get_or_create_user.return_value = (MagicMock(), False)
 sys.modules.setdefault("app.db.users", _mock_users)
 sys.modules.setdefault("app.db.recipes", MagicMock())
+
+
+@pytest.fixture(autouse=True)
+def _reset_module_cache(monkeypatch):
+    from app.handlers import modules
+    monkeypatch.setattr(modules, "_MODULE_CACHE", {})
